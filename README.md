@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/liferaft/kubekit.svg?branch=master)](https://travis-ci.org/liferaft/kubekit) [![codecov](https://codecov.io/gh/liferaft/kubekit/branch/master/graph/badge.svg)](https://codecov.io/gh/liferaft/kubekit) [![GoDoc](https://godoc.org/github.com/liferaft/kubekit?status.svg)](https://godoc.org/github.com/liferaft/kubekit) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 # 1. KubeKit
 
 KubeKit is a tool for setting up a Kubernetes-powered cluster.
@@ -48,49 +50,36 @@ KubeKit is a tool for setting up a Kubernetes-powered cluster.
 
 ## 1.1. Download
 
-<!--
-Below are the available downloads for the latest **development** version of KubeKit (**2.0.0**). Download the proper KubeKit binary for your operative system and architecture.
+Below are the available downloads for the latest version of KubeKit (**0.1.0**). Download the proper KubeKit binary for your operative system and architecture.
 
-- **Mac OS X**: ( [64-bit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/liferaft/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_darwin_amd64.tgz) | [32-bit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/liferaft/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_darwin_386.tgz) )
+- **Mac OS X**: ( [64-bit](https://github.com/liferaft/kubekit/releases/download/0.1.0/kubekit_0.1.0_darwin_amd64) )
+- **Linux**: ( [64-bit](https://github.com/liferaft/kubekit/releases/download/0.1.0/kubekit_0.1.0_linux_amd64) | [32-bit](https://github.com/liferaft/kubekit/releases/download/0.1.0/kubekit_0.1.0_linux_386) )
+- **Windows**: ( [64-bit](https://github.com/liferaft/kubekit/releases/download/0.1.0/kubekit_0.1.0_windows_amd64) )
 
-- **Linux**: ( [64-bit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/liferaft/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_linux_amd64.tgz) | [32-bit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/liferaft/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_linux_386.tgz) )
-
-The [MD5 and SHA1 checksums](https://jfrog.com/artifactory/dependencies-snapshot-sd/uda/liferaft/kubekit/) are available online for every OS and architecture. 
--->
-
-The latest KubeKit binary and the RPM with latest dependencies can be downloaded from Artifactory at https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/liferaft/kubekit. Go to the latest version and latest build to download the `.tgz` file.
-
-Download the tgz file for your operative system and architecture, which are in the file name. Example: `kubekit_2.0.0_darwin_amd64.tgz`.
-
-After unzipping the downloaded file rename it to `kubekit`, make sure it is executable and move it to a directory identified by the `$PATH` environment variable.
-
-You may use the following simple script to get the binary:
-
-```bash
-URL=https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/liferaft/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_darwin_amd64.tgz
-
-echo -n "QuickID ($USER) password:"
-read -s password
-
-mkdir ~/kubekit
-curl -u $USER:$password $URL | tar -xz -C ~/kubekit
-mv ~/liferaft/kubekit_2.* /usr/local/bin/kubekit
-chmod +x /usr/local/bin/kubekit
-```
+<!-- The [MD5 and SHA1 checksums](https://jfrog.com/artifactory/dependencies-snapshot-sd/uda/liferaft/kubekit/) are available online for every OS and architecture. -->
 
 It's important for some clusters such as EKS to have KubeKit in a directory that is in the **$PATH** environment variable.
 
 To download and install the edge version, it's required to have [Go installed](https://golang.org/doc/install) in your system. Then execute:
 
 ```bash
-go install github.com/liferaft/kubekit
+go install github.com/liferaft/kubekit/cmd/...
 ```
 
 KubeKit will be installed on `$GOPATH/bin/` which should be in your $PATH variable. However, this will not download the RPM with latest dependencies which may be required for most of the platforms but EKS.
 
-The [older builds of KubeKit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/liferaft/kubekit/2.0.0/) are also available online.
+The Docker images are also available in Docker Hub, to download them, it's required to have Docker installed in your system, then execute:
 
-**Important**: The older versions and edge version are not supported by the KubeKit team, use it at your own risk to play with the latest and non-officially released features.
+```bash
+docker pull liferaft/kubekit:0.1.0
+docker pull liferaft/kubekitctl:0.1.0
+```
+
+Or use them directly executing `docker run` like this:
+
+```bash
+docker run --rm -it liferaft/kubekit version
+```
 
 ## 1.2. Basic KubeKit Configuration (Optional)
 
