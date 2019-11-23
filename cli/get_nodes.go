@@ -9,7 +9,7 @@ import (
 
 	toml "github.com/pelletier/go-toml"
 	"github.com/spf13/cobra"
-	"github.com/kubekit/kubekit/pkg/configurator"
+	"github.com/liferaft/kubekit/pkg/configurator"
 	yaml "gopkg.in/yaml.v2"
 )
 

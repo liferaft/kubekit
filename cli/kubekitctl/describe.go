@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/kubekit/kubekit/cli"
+	"github.com/liferaft/kubekit/cli"
 )
 
 // describeCmd represents the `describe` command

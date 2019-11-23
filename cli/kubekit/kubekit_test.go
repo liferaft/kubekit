@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubekit/kubekit/cli/kubekit"
+	"github.com/liferaft/kubekit/cli/kubekit"
 )
 
 var waitingTime = 2 * time.Second

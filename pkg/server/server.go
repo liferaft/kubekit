@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 
-	servertls "github.com/kubekit/kubekit/pkg/server/tls"
+	servertls "github.com/liferaft/kubekit/pkg/server/tls"
 )
 
 // Server encapsulate the server configuration

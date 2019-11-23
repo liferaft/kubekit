@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubekit/kubekit/cli"
+	"github.com/liferaft/kubekit/cli"
 
 	"github.com/spf13/cobra"
 	"github.com/kraken/ui"
-	"github.com/kubekit/kubekit/pkg/kluster"
+	"github.com/liferaft/kubekit/pkg/kluster"
 )
 
 var (

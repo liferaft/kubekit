@@ -12,16 +12,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kubekit/kubekit/pkg/configurator/resources"
+	"github.com/liferaft/kubekit/pkg/configurator/resources"
 
 	"github.com/johandry/log"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/kraken/ui"
-	"github.com/kubekit/kubekit/pkg/configurator/ssh"
-	"github.com/kubekit/kubekit/pkg/crypto"
-	"github.com/kubekit/kubekit/pkg/manifest"
+	"github.com/liferaft/kubekit/pkg/configurator/ssh"
+	"github.com/liferaft/kubekit/pkg/crypto"
+	"github.com/liferaft/kubekit/pkg/manifest"
 )
 
 // TLSDirectory is the directory to upload the CA root certificates at the nodes

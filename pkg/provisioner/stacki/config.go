@@ -2,8 +2,8 @@ package stacki
 
 import (
 	"github.com/johandry/merger"
-	"github.com/kubekit/kubekit/pkg/provisioner/config"
-	"github.com/kubekit/kubekit/pkg/provisioner/utils"
+	"github.com/liferaft/kubekit/pkg/provisioner/config"
+	"github.com/liferaft/kubekit/pkg/provisioner/utils"
 )
 
 // DefaultConfig is the default configuration for a Stacki platform

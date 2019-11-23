@@ -8,8 +8,8 @@ import (
 
 	"github.com/terraform-providers/terraform-provider-aws/aws"
 	"github.com/kraken/terraformer"
-	"github.com/kubekit/kubekit/pkg/crypto"
-	"github.com/kubekit/kubekit/pkg/provisioner/utils"
+	"github.com/liferaft/kubekit/pkg/crypto"
+	"github.com/liferaft/kubekit/pkg/provisioner/utils"
 )
 
 // ResourceTemplates maps resource names to content of resources

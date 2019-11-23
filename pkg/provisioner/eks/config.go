@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 
 	"github.com/johandry/merger"
-	"github.com/kubekit/kubekit/pkg/provisioner/config"
-	"github.com/kubekit/kubekit/pkg/provisioner/utils"
+	"github.com/liferaft/kubekit/pkg/provisioner/config"
+	"github.com/liferaft/kubekit/pkg/provisioner/utils"
 )
 
 // EKSAmi is the latest or stable EKS AMI ID on us-west-2 region

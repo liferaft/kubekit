@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/kubernetes-sigs/aws-iam-authenticator/pkg/token"
-	"github.com/kubekit/kubekit/pkg/kluster"
+	"github.com/liferaft/kubekit/pkg/kluster"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthv1alpha1 "k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1"
 )

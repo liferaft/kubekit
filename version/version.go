@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/kubekit/kubekit/pkg/manifest"
+	"github.com/liferaft/kubekit/pkg/manifest"
 )
 
 var (

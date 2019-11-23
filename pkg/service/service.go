@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/kraken/ui"
-	apiv1 "github.com/kubekit/kubekit/api/kubekit/v1"
-	"github.com/kubekit/kubekit/pkg/server"
-	servicev1 "github.com/kubekit/kubekit/pkg/service/v1"
+	apiv1 "github.com/liferaft/kubekit/api/kubekit/v1"
+	"github.com/liferaft/kubekit/pkg/server"
+	servicev1 "github.com/liferaft/kubekit/pkg/service/v1"
 )
 
 // ServicesForVersion returns the services for a given version

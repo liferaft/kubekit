@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/kubekit/kubekit/pkg/provisioner/utils"
+	"github.com/liferaft/kubekit/pkg/provisioner/utils"
 )
 
 type V struct {

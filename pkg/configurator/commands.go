@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/kraken/ui"
-	"github.com/kubekit/kubekit/pkg/configurator/ssh"
+	"github.com/liferaft/kubekit/pkg/configurator/ssh"
 )
 
 // Command is a command to execute in a cluster node or to/from it

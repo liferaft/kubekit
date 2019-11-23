@@ -9,9 +9,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 
-	apiv1 "github.com/kubekit/kubekit/api/kubekit/v1"
-	"github.com/kubekit/kubekit/pkg/crypto/tls"
-	"github.com/kubekit/kubekit/pkg/kluster"
+	apiv1 "github.com/liferaft/kubekit/api/kubekit/v1"
+	"github.com/liferaft/kubekit/pkg/crypto/tls"
+	"github.com/liferaft/kubekit/pkg/kluster"
 	context "golang.org/x/net/context"
 )
 

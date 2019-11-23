@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kubekit/kubekit/pkg/provisioner"
+	"github.com/liferaft/kubekit/pkg/provisioner"
 
-	"github.com/kubekit/kubekit/pkg/configurator"
+	"github.com/liferaft/kubekit/pkg/configurator"
 )
 
 func TestKluster_ConfigVariables(t *testing.T) {

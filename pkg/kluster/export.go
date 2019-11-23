@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/kubekit/kubekit/pkg/configurator"
-	"github.com/kubekit/kubekit/pkg/provisioner/utils"
+	"github.com/liferaft/kubekit/pkg/configurator"
+	"github.com/liferaft/kubekit/pkg/provisioner/utils"
 )
 
 // ExportTF exports to files the Terraform files, the TF code (main.tf) and the

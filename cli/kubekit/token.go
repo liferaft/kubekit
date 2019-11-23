@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/kubekit/kubekit/pkg/aws_iam_authenticator/token"
+	"github.com/liferaft/kubekit/pkg/aws_iam_authenticator/token"
 )
 
 // When EKS does not need 'aws-iam-authenticator' as a dependency, this command

@@ -6,8 +6,8 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/kubekit/kubekit/pkg/configurator"
-	"github.com/kubekit/kubekit/pkg/configurator/ssh"
+	"github.com/liferaft/kubekit/pkg/configurator"
+	"github.com/liferaft/kubekit/pkg/configurator/ssh"
 )
 
 // HostsFilterBy returns the cluster hosts or nodes in the given pools or

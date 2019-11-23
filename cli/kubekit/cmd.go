@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/kubekit/kubekit/pkg/kluster"
+	"github.com/liferaft/kubekit/pkg/kluster"
 )
 
 var (

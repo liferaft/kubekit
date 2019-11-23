@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/kubekit/kubekit/pkg/configurator/ssh"
+	"github.com/liferaft/kubekit/pkg/configurator/ssh"
 )
 
 // Host is the host configuration

@@ -3,7 +3,7 @@ package kluster
 import (
 	"fmt"
 
-	"github.com/kubekit/kubekit/pkg/configurator"
+	"github.com/liferaft/kubekit/pkg/configurator"
 )
 
 // Configure configures the cluster to have Kubernetes up and running. It uses

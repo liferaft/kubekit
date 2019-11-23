@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform/builtin/provisioners/file"
 	"github.com/terraform-providers/terraform-provider-openstack/openstack"
 	"github.com/kraken/terraformer"
-	"github.com/kubekit/kubekit/pkg/crypto"
-	"github.com/kubekit/kubekit/pkg/provisioner/utils"
+	"github.com/liferaft/kubekit/pkg/crypto"
+	"github.com/liferaft/kubekit/pkg/provisioner/utils"
 )
 
 // ResourceTemplates maps resource names to content of resources

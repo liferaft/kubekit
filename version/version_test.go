@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kubekit/kubekit/version"
+	"github.com/liferaft/kubekit/version"
 )
 
 func TestVersionString(t *testing.T) {

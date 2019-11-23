@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/kubekit/kubekit/cli/kubekit"
+	"github.com/liferaft/kubekit/cli/kubekit"
 )
 
 func main() {

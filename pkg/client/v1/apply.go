@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/jsonpb"
-	apiv1 "github.com/kubekit/kubekit/api/kubekit/v1"
-	"github.com/kubekit/kubekit/pkg/crypto/tls"
+	apiv1 "github.com/liferaft/kubekit/api/kubekit/v1"
+	"github.com/liferaft/kubekit/pkg/crypto/tls"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )

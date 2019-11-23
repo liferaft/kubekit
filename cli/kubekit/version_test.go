@@ -6,8 +6,8 @@ import (
 
 	"os"
 
-	"github.com/kubekit/kubekit/cli/kubekit"
-	"github.com/kubekit/kubekit/version"
+	"github.com/liferaft/kubekit/cli/kubekit"
+	"github.com/liferaft/kubekit/version"
 )
 
 // TestVersionCmd tests the 'version' command

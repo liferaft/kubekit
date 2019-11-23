@@ -13,8 +13,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientauthv1alpha1 "k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1"
 
-	apiv1 "github.com/kubekit/kubekit/api/kubekit/v1"
-	"github.com/kubekit/kubekit/pkg/aws_iam_authenticator/token"
+	apiv1 "github.com/liferaft/kubekit/api/kubekit/v1"
+	"github.com/liferaft/kubekit/pkg/aws_iam_authenticator/token"
 )
 
 // Token returns the token  using HTTP/REST or gRPC

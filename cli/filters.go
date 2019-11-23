@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/kubekit/kubekit/pkg/kluster"
+	"github.com/liferaft/kubekit/pkg/kluster"
 )
 
 // GetFilters returns the cluster filters to from commands such as `get clusters`.

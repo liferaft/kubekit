@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/kraken/terraformer"
-	"github.com/kubekit/kubekit/pkg/configurator"
+	"github.com/liferaft/kubekit/pkg/configurator"
 )
 
 // State represent the final state of one platform. It's basically the

@@ -17,8 +17,8 @@ import (
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/kubekit/azure"
-	"github.com/kubekit/kubekit/pkg/configurator/ssh"
-	"github.com/kubekit/kubekit/pkg/provisioner/state"
+	"github.com/liferaft/kubekit/pkg/configurator/ssh"
+	"github.com/liferaft/kubekit/pkg/provisioner/state"
 )
 
 const (

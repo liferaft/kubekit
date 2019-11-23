@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/kubekit/kubekit/pkg/provisioner/eks"
+	"github.com/liferaft/kubekit/pkg/provisioner/eks"
 )
 
 var tmplFuncMap template.FuncMap

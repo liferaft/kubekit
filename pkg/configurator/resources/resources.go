@@ -10,7 +10,7 @@ import (
 
 	"github.com/kraken/ui"
 
-	"github.com/kubekit/kubekit/pkg/configurator/kube"
+	"github.com/liferaft/kubekit/pkg/configurator/kube"
 	"k8s.io/client-go/kubernetes"
 )
 

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/jsonpb"
-	apiv1 "github.com/kubekit/kubekit/api/kubekit/v1"
+	apiv1 "github.com/liferaft/kubekit/api/kubekit/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )

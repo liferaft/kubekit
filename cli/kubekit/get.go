@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/kubekit/kubekit/cli"
+	"github.com/liferaft/kubekit/cli"
 
 	"github.com/spf13/cobra"
-	"github.com/kubekit/kubekit/pkg/kluster"
+	"github.com/liferaft/kubekit/pkg/kluster"
 )
 
 // getCmd represents the get command

@@ -9,8 +9,8 @@ import (
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"github.com/kubekit/kubekit/pkg/server"
-	"github.com/kubekit/kubekit/pkg/service"
+	"github.com/liferaft/kubekit/pkg/server"
+	"github.com/liferaft/kubekit/pkg/service"
 )
 
 // startCmd represents the start command

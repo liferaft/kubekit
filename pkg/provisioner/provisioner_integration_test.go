@@ -14,8 +14,8 @@ import (
 
 	"github.com/johandry/log"
 	"github.com/kraken/ui"
-	"github.com/kubekit/kubekit/pkg/provisioner"
-	"github.com/kubekit/kubekit/pkg/provisioner/openstack"
+	"github.com/liferaft/kubekit/pkg/provisioner"
+	"github.com/liferaft/kubekit/pkg/provisioner/openstack"
 	"golang.org/x/crypto/ssh"
 	yaml "gopkg.in/yaml.v2"
 )

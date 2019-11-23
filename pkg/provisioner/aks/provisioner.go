@@ -12,9 +12,9 @@ import (
 
 	"github.com/kraken/terraformer"
 	"github.com/kubekit/azure"
-	"github.com/kubekit/kubekit/pkg/crypto"
-	"github.com/kubekit/kubekit/pkg/provisioner/state"
-	"github.com/kubekit/kubekit/pkg/provisioner/utils"
+	"github.com/liferaft/kubekit/pkg/crypto"
+	"github.com/liferaft/kubekit/pkg/provisioner/state"
+	"github.com/liferaft/kubekit/pkg/provisioner/utils"
 )
 
 // ResourceTemplates maps resource names to content of resources

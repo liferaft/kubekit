@@ -7,7 +7,7 @@ import (
 	"github.com/johandry/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/kraken/ui"
-	"github.com/kubekit/kubekit/pkg/provisioner/aws"
+	"github.com/liferaft/kubekit/pkg/provisioner/aws"
 	yaml "gopkg.in/yaml.v2"
 )
 

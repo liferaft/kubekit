@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/kubekit/kubekit/cli"
+	"github.com/liferaft/kubekit/cli"
 )
 
 // deleteCmd represents the `delete` command

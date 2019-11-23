@@ -13,7 +13,7 @@ import (
 	"text/template"
 
 	toml "github.com/pelletier/go-toml"
-	"github.com/kubekit/kubekit/version"
+	"github.com/liferaft/kubekit/version"
 	yaml "gopkg.in/yaml.v2"
 )
 

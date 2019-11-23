@@ -9,7 +9,7 @@ import (
 	vtemplate "github.com/terraform-providers/terraform-provider-template/template"
 	"github.com/terraform-providers/terraform-provider-vsphere/vsphere"
 	"github.com/kraken/terraformer"
-	"github.com/kubekit/kubekit/pkg/provisioner/utils"
+	"github.com/liferaft/kubekit/pkg/provisioner/utils"
 )
 
 // ResourceTemplates maps resource names to content of resources

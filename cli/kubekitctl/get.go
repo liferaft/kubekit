@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kubekit/kubekit/pkg/configurator"
+	"github.com/liferaft/kubekit/pkg/configurator"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"github.com/kubekit/kubekit/cli"
+	"github.com/liferaft/kubekit/cli"
 )
 
 // getCmd represents the `get` command

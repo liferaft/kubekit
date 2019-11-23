@@ -13,7 +13,7 @@ import (
 	"text/template"
 
 	"github.com/kraken/ui"
-	"github.com/kubekit/kubekit/pkg/crypto/tls"
+	"github.com/liferaft/kubekit/pkg/crypto/tls"
 )
 
 // CACert encapsulate the CN and CLI description for a CA cert

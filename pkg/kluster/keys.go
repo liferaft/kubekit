@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
-	"github.com/kubekit/kubekit/pkg/crypto"
-	"github.com/kubekit/kubekit/pkg/provisioner"
+	"github.com/liferaft/kubekit/pkg/crypto"
+	"github.com/liferaft/kubekit/pkg/provisioner"
 	"golang.org/x/crypto/ssh"
 )
 

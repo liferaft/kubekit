@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/johandry/merger"
-	"github.com/kubekit/kubekit/pkg/provisioner/config"
-	"github.com/kubekit/kubekit/pkg/provisioner/utils"
+	"github.com/liferaft/kubekit/pkg/provisioner/config"
+	"github.com/liferaft/kubekit/pkg/provisioner/utils"
 )
 
 // KubekitOS is the latest or stable KubekitOS template name

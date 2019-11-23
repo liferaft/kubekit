@@ -1,9 +1,9 @@
 package v1
 
 import (
-	apiv1 "github.com/kubekit/kubekit/api/kubekit/v1"
-	"github.com/kubekit/kubekit/pkg/manifest"
-	"github.com/kubekit/kubekit/version"
+	apiv1 "github.com/liferaft/kubekit/api/kubekit/v1"
+	"github.com/liferaft/kubekit/pkg/manifest"
+	"github.com/liferaft/kubekit/version"
 	context "golang.org/x/net/context"
 )
 

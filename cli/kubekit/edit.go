@@ -7,7 +7,7 @@ import (
 	"os/exec"
 
 	"github.com/spf13/cobra"
-	"github.com/kubekit/kubekit/pkg/kluster"
+	"github.com/liferaft/kubekit/pkg/kluster"
 )
 
 const defaultEditor = "/usr/bin/vi"

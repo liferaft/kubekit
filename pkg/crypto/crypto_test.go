@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/kubekit/kubekit/pkg/crypto"
+	"github.com/liferaft/kubekit/pkg/crypto"
 )
 
 func TestValidKey(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	"github.com/golang/protobuf/jsonpb"
-	apiv1 "github.com/kubekit/kubekit/api/kubekit/v1"
+	apiv1 "github.com/liferaft/kubekit/api/kubekit/v1"
 )
 
 // GetClusters returns the KubeKit Server get using HTTP/REST or gRPC

@@ -7,7 +7,7 @@ import (
 
 	"github.com/johandry/log"
 	homedir "github.com/mitchellh/go-homedir"
-	clientv1 "github.com/kubekit/kubekit/pkg/client/v1"
+	clientv1 "github.com/liferaft/kubekit/pkg/client/v1"
 )
 
 const apiVersion = "v1"

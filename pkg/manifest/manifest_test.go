@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kubekit/kubekit/pkg/manifest"
+	"github.com/liferaft/kubekit/pkg/manifest"
 )
 
 // ManifestFilename is the name of the Manifest file

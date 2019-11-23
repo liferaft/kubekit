@@ -9,8 +9,8 @@ import (
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"github.com/kubekit/kubekit/pkg/crypto/tls"
-	"github.com/kubekit/kubekit/pkg/kluster"
+	"github.com/liferaft/kubekit/pkg/crypto/tls"
+	"github.com/liferaft/kubekit/pkg/kluster"
 )
 
 // AddCertFlags adds the flags to the given command to receive certificate

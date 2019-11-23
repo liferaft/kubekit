@@ -7,18 +7,18 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kubekit/kubekit/version"
+	"github.com/liferaft/kubekit/version"
 
 	"github.com/johandry/merger"
 
-	"github.com/kubekit/kubekit/pkg/configurator/resources"
+	"github.com/liferaft/kubekit/pkg/configurator/resources"
 
 	"github.com/nightlyone/lockfile"
 	"github.com/pelletier/go-toml"
 	"github.com/kraken/ui"
-	"github.com/kubekit/kubekit/pkg/configurator"
-	"github.com/kubekit/kubekit/pkg/crypto/tls"
-	"github.com/kubekit/kubekit/pkg/provisioner"
+	"github.com/liferaft/kubekit/pkg/configurator"
+	"github.com/liferaft/kubekit/pkg/crypto/tls"
+	"github.com/liferaft/kubekit/pkg/provisioner"
 	"gopkg.in/yaml.v2"
 )
 

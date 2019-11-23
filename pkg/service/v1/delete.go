@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 
 	"github.com/nightlyone/lockfile"
-	apiv1 "github.com/kubekit/kubekit/api/kubekit/v1"
-	"github.com/kubekit/kubekit/pkg/kluster"
+	apiv1 "github.com/liferaft/kubekit/api/kubekit/v1"
+	"github.com/liferaft/kubekit/pkg/kluster"
 	context "golang.org/x/net/context"
 )
 
