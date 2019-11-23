@@ -1,4 +1,4 @@
-module github.com/kubekit/kubekit
+module github.com/liferaft/kubekit
 
 go 1.13
 
