@@ -20,7 +20,7 @@ ARG     BUILD_ID=0
 #         go get github.com/axw/gocov/gocov && \
 #         go get github.com/AlekSi/gocov-xml
 
-WORKDIR /workspace/kubekit/kubekit
+WORKDIR /workspace/liferaft/kubekit
 RUN mkdir -p /.cache/go-build
 RUN chmod 777 -R /.cache
 USER 1000:1000
@@ -41,7 +41,7 @@ RUN     CGO_ENABLED=0 \
         GOOS=linux \
         GOARCH=amd64 \
         go build -o /kubekit \
-        -ldflags="-X github.com/kubekit/kubekit/version.GitCommit=${GIT_COMMIT} -X github.com/kubekit/kubekit/version.Build=${BUILD_ID} -s -w " \
+        -ldflags="-X github.com/liferaft/kubekit/version.GitCommit=${GIT_COMMIT} -X github.com/liferaft/kubekit/version.Build=${BUILD_ID} -s -w " \
         ./cmd/kubekitctl/main.go
 
 RUN     CGO_ENABLED=0 \

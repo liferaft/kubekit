@@ -2,7 +2,7 @@
 
 The following links redirect you different forms of the KubeKit API documentation:
 
-- [API and SDK Documentation](https://github.com/pages/kubekit/kubekit/kkas/api.html)
+- [API and SDK Documentation](https://github.com/pages/liferaft/kubekit/kkas/api.html)
 - Swagger [JSON](../../api/kubekit/v1/swagger/service.swagger.json) / [YAML](./swagger.yaml)
 - [gRPC Proto](../../api/kubekit/v1/proto/) 
 - [Swagger from KubeKit Server](#swagger-from-kubekit-server)

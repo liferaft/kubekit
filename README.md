@@ -51,14 +51,14 @@ KubeKit is a tool for setting up a Kubernetes-powered cluster.
 <!--
 Below are the available downloads for the latest **development** version of KubeKit (**2.0.0**). Download the proper KubeKit binary for your operative system and architecture.
 
-- **Mac OS X**: ( [64-bit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/kubekit/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_darwin_amd64.tgz) | [32-bit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/kubekit/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_darwin_386.tgz) )
+- **Mac OS X**: ( [64-bit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/liferaft/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_darwin_amd64.tgz) | [32-bit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/liferaft/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_darwin_386.tgz) )
 
-- **Linux**: ( [64-bit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/kubekit/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_linux_amd64.tgz) | [32-bit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/kubekit/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_linux_386.tgz) )
+- **Linux**: ( [64-bit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/liferaft/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_linux_amd64.tgz) | [32-bit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/liferaft/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_linux_386.tgz) )
 
-The [MD5 and SHA1 checksums](https://jfrog.com/artifactory/dependencies-snapshot-sd/uda/kubekit/kubekit/) are available online for every OS and architecture. 
+The [MD5 and SHA1 checksums](https://jfrog.com/artifactory/dependencies-snapshot-sd/uda/liferaft/kubekit/) are available online for every OS and architecture. 
 -->
 
-The latest KubeKit binary and the RPM with latest dependencies can be downloaded from Artifactory at https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/kubekit/kubekit. Go to the latest version and latest build to download the `.tgz` file.
+The latest KubeKit binary and the RPM with latest dependencies can be downloaded from Artifactory at https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/liferaft/kubekit. Go to the latest version and latest build to download the `.tgz` file.
 
 Download the tgz file for your operative system and architecture, which are in the file name. Example: `kubekit_2.0.0_darwin_amd64.tgz`.
 
@@ -67,14 +67,14 @@ After unzipping the downloaded file rename it to `kubekit`, make sure it is exec
 You may use the following simple script to get the binary:
 
 ```bash
-URL=https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/kubekit/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_darwin_amd64.tgz
+URL=https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/liferaft/kubekit/2.0.0/2.0.0.20181203-120941.55125f1.257/kubekit_2.0.0_darwin_amd64.tgz
 
 echo -n "QuickID ($USER) password:"
 read -s password
 
 mkdir ~/kubekit
 curl -u $USER:$password $URL | tar -xz -C ~/kubekit
-mv ~/kubekit/kubekit_2.* /usr/local/bin/kubekit
+mv ~/liferaft/kubekit_2.* /usr/local/bin/kubekit
 chmod +x /usr/local/bin/kubekit
 ```
 
@@ -83,12 +83,12 @@ It's important for some clusters such as EKS to have KubeKit in a directory that
 To download and install the edge version, it's required to have [Go installed](https://golang.org/doc/install) in your system. Then execute:
 
 ```bash
-go install github.com/kubekit/kubekit
+go install github.com/liferaft/kubekit
 ```
 
 KubeKit will be installed on `$GOPATH/bin/` which should be in your $PATH variable. However, this will not download the RPM with latest dependencies which may be required for most of the platforms but EKS.
 
-The [older builds of KubeKit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/kubekit/kubekit/2.0.0/) are also available online.
+The [older builds of KubeKit](https://jfrog.com/artifactory/dependencies-snapshot-sd/shared-services/liferaft/kubekit/2.0.0/) are also available online.
 
 **Important**: The older versions and edge version are not supported by the KubeKit team, use it at your own risk to play with the latest and non-officially released features.
 
@@ -218,7 +218,7 @@ For a complete list of commands execute
 kubekit help
 ```
 
-Or read the [CLI-UX](./docs/cli-ux.md) document also available [here](https://github.com/pages/kubekit/kubekit/cli.html).
+Or read the [CLI-UX](./docs/cli-ux.md) document also available [here](https://github.com/pages/liferaft/kubekit/cli.html).
 
 ## 1.6. The Core KubeKit Workflow
 
@@ -1109,7 +1109,7 @@ Assuming you have Go installed as explained [here](https://golang.org/doc/instal
 Like this:
 
 ```bash
-git clone --depth=1 https://github.com/kubekit/kubekit.git && cd kubekit
+git clone --depth=1 https://github.com/liferaft/kubekit.git && cd kubekit
 make
 ./bin/kubekit version
 ```
@@ -1136,7 +1136,7 @@ KubeKit is made of different packages. The homemade packages are located in the 
 
 The repositories are:
 
-- `kubekit/kubekit`: This is the main repository that centralize all the other packages, the CLI and the `kluster` package.
+- `liferaft/kubekit`: This is the main repository that centralize all the other packages, the CLI and the `kluster` package.
 - `kubekit/provisioner`: This is the package/repository in charge of provisioning the platforms. It uses the `kraken/terraformer` package which uses the Terraform Go packages.
 - `kubekit/configurator`: This is the package/repository in charge of configuring/installing Kubernetes in the provisioned or existing cluster. It uses Ansible to execute a playbook at every node of the cluster.
 - `kubekit/manifest`: This package/repository contain the KubeKit dependencies. This repository may be shared with the KubekitOS team because they have to install those dependencies on the KubekitOS images.
@@ -1151,7 +1151,7 @@ To start developing on KubeKit, execute the following steps:
    cd $GOPATH/src/github.com/kubekit
    git clone git@github.com:kubekit/configurator.git
    git clone git@github.com:kubekit/provisioner.git
-   git clone git@github.com:kubekit/kubekit.git
+   git clone git@github.com:liferaft/kubekit.git
    git clone git@github.com:kubekit/manifest.git
    cd ..
    mkdir kraken
@@ -1164,7 +1164,7 @@ To start developing on KubeKit, execute the following steps:
    In this example, the branch to checkout is `uks-1239/sync_configurator` on every repository. The branches in `kubekit/manifest` are named `release-x.y.z`.
 
    ```bash
-   cd $GOPATH/src/github.com/kubekit/kubekit/pkg/configurator
+   cd $GOPATH/src/github.com/liferaft/kubekit/pkg/configurator
    git checkout uks-1239/sync_configurator
    cd ../provisioner
    git checkout uks-1239/sync_configurator
@@ -1220,12 +1220,12 @@ To start developing on KubeKit, execute the following steps:
 
    Read the Examples section for more information about how to setup your environment to use KubeKit.
 
-   Open `kubekit/kubekit/example/config.json` and make sure the parameter `clusters_path` is set to `"./clusters"`.
+   Open `liferaft/kubekit/example/config.json` and make sure the parameter `clusters_path` is set to `"./clusters"`.
 
-   Make sure the link `kubekit/kubekit/example/kubekit` is pointing to `../bin/kubekit` and that the built kubekit binary is in `../bin`.
+   Make sure the link `liferaft/kubekit/example/kubekit` is pointing to `../bin/kubekit` and that the built kubekit binary is in `../bin`.
 
    ```bash
-   cd kubekit/kubekit/example
+   cd liferaft/kubekit/example
    mkdir clusters
    ./kubekit version      # just to verify it's in the ../bin directory
    ```
@@ -1482,4 +1482,4 @@ The `kubekitctl` command is a work in process as well as the KubeKit server.
 
 ## 1.15. Microservices
 
-Go to the [KubeKit Microservices Example](https://github.com/kubekit/kubekit-micro-examples) to use KubeKit as a microservices application.
+Go to the [KubeKit Microservices Example](https://github.com/liferaft/kubekit-micro-examples) to use KubeKit as a microservices application.

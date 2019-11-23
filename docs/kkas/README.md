@@ -11,7 +11,7 @@ The purpose of this section is to explain how to use the:
 * [KubeKit Server](./server.md)
 * [KubeKit Client](./client.md)
 * [KubeKit API](./api.md) 
-* [KubeKit Dashboard](https://github.com/kubekit/kubekit-dashboard).
+* [KubeKit Dashboard](https://github.com/liferaft/kubekit-dashboard).
 
 
 

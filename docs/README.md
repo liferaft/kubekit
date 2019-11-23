@@ -1,6 +1,6 @@
 # KubeKit Documentation
 
-To access the KubeKit Documentation go to https://github.com/pages/kubekit/kubekit/. This document only explain how to edit the documentation.
+To access the KubeKit Documentation go to https://github.com/pages/liferaft/kubekit/. This document only explain how to edit the documentation.
 
 Most of the documents were created in Markdown then exported to HTML. To edit the documents it's recommended to use a Markdown editor such as [Typora](https://typora.io/) or [VSCode](https://code.visualstudio.com/) with a Markdown preview plugin like [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) but for small changes any editor is fine.
 
@@ -17,4 +17,4 @@ For more information about Mermaid go to:
 
 To export the Mermaid Markdown to HTML using Typora, open and edit the Markdown document (i.e. `init.md`) then export it to HTML with the menu option File -> Export -> HTML.
 
-Verify the changes with a browser going to the generated html file using `file://`, i.e. [file:///Users/ja186051/Workspace/src/github.com/kubekit/kubekit/docs/init.html](file:///Users/ja186051/Workspace/src/github.com/kubekit/kubekit/docs/init.html).  After pushing the changes to master branch, double check going to the github page, i.e. https://github.com/pages/kubekit/kubekit/init.html.
+Verify the changes with a browser going to the generated html file using `file://`, i.e. [file:///Users/ja186051/Workspace/src/github.com/liferaft/kubekit/docs/init.html](file:///Users/ja186051/Workspace/src/github.com/liferaft/kubekit/docs/init.html).  After pushing the changes to master branch, double check going to the github page, i.e. https://github.com/pages/liferaft/kubekit/init.html.

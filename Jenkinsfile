@@ -37,8 +37,8 @@ pipeline {
     QA_REPO       = 'dependencies-qa-sd'
     STABLE_REPO   = 'dependencies-stable-sd'
     RELEASED_REPO = 'dependencies-released-sd'
-    REPO_PATH     = 'shared-services/kubekit/kubekit'
-    golang_path   = "/go/src/github.com/kubekit/kubekit"
+    REPO_PATH     = 'shared-services/liferaft/kubekit'
+    golang_path   = "/go/src/github.com/liferaft/kubekit"
     OPENSTACK_HARDENED = "bb86a640-1b31-40d5-a042-60485ee4020a"
     OPENSTACK_SLES15 = "d421f2c4-1569-490e-aad6-cfc10f2b2e30"
   }

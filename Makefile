@@ -15,9 +15,9 @@
 # Description: This Makefile is to automate every action used for development,
 # testing or release of the KubeKit CLI.
 # Use 'make help' to view all the options or go to
-# https://github.com/kubekit/kubekit
+# https://github.com/liferaft/kubekit
 #
-# Report Issues or create Pull Requests in https://github.com/kubekit/kubekit
+# Report Issues or create Pull Requests in https://github.com/liferaft/kubekit
 #===============================================================================
 
 ## Variables:
@@ -173,7 +173,7 @@ show-swagger:
 # view the GoDoc in a local web server
 .PHONY: godoc
 godoc:
-	@$(ECHO) "$(C_GREEN)Open a browser on $(C_YELLOW)http://localhost:6060/pkg/github.com/kubekit/kubekit/$(C_STD)"
+	@$(ECHO) "$(C_GREEN)Open a browser on $(C_YELLOW)http://localhost:6060/pkg/github.com/liferaft/kubekit/$(C_STD)"
 	docker run --rm \
 		-v $(CURDIR):/go/src/$(PKG_BASE)/$(PKG_NAME) \
 		--expose=6060 \

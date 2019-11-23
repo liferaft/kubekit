@@ -32,14 +32,14 @@ When adding a new provisioner, or modifying an existing one, you will need to kn
 The following procedure requires a Go v1.11 and a valid `$GOPATH` set.
 
 1. Checkout a copy of the KubeKit CLI project into your workspace:
-	- `go get -u github.com/kubekit/kubekit`
+	- `go get -u github.com/liferaft/kubekit`
 1. Change directory to the CLI project and enable the local provisioner fork:
-	1. `cd $GOPATH/src/github.com/kubekit/kubekit`
+	1. `cd $GOPATH/src/github.com/liferaft/kubekit`
 	1. `make local-provisioner-on`
 1. Make changes in local provisioner project
-	- **Note:** kubekit CLI will expect the local copy to reside at `$GOPATH/src/github.com/kubekit/kubekit`
+	- **Note:** kubekit CLI will expect the local copy to reside at `$GOPATH/src/github.com/liferaft/kubekit`
 1. Build a KubeKit executable
-	- `GO111MODULE=on go build -o ~/Desktop/kubekit-dev github.com/kubekit/kubekit`
+	- `GO111MODULE=on go build -o ~/Desktop/kubekit-dev github.com/liferaft/kubekit`
 
 #### Validating Openstack Provisioner in CLI
 Run the following commands:
