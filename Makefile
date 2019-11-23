@@ -109,7 +109,7 @@ version:
 .PHONY: test
 test:
 	@$(ECHO) "$(C_GREEN)Testing$(C_STD)"
-	$(GOMODVAR) go test $(GOVENDOR) -race -coverprofile=coverage.txt -covermode=atomic -v ./...
+	$(GOMODVAR) go test $(GOVENDOR) -coverprofile=coverage.txt -covermode=atomic -v ./...
 
 # checks the Go code for actual programming errors and style violations.
 .PHONY: fmt
