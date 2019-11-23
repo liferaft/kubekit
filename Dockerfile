@@ -21,9 +21,7 @@ ARG     BUILD_ID=0
 #         go get github.com/AlekSi/gocov-xml
 
 WORKDIR /workspace/liferaft/kubekit
-RUN mkdir -p /.cache/go-build
-RUN chmod 777 -R /.cache
-USER 1000:1000
+
 # Get internal packages
 COPY    ./staging/src/github.com ./staging/src/github.com
 ENV     GO111MODULE=on
@@ -33,25 +31,25 @@ RUN     go mod download
 
 # Builder image, to build KubeKit and KubeKitCtl
 FROM base AS builder
-USER 1000:1000
 
 COPY    . .
 
 RUN     CGO_ENABLED=0 \
         GOOS=linux \
         GOARCH=amd64 \
-        go build -o /kubekit \
-        -ldflags="-X github.com/liferaft/kubekit/version.GitCommit=${GIT_COMMIT} -X github.com/liferaft/kubekit/version.Build=${BUILD_ID} -s -w " \
-        ./cmd/kubekitctl/main.go
+        go build -o /kubekitctl \
+          -ldflags="-X github.com/liferaft/kubekit/version.GitCommit=${GIT_COMMIT} -X github.com/liferaft/kubekit/version.Build=${BUILD_ID} -s -w " \
+          ./cmd/kubekitctl/main.go
 
 RUN     CGO_ENABLED=0 \
         GOOS=linux \
         GOARCH=amd64 \
-        go build -o /kubekit -ldflags="-s -w" ./cmd/kubekit/main.go
+        go build -o /kubekit \
+          -ldflags="-X github.com/liferaft/kubekit/version.GitCommit=${GIT_COMMIT} -X github.com/liferaft/kubekit/version.Build=${BUILD_ID} -s -w " \
+          ./cmd/kubekit/main.go
 
 # KubeKit application image for development
 FROM alpine:3.9 AS kubekit-dev
-USER 1000:1000
 
 COPY --from=builder /kubekit /app/
 
@@ -59,7 +57,6 @@ ENTRYPOINT [ "ash" ]
 
 # KubeKitCtl application image for development
 FROM alpine:3.9 AS kubekitctl-dev
-USER 1000:1000
 
 COPY --from=builder /kubekitctl /app/
 
@@ -67,7 +64,6 @@ ENTRYPOINT [ "ash" ]
 
 # KubeKit application image
 FROM alpine:3.9 AS kubekit
-USER 1000:1000
 
 COPY --from=builder /kubekit /app/
 
@@ -75,7 +71,6 @@ ENTRYPOINT [ "/app/kubekit" ]
 
 # KubeKitCtl application image
 FROM alpine:3.9 AS kubekitctl
-USER 1000:1000
 
 COPY --from=builder /kubekitctl /app/
 
