@@ -66,9 +66,9 @@ To download and install the edge version, it's required to have [Go installed](h
 go install github.com/liferaft/kubekit/cmd/...
 ```
 
-KubeKit will be installed on `$GOPATH/bin/` which should be in your $PATH variable. However, this will not download the RPM with latest dependencies which may be required for most of the platforms but EKS.
+KubeKit and KubeKitCtl will be installed on `$GOPATH/bin/` which should be in your $PATH variable. However, this will not download the RPM with latest dependencies which may be required for most of the platforms but EKS and AKS.
 
-The Docker images are also available in Docker Hub, to download them, it's required to have Docker installed in your system, then execute:
+The Docker images are also available in Docker Hub, to download them, it's required to have [Docker installed](https://www.docker.com/products/docker-desktop) in your system, then execute:
 
 ```bash
 docker pull liferaft/kubekit:0.1.0
@@ -80,6 +80,16 @@ Or use them directly executing `docker run` like this:
 ```bash
 docker run --rm -it liferaft/kubekit version
 ```
+
+To build KubeKit and/or KubeKitCtl from source, it's required to have [Go installed](https://golang.org/doc/install). After clone the Git repo and move into the directory, use `make` to build both binaries:
+
+```bash
+git clone https://github.com/liferaft/kubekit.git
+cd kubekit
+make build build-ctl
+```
+
+Both binaries will be in the directory `./bin`.
 
 ## 1.2. Basic KubeKit Configuration (Optional)
 
