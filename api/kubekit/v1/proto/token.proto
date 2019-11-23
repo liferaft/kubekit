@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package kubekit.v1;
+
+option go_package = "v1";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+message TokenStatus {
+	google.protobuf.Timestamp expirationTimestamp = 1;
+	string token = 2;
+}
+
+message TokenRequest {
+	string api = 1;
+	string cluster_name = 2;
+	string role = 3;
+}
+
+message TokenResponse {
+	string kind = 1;
+	string apiVersion = 2;
+	google.protobuf.Struct 	spec = 3;
+	TokenStatus status = 4;
+}

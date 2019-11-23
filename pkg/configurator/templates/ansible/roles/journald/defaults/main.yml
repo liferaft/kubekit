@@ -1,0 +1,5 @@
+# https://www.freedesktop.org/software/systemd/man/journald.conf.html
+# acceptable units, initials only, for the journald_log_size are:
+#   K (Kilobytes), M (Megabytes), G (Gigabytes), T (Terabytes), P (Petabytes), E (Exabytes)
+journald_max_size: "1G"
+journald_log_size: "10M"

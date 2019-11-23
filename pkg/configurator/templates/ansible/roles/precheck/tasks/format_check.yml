@@ -1,0 +1,7 @@
+- name: verifying /var/lib/docker is not btrfs
+  command: stat -f -c %T /var/lib/docker
+  register: dockerfs
+  failed_when: "'btrfs' in dockerfs.stdout"
+  any_errors_fatal: true
+  changed_when: no
+  

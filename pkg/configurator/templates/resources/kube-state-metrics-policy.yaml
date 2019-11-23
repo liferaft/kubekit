@@ -1,0 +1,21 @@
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  namespace: kube-system
+  name: kube-state-metrics-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: kube-state-metrics
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kube-state-metrics: ingress
+    - podSelector:
+        matchLabels:
+          app: kube-state-metrics
+    - podSelector:
+        matchLabels:
+          kube-state-metrics: enabled

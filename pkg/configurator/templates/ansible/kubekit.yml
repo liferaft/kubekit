@@ -1,0 +1,19 @@
+- hosts: kube_cluster
+  connection: local
+  become: yes
+  roles:
+    - { role: manifest, tags: [manifest, setup] }
+    - { role: precheck, tags: [precheck, setup]}
+    - { role: timesyncd, tags: [timesyncd, setup] }
+    - { role: dns, tags: [dns, setup] }
+    - { role: journald, tags: [journald, setup] }
+    - { role: root-cert, tags: [root-cert, setup] }
+    - { role: ipsec, tags: [ipsec, setup] }
+    - { role: etcd, tags: [etcd, setup] }
+    - { role: docker/systemd, tags: [docker, systemd, setup] }
+    - { role: docker/registry, tags: [docker, registry, setup] }
+    - { role: kubernetes/ha, tags: [kubernetes, ha] }
+    - { role: kubernetes/systemd, tags: [kubernetes, systemd] }
+    - { role: kubernetes/control-plane, tags: [kubernetes, control] }
+    - { role: kubernetes/security-policies, tags: [kubernetes, security] }
+    - { role: kubernetes/core, tags: [kubernetes, core] }

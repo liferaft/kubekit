@@ -1,0 +1,13 @@
+- name: reload and restart kubelet
+  systemd:
+    name: kubelet
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+
+- name: reload and restart rsyslog
+  systemd:
+    name: rsyslog
+    state: restarted
+    enabled: yes
+    daemon_reload: yes

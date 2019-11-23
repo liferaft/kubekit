@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package kubekit.v1;
+
+option go_package = "v1";
+
+import "cluster.proto";
+
+message GetClustersRequest {
+	string api = 1;
+	repeated string names = 2;
+	repeated string filter = 4; // example: ["status=absent", "platform=eks"] -> get only EKS clusters not applied yet (absent)
+}
+
+message GetClustersResponse {
+	string api = 1;
+	repeated Cluster clusters = 2;
+}

@@ -1,0 +1,10 @@
+- name: "Check that the instance/system has >= 8GB ram"
+  assert:
+    that:
+        - ansible_memory_mb.real.total >= 8192
+    fail_msg: "You do not have enough ram in the instance/system.  You must have >= 8GB of ram.  There is {{ ansible_memory_mb.real.total }}MB available"
+    success_msg: "Congratulations, your system has enough ram.  There is {{ ansible_memory_mb.real.total }}MB available"
+
+- debug:
+    msg: "WARNING: The instance/system should have at least 16GB of ram, there may be problems configuring parts of kubernetes"
+  when: ansible_memory_mb.real.total < 16384

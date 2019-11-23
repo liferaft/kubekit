@@ -1,0 +1,686 @@
+<!doctype html>
+<html>
+<head>
+<meta charset='UTF-8'><meta name='viewport' content='width=device-width initial-scale=1'>
+<title>cli-ux</title></head>
+<body><h1>CLI UX design and proposal</h1>
+<p>This is a proposal for a new design of the Command Line Interface (CLI) commands in order to improve the user eXperience (UX), targeted primarily for human readability and usability.</p>
+<p>A command language is the part of the CLI with which the user interacts with a program, in this case KubeKit. At this time the only way to interact with KubeKit is the CLI.</p>
+<h2>Table of contents</h2>
+<!-- TOC -->
+<ul>
+<li><p><a href='#header-n2613'>CLI UX design and proposal</a></p>
+<ul>
+<li><p><a href='#header-n2617'>Table of contents</a></p>
+</li>
+<li><p><a href='#header-n2746'>Command Structure</a></p>
+<ul>
+<li><p><a href='#header-n2749'>Verbs</a></p>
+</li>
+<li><p><a href='#header-n2779'>Nouns</a></p>
+</li>
+<li><p><a href='#header-n2802'>Basic Commands</a></p>
+<ul>
+<li><a href='#help'><code>help</code></a></li>
+<li><a href='#version'><code>version</code></a></li>
+<li><a href='#show-config'><code>show-config</code></a></li>
+<li><a href='#completion'><code>completion</code></a></li>
+<li><a href='#token'><code>token</code></a></li>
+
+</ul>
+</li>
+<li><p><a href='#header-n2835'>Parameters</a></p>
+</li>
+
+</ul>
+</li>
+<li><p><a href='#header-n2859'>KubeKit Commands</a></p>
+<ul>
+<li><p><a href='#init'><code>init</code></a></p>
+<ul>
+<li><a href='#initialize-a-cluster'>Initialize a <code>cluster</code></a></li>
+<li><a href='#initialize-a-template'>Initialize a <code>template</code></a></li>
+<li><a href='#create-certificates'>Create <code>certificates</code></a></li>
+<li><a href='#create-a-package'>Create a <code>package</code></a></li>
+
+</ul>
+</li>
+<li><p><a href='#apply'><code>apply</code></a></p>
+<ul>
+<li><a href='#apply-changes-to-a-cluster'>Apply changes to a <code>cluster</code></a></li>
+<li><a href='#apply-a-package-to-a-cluster'>Apply a <code>package</code> to a cluster</a></li>
+
+</ul>
+</li>
+<li><p><a href='#delete'><code>delete</code></a></p>
+<ul>
+<li><a href='#delete-a-cluster'>Delete a <code>cluster</code></a></li>
+<li><a href='#delete-a-cluster-configuration'>Delete a <code>cluster configuration</code></a></li>
+<li><a href='#delete-a-template'>Delete a <code>template</code></a></li>
+<li><a href='#delete-a-file'>Delete a <code>file</code></a></li>
+<li><a href='#delete-a-package'>Delete a <code>package</code></a></li>
+
+</ul>
+</li>
+<li><p><a href='#edit'><code>edit</code></a></p>
+</li>
+<li><p><a href='#get'><code>get</code></a></p>
+<ul>
+<li><a href='#get-clusters'>Get <code>clusters</code></a></li>
+<li><a href='#get-nodes'>Get <code>nodes</code></a></li>
+<li><a href='#get-templates'>Get <code>templates</code></a></li>
+<li><a href='#get-environment'>Get <code>environment</code></a></li>
+
+</ul>
+</li>
+<li><p><a href='#copy'><code>copy</code></a></p>
+<ul>
+<li><a href='#copy-a-cluster'>Copy a <code>cluster</code></a></li>
+<li><a href='#copy-a-cluster-configuration'>Copy a <code>cluster configuration</code></a></li>
+<li><a href='#copy-a-template'>Copy a <code>template</code></a></li>
+<li><a href='#copy-a-file'>Copy a <code>file</code></a></li>
+<li><a href='#copy-certificates'>Copy <code>certificates</code></a></li>
+<li><a href='#copy-a-package'>Copy a <code>package</code></a></li>
+
+</ul>
+</li>
+<li><p><a href='#exec'><code>exec</code></a></p>
+<ul>
+<li><a href='#execute-a-command-or-script-file-on-a-cluster'>Execute a command or script file on a <code>cluster</code></a></li>
+<li><a href='#execute-or-install-a-previously-copied-package'>Execute or install a previously copied <code>package</code></a></li>
+
+</ul>
+</li>
+<li><p><a href='#login'><code>login</code></a></p>
+<ul>
+<li><a href='#login-or-enter-credentials-of-a-cluster'>Login or enter credentials of a <code>cluster</code></a></li>
+<li><a href='#login-to-a-node'>Login to a <code>node</code></a></li>
+
+</ul>
+</li>
+<li><p><a href='#describe'><code>describe</code></a></p>
+<ul>
+<li><a href='#describe-clusters'>Describe <code>clusters</code></a></li>
+<li><a href='#describe-templates'>Describe <code>templates</code></a></li>
+<li><a href='#describe-nodes'>Describe <code>nodes</code></a></li>
+<li><a href='#describe-packages'>Describe <code>packages</code></a></li>
+
+</ul>
+</li>
+<li><p><a href='#start-stop-and-restart'><code>start</code>, <code>stop</code> and <code>restart</code></a></p>
+<ul>
+<li><a href='#startstop-cluster'>Start/Stop <code>cluster</code></a></li>
+<li><a href='#startstop-server'>Start/Stop <code>server</code></a></li>
+
+</ul>
+</li>
+<li><p><a href='#scale'><code>scale</code></a></p>
+</li>
+
+</ul>
+</li>
+<li><p><a href='#header-n3133'>Implementation matrix</a></p>
+</li>
+
+</ul>
+</li>
+
+</ul>
+<!-- /TOC -->
+<h2>Command Structure</h2>
+<p>All the KubeKit commands should follow the standard: <em>VERB NOUN PARAMETERS</em></p>
+<p>All the commands (verb, noun or adjective) should always be a single, lowercase word without space, underscores or other word delimiter. However if there is not obvious way to avoid having multiple words, separate with kebab-case, like <code>cluster-config</code>.</p>
+<h3>Verbs</h3>
+<p>The verbs or actions KubeKit cover are:</p>
+<ul>
+<li><code>init</code> or <code>i</code></li>
+<li><code>apply</code> or <code>a</code></li>
+<li><code>delete</code> or <code>d</code> or <code>del</code> or <code>destroy</code></li>
+<li><code>edit</code> or <code>e</code></li>
+<li><code>get</code> or <code>g</code></li>
+<li><code>copy</code> or <code>cp</code></li>
+<li><code>exec</code> or <code>x</code></li>
+<li><code>login</code> or <code>l</code></li>
+<li><code>describe</code> or <code>desc</code></li>
+<li><code>start</code></li>
+<li><code>stop</code></li>
+<li><code>restart</code></li>
+<li><code>scale</code></li>
+
+</ul>
+<p>Some verb have a short-named version.</p>
+<h3>Nouns</h3>
+<p>Nouns (or objects) can be in both the singular or plural form. Unless the singular form is the clearer choice, the language design should err on the side of using the plural form. For example, most of the verbs for <code>cluster</code> acts to only one single cluster, so the noun is in singular form.</p>
+<p>These nouns are as follow:</p>
+<ul>
+<li><strong><code>cluster</code></strong> * or <code>c</code></li>
+<li><code>clusters-config</code> or <code>cc</code></li>
+<li><code>templates</code> or <code>t</code></li>
+<li><code>nodes</code> or <code>n</code></li>
+<li><code>files</code> or <code>f</code></li>
+<li><code>certificates</code> or <code>certs</code></li>
+<li><code>package</code> or <code>pkg</code></li>
+<li><code>environment</code> or <code>env</code> or <code>e</code></li>
+<li><code>server</code> or <code>srv</code> or <code>s</code></li>
+
+</ul>
+<p>The default noun is <code>cluster</code> (marked with *) but an action is required. Some of the nouns have a short-named version.</p>
+<h3>Basic Commands</h3>
+<p>There are some keywords that are just commands. They could be identified as verbs or nouns but they exists in most of the CLI for many commands or products. These are:</p>
+<ul>
+<li><code>help</code> or <code>h</code></li>
+<li><code>version</code></li>
+<li><code>show-config</code></li>
+<li><code>completion</code></li>
+<li><code>token</code></li>
+
+</ul>
+<h4><code>help</code></h4>
+<p>Help a description of what the given command does. It also prints a list of sub-commands and a description for each one. It will show too the available flags and a short description about them.</p>
+<pre><code class='language-shell' lang='shell'>kubekit help [command-name]
+</code></pre>
+<h4><code>version</code></h4>
+<p>Version prints the name of the program (&quot;KubeKit&quot;) and the current version.</p>
+<pre><code class='language-shell' lang='shell'>kubekit version \
+  --verbose
+</code></pre>
+<p>With the <code>--verbose</code> or <code>-v</code> flag prints the version, build number, git hash and version of Kubernetes, Docker and etcd used for this KubeKit release. Also, the latest version if there is internet access to the Github or Artifactory.</p>
+<h4><code>show-config</code></h4>
+<p>A user may use this command to auto-generate the KubeKit configuration file. Also, it could be used to know what are the configuration settings used by KubeKit.</p>
+<pre><code class='language-shell' lang='shell'>kubekit show-config \
+  --format json|yaml|toml \
+  --pp
+  --to FILE
+</code></pre>
+<p>The <code>--format</code> or <code>-f</code> flag is to print the configuration settings in different format, by default it is JSON. If JSON is the selected format, use <code>--pp</code> or <code>-p</code> for pretty print it, using indent.</p>
+<p>Use the flag <code>--to</code> to save the configuration into a file. This command with this flag may be the first command executed after download KubeKit to generate a default configuration file to be customized later.</p>
+<h4><code>completion</code></h4>
+<p>Completion generate the Bash completions for KubeKit. The output of this command should be executed or included into the <code>~/.bashrc</code> or <code>~/.profile</code> files.</p>
+<pre><code class='language-shell' lang='shell'>. &lt;(kubekit completion)
+</code></pre>
+<pre><code class='language-shell' lang='shell'>kubekit completion &gt;&gt; ~/.bashrc
+</code></pre>
+<h4><code>token</code></h4>
+<p>Token is a temporal command created just for EKS to mimic the command <code>aws-iam-authenticator token</code> used to grant access to the EKS cluster. When the need of this command is not required by EKS this command will be removed from KubeKit.</p>
+<p>This command was implemented to eliminate the need to install <code>aws-iam-authenticator</code> and create an external dependency of KubeKit.</p>
+<pre><code class='language-shell' lang='shell'>kubekit token -i CLUSTER-NAME
+</code></pre>
+<h3>Parameters</h3>
+<p>With every command (verb + noun) there may be a set of parameters, arguments or adjectives. These parameters usually are flags that follows the <a href='https://www.gnu.org/prep/standards/html_node/Command_002dLine-Interfaces.html'>GNU coding standards</a>.</p>
+<p>The flag parameters have 2 forms:</p>
+<ul>
+<li><strong>long-named parameter</strong> are prefixed by two dashed and are formed by single or multiple words using kebab-case format.</li>
+<li><strong>short-named parameters</strong> are prefixed by a single dash and usually is just one lower-case letter. However, there may be parameters with one upper-case letter or two letters.</li>
+
+</ul>
+<p>We used the flags to name the parameters and make the command clearer, so flags are preferred to arguments.</p>
+<p>The arguments are the basic way to provide input to a command and while flags are preferred, they are sometimes unnecessary when there is only one possible argument or it&#39;s obvious. For example, <code>kubekit init cluster</code>, the main and next parameter here is the cluster name, instead of use <code>--cluster-name</code> to provide this parameter, let&#39;s just enter the cluster name after it, like <code>kubekit init cluster some-cluster-name</code>.</p>
+<p>There are some standard parameters, some are global to every parameter (persistent) and other are specific to a command. For example:</p>
+<ul>
+<li><code>--help</code> or <code>-h</code> is a parameter of every command and it&#39;s used to print how to use such command. There is also the command <code>help</code>. So, it could be used in 3 forms.</li>
+<li><code>--version</code> is a parameter of the root command and also a command (it&#39;s a noun with no verb or the default verb) <code>version</code> to print the KubeKit version. If used with the <code>--verbose</code> or <code>-v</code> flag will provide detailed information about the version.</li>
+<li><code>--scroll</code> is a persistent command to make the output to scroll up or print the tasks in the same location</li>
+<li><code>--verbose</code> or <code>-v</code> is a persistent command to provide more information about the executed command.</li>
+<li><code>--quiet</code> or <code>-q</code> is a persistent command to print nothing to the screen, except if there is a critical error.</li>
+<li><code>--no-color</code> is a persistent command to print all the output with the terminal default colors. By default KubeKit will print all the output with colors.</li>
+
+</ul>
+<h2>KubeKit Commands</h2>
+<h3><code>init</code></h3>
+<p>Init is used to initialize, generate or create a cluster configuration file, template, certificates or package. This is usually the first command to execute. When it&#39;s initializing a cluster the noun cluster is optional, as it&#39;s the default noun.</p>
+<h4>Initialize a <code>cluster</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit init [cluster] CLUSTER-NAME \
+  --platform cluster-platform \
+  --path config-file-location \
+  --format json|yaml|toml \
+  --template template-name \
+  --update \
+  --access_key aws_access_key_id \
+  --secret_key aws_secret_access_key \
+  --region aws_default_region \
+  --profile aws_profile \
+  --server server_ip_or_dns \
+  --username username \
+  --password password
+</code></pre>
+<p>The cluster requires a platform where it&#39;s going to exists (e.g. <code>aws</code> or <code>vsphere</code>), and it&#39;s specified with the flag <code>--platform</code> or <code>-p</code>.</p>
+<p>The init cluster command creates the cluster configuration file in the default location (<code>~/.kubekit.d</code>) or in the directory specified with <code>--path</code> flag.</p>
+<p>By default the cluster configuration file is a YAML file but could be JSON or TOML if the format is specified with the flag <code>--format</code> or <code>-f</code>.</p>
+<p>A cluster can be created from a template with the <code>--template</code> or <code>-t</code> flag. This flag specifies the template name or location.</p>
+<p>For <strong>AWS</strong> and <strong>EKS</strong> please see the <a href='#login'><code>login</code></a> command for the description of the Amazon options.</p>
+<p>An existing configuration cluster file - by default - cannot be overwritten, once it&#39;s created it with <code>init</code> it cannot be re-created with <code>init</code>. To update the file you have to use the <code>edit</code> command to modify the parameters. However, if you use the <code>--update</code> flag KubeKit will overwrite the cluster configuration with the values set in the environment variables starting with <code>KUBEKIT_VAR_</code> plus the parameter name. This flag is useful when using KubeKit with a script to automate a process.</p>
+<p>This command also generates the credentials for the platform. This could be done with the flags or with environment variables. Read the <code>login</code> command for more information about these flags or environment variables for credentials.</p>
+<h4>Initialize a <code>template</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit init template template-name \
+  --platform platform[,platform...] \
+  --path config-file-location \
+  --update
+</code></pre>
+<p>A template is a file with a specific cluster configuration for  platforms. By default it will create the default configuration for all the platforms but you can specify which one with the flag <code>--platform</code> or <code>-p</code>. The templates are used to create/initialize a cluster based on the template configuration for one of the template platforms.</p>
+<p>The templates are also stored in a default location  (<code>~/.kubekit.d/templates</code>)  but can be also stored somewhere else with the flag <code>--path</code>.</p>
+<p>This command also have the <code>--update</code> flag to overwrite the template taken the parameters from environment variables starting with <code>KUBEKIT_VAR_</code>. By default the <code>init template</code> command will fail if you are trying to initialize an existing template, unless you use the <code>--update</code> flag.</p>
+<h4>Create <code>certificates</code></h4>
+<p>It&#39;s required to initialize the cluster prior the creation of certificates.</p>
+<pre><code class='language-shell' lang='shell'>kubekit init certificates CLUSTER-NAME \
+  --etcd-ca-cert-file /path/to/my/ca/certs/etcd-root-ca.key \
+  --ingress-ca-cert-file /path/to/my/ca/certs/ingress-root-ca.key \
+  --kube-ca-cert-file /path/to/my/ca/certs/kube-root-ca.key
+</code></pre>
+<p>The cluster certificates can be created in advance of the cluster creation or before the configuration, if not they will be created as part of the cluster creation process with the <code>apply</code> command.</p>
+<p>If the CA certificates are not provided, KubeKit will create them for you. Notice that it&#39;s highly recommended  to create or provide your own CA certificates for production environments or environments with some sort of access restriction.</p>
+<p>The CA certificates can be provided to KubeKit with a flag for each CA cert, these flags start with the cert name, then <code>-ca-cert-file</code>. Like:</p>
+<ul>
+<li><code>--kube-ca-cert-file</code>: CA certificate for Kubernetes API server. It&#39;s also the generic CA certificate .If only this certificate is provided, then all the other public certificates will be generated from this one.</li>
+<li><code>--etcd-ca-cert-file</code>: CA certificate for etcd</li>
+<li><code>--ingress-ca-cert-file</code>: CA certificate for Kubernetes Ingress</li>
+
+</ul>
+<h4>Create a <code>package</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit init package [CLUSTER-NAME] \
+  --format (rpm|deb) \
+  --target filename
+</code></pre>
+<p>Creates a package RPM or DEB for the provided cluster name. The format, by default, is RPM unless the flag <code>--format</code> or <code>-f</code>  is used.</p>
+<p>The package file will be located in the cluster directory unless the flag <code>--target</code> or <code>-t</code> is used to indicate the filename or directory to store the package. The default package name is <code>kubekit.rpm</code> or <code>kubekit.deb</code></p>
+<p><em>TBD: Still is pending how to provide the manifest or list of software and version to include in the package.</em></p>
+<h3><code>apply</code></h3>
+<p>Apply is used to apply the configuration into your infrastructure. This means <code>apply</code> will create the cluster if it doesn&#39;t exists or will update or apply the configuration changes if it exists.</p>
+<p>The nouns linked to <code>apply</code> are a cluster and a package (i.e. an RPM or DEB file).</p>
+<h4>Apply changes to a <code>cluster</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit apply [cluster] cluster-name \
+  --provision \
+  --configure \
+  --package-file FILE \
+  --generate-certs \
+  --etcd-ca-cert-file /path/to/my/ca/certs/etcd-root-ca.key \
+  --ingress-ca-cert-file /path/to/my/ca/certs/ingress-root-ca.key \
+  --kube-ca-cert-file /path/to/my/ca/certs/kube-root-ca.key \
+  --export-tf \
+  --export-k8s \
+  --plan
+</code></pre>
+<p>KubeKit does three main things to have a Kubernetes cluster running: (1) provision, (2) generate certificates and (3) install and configure Kubernetes and related services.</p>
+<p>Some of these 3 actions may be optional in some scenarios for example if the cluster (group of nodes, VMs or instances) already exists the provisioning is not done, when the certificates where created previously by the user or KubeKit, it will not create them again, and for EKS or AKS clusters there is none of these 3 actions, just create/update the Kubernetes cluster.</p>
+<p>So, in some cases the user may want to execute each action separately. For that we have the flags <code>--provision</code>,  <code>--configure</code> and <code>--certificates</code>. The flag <code>--provision</code> or <code>-p</code> is going to provision (if possible for the cluster platform) the cluster, it will create or update the nodes, VMs or instances of the cluster. If in the cluster directory there is a file named <code>kubekit.rpm</code> or  <code>kubekit.deb</code> the package will be uploaded to every cluster node and installed before doing the configuration. This package file is useful for development or testing, to use a different software or Docker image to the one shipped with the KubekitOS image. Use the flag <code>--package-file</code> if the package file is not in the cluster directory.</p>
+<p>With the flag <code>--configure</code> or <code>-c</code>, KubeKit will generate the certificates (if doesn&#39;t exists), install and configure Kubernetes on the provisioned or existing cluster.</p>
+<p>The flag <code>--certificates</code> will renew the cluster certificates with the existing certificates, unless <code>--generate-certificates</code> is used. If the certificates does not exists, they will be created. To apply certificates the Kubernetes cluster must exists. <em>It&#39;s under discussion to keep or remove this feature as it can be done with <code>kubectl</code></em></p>
+<p>The <code>--generate-certs</code> flag will force KubeKit to generate the certificates even if they already exists. And the <code>--*-ca-cert-file</code> flags will provide the path to the CA certificates the user wants to use to generate the public certificates. Just like in the command <code>init certificates</code>.</p>
+<p>The <code>--export-tf</code> flag will do nothing but to create the Terraform templates or code so you can provision the infrastructure with Terraform. This is kind of handy when for some reason KubeKit is failing to provisioning and Terraform doesn&#39;t. There is also a <code>--export-k8s</code> to export the Kubernetes manifests that will be applied to the cluster once it&#39;s up and running. This is useful to delete, modify or re-apply the created resources. The <code>--plan</code> flag is to print the changes that will be applied to the infrastructure, but nothing will be really done. These last two commands are for advance users so they are not displayed in the help neither have a short name.</p>
+<h4>Apply a <code>package</code> to a cluster</h4>
+<pre><code class='language-shell' lang='shell'>kubekit apply package CLUSTER-NAME \
+  --package-file FILE \
+  --backup
+</code></pre>
+<p>Sometimes, mostly on development or testing, it&#39;s needed to use a different version of Kubernetes, Docker or another software or Docker image, this is when <code>apply package</code> commands is useful, it uploads a package (i.e. an RPM or DEB file) to every node of the cluster and install it.</p>
+<p>By default the package will be taken from the cluster directory and it&#39;s named <code>kubekit.rpm</code> or <code>kubekit.deb</code>, unless the flag <code>--package-file</code> is used to provide the package file.</p>
+<p>If there is a previously copied package in the node, it will be overwritten unless the flag <code>--backup</code> is used. This command do not remove the package file from the node once it&#39;s installed. The target directory at the node is <code>/tmp/</code>.</p>
+<h3><code>delete</code></h3>
+<p>Delete is similar to <code>apply</code> when the noun is a cluster but in the opposite way. It will terminate all the cluster nodes and may also delete the cluster configuration. Destroy also work with most of the nouns: cluster-config, templates, file and packages. It&#39;s on discussion to include: node and certificates.</p>
+<p>All the delete commands will confirm with the user before destroy the object. In some cases this is not wanted and that&#39;s why exists the <code>--force</code> flag, to force KubKit to delete the object and do not ask questions.</p>
+<h4>Delete a <code>cluster</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit delete [cluster] cluster-name \
+  --all \
+  --force
+</code></pre>
+<p>This command will destroy all the cluster nodes if the platform allows it. For example, this is possible on AWS and vSphere but not for bare-metal or vRA.</p>
+<p>If the flag <code>--all</code> is set, it will also delete the all cluster configuration files such as the config file, certificates and latest state.</p>
+<h4>Delete a <code>cluster configuration</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit delete cluster-config CLUSTER-NAME[,CLUSTER-NAME ...] \
+  --force
+</code></pre>
+<p>Will delete all the cluster configuration files only if the cluster does not exists, unless <code>--force</code> is used.</p>
+<p>It&#39;s important to know that if the cluster exists and KubeKit is forced to delete the configuration there is no way for KubeKit later to modify or access this cluster. So, be careful with this command.</p>
+<h4>Delete a <code>template</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit delete template template-name[,template-name ...] \
+  --force
+</code></pre>
+<p>It just deletes the given template.</p>
+<p>If the template is located somewhere else (not in the default location) you just can delete the template file.</p>
+<h4>Delete a <code>file</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit delete files CLUSTER-NAME file[,file ...] \
+  --nodes node[,node ...] \
+  --pools pool-name[,pool-name ...] \
+  --force
+</code></pre>
+<p>This will delete a file on every node of the cluster or on specific nodes listed with <code>--nodes</code> , or <code>-n</code>, or on the specific pools listed on <code>--pools</code> or <code>-p</code>.</p>
+<p>The name of the nodes could be the IP address, DNS or the node ID which is the pool name and 3 digits. It&#39;s allowed to use wildcards like <code>?</code> and <code>*</code> and ranges like <code>[1-3]</code>.</p>
+<p>It may also delete the file from all the nodes that belongs to a node pool which is specified with the flag <code>--pool</code>, the name of the pools also allow wildcards and ranges, like the nodes.</p>
+<h4>Delete a <code>package</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit delete packages CLUSTER-NAME \
+  --force
+</code></pre>
+<p>Deletes the package from the cluster directory. The package filename is <code>kubekit.rpm</code> or <code>kubekit.deb</code>.</p>
+<p>If the file was created in a different location, just delete the file.</p>
+<h3><code>edit</code></h3>
+<p>Edit is basically for a cluster configuration but as it&#39;s an action for only one object it can be ignored and threaded as the default object.</p>
+<pre><code class='language-shell' lang='shell'>kubekit edit [clusters-config] cluster-name[,cluster-name ...] \
+  --editor /path/to/editor \
+  --read-only
+</code></pre>
+<p>The edit command is going to open an editor with the configuration file for each given cluster name. The editor used will be taken from the flag <code>--editor</code> or <code>-e</code>, if not provided will be taken from the environment variable <code>KUBEKIT_EDITOR</code> and if this variable is not exported the used editor is <code>/usr/bin/vi</code>. If <code>vi</code> is not there, then KubeKit will throw an error.</p>
+<p>The <code>--read-only</code> or <code>-r</code> flag is to show to the standard output the content of the file. It&#39;s like <code>cat</code> the file. If more than one cluster is given, they will be printed one after the other.</p>
+<p>This is a useful command and usually the command to execute after initializing the cluster because the initialization will create a cluster configuration file with default values but other parameters do not have values assigned.</p>
+<h3><code>get</code></h3>
+<p>The <code>get</code> command is used to retrieve information from a given object. If no object name is specified, it will return information from all the occurrences of such object. The <code>get</code> command mimics the behavior of the GET method of a REST API.</p>
+<p>For example, <code>get nodes</code> list all the known nodes in a given cluster with information about those nodes. However, if the flag <code>--node node-A</code> is used, KubeKit will retrieve information only about the node <code>node-A</code>.</p>
+<p>It is used with most of the objects: clusters, nodes, files and templates. <em>Note: certificates are currently being discussed for inclusion</em>.</p>
+<p>The flag <code>--output</code> or <code>-o</code> is a persistent flag, this means it can be used with any object. This flag is used to request the output in a specific format or with more information. The possible values are:</p>
+<ul>
+<li>none: none or not include <code>--output</code> flag will print the regular information about the object in a table or human readable format.</li>
+<li><code>wide</code> or <code>w</code>: it&#39;s like none but provide more information.</li>
+<li><code>json</code>: prints the output in JSON format in a single line. It can be used with the flag <code>--pp</code> to pretty print the JSON output, using two space indentation.</li>
+<li><code>yaml</code>: prints the output in YAML format.</li>
+<li><code>toml</code>: prints the output in TOML format.</li>
+
+</ul>
+<p>JSON, YAML and TOML provide the same amount of information as like <code>wide</code> but in the required format.</p>
+<p>However, if the global parameter <code>--quiet</code> or <code>-q</code> is in use then the output will be just the names or ID of the requested objects. So, using quite mode and an output format at same time will throw an error.</p>
+<h4>Get <code>clusters</code></h4>
+<p>This action actually applies to clusters configuration file in the default location but in order to make it simpler, the noun is replaced to <code>clusters</code> instead of <code>clusters-config</code>.</p>
+<p>It&#39;s used to print information about the clusters configured in my system, like: cluster name, total number of nodes, status and platform. If the parameter <code>--output</code> or <code>-o</code> is set to <code>wide</code> or <code>w</code> will also print the location of the configuration file and the Kubeconfig file if exists. Use the <code>--quiet</code> or <code>-q</code> flags to print only the name of the clusters.</p>
+<p>The option <code>--kubeconfig</code> is to just print the location of the Kubeconfig file for the given clusters. If the cluster does not exists will print <code>N/A</code>.</p>
+<pre><code class='language-shell' lang='shell'>kubekit get clusters NAME[,NAME...]\
+  --kubeconfig \
+  --output wide|json|yaml|toml \
+  --pp
+</code></pre>
+<h4>Get <code>nodes</code></h4>
+<p>This command is very similar to <code>kubectl get nodes</code> but <code>kubectl</code> prints the nodes of an existing cluster and <code>kubekit</code> print the cluster nodes even if the cluster doesn&#39;t exist yet.</p>
+<p>So, it prints the list of node from the given cluster name with the following information: name, public IP address, pool name and status. If the <code>wide</code> or <code>w</code> option is set on <code>--output</code> it will also print: age, private IP, private and public DNS.</p>
+<pre><code class='language-shell' lang='shell'>kubekit get nodes CLUSTER-NAME[,CLUSTER-NAME...]\
+  --node node[,node ...] \
+  --pool pool-name[,pool-name ...] \
+  --output wide|json|yaml|toml \
+  --pp
+</code></pre>
+<p>If the flags <code>--node</code> or <code>-n</code> are present, the entire nodes list will be printed, or a partial list matching the given expression, along with information about these nodes. This expression can use wildcards (<code>?</code>, <code>*</code>) and ranges, (i.e <code>[1-5]</code>).</p>
+<p>Same with the flag <code>--pool</code> or <code>-p</code> to print the nodes that belong to the listed pool names or match with the pool name expressions.</p>
+<h4>Get <code>templates</code></h4>
+<p>Get templates is similar to <code>get clusters</code> but instead of list the cluster configuration files will list all the templates located in the default location.</p>
+<pre><code class='language-shell' lang='shell'>kubekit get templates NAME[,NAME...]\
+  --output wide|json|yaml|toml \
+  --pp
+</code></pre>
+<p>The printed information with no output (none) is: template name, total number of nodes and supported platforms. Using the <code>wide</code> or <code>w</code> output will also print: node pools.</p>
+<h4>Get <code>environment</code></h4>
+<p>Get environment, or env, prints out export commands which can be run in a subshell. Use this command with the shell command <code>eval</code> to export or set the environment variables required to work with the given cluster.</p>
+<p>This command works for different shells. By default it prints the export commands for bash, but if you are in a different shell use the flag <code>--shell</code>. The supported shells are: <code>bash</code>, <code>fish</code>, <code>cmd</code> (Windows) and <code>powershell</code>.</p>
+<pre><code class='language-shell' lang='shell'>kubekit get env NAME
+  --shell SHELL
+</code></pre>
+<p>Use the flag <code>--unset</code> or <code>-u</code> to prints out unset commands which reverse the command effect (in such case, the cluster name is not required).</p>
+<pre><code class='language-shell' lang='shell'>kubekit get env --unset
+</code></pre>
+<h3><code>copy</code></h3>
+<p>The copy command applies to the nouns: clusters, clusters configuration, templates, files, certificates and packages.</p>
+<h4>Copy a <code>cluster</code></h4>
+<p>Copy a cluster is going to duplicate an existing cluster in the same platform with a different name. It&#39;s like executing the <code>apply cluster</code> command after coping the cluster configuration with a new cluster name.</p>
+<pre><code class='language-shell' lang='shell'>kubekit copy [cluster] NAME \
+  --to new-cluster-name \
+  --provision \
+  --configure \
+  --generate-certs \
+  --etcd-ca-cert-file /path/to/my/ca/certs/etcd-root-ca.key \
+  --ingress-ca-cert-file /path/to/my/ca/certs/ingress-root-ca.key \
+  --kube-ca-cert-file /path/to/my/ca/certs/kube-root-ca.key \
+  --export-tf \
+  --export-k8s \
+  --plan
+</code></pre>
+<p>All the flags have the same description as in the <code>apply cluster</code> command except for <code>--to</code> which is the name of the new cluster after coping the configuration file.</p>
+<p>If you want to copy or duplicate an existing cluster in a different platform, first copy the cluster configuration providing this platform, edit the platform parameters and apply the changes. So, it&#39;s not possible to duplicate a Kubernetes cluster into a different platform without editing the config file first.</p>
+<h4>Copy a <code>cluster configuration</code></h4>
+<p>Copying a cluster configuration is to export or duplicate a configuration file with a new cluster name. The result can go to the default KubeKit clusters directory, a given directory in <code>--path</code>, the current directory (if <code>--export</code> is used without <code>--path</code>) or to a Zip file.</p>
+<pre><code class='language-shell' lang='shell'>kubekit copy cluster-config CLUSTER-NAME \
+  --export \
+  --zip \
+  --to new-cluster-name \
+  --platform platform \
+  --path /path/to/new/template/file \
+  --format json|yaml|toml \
+  --template template-name
+</code></pre>
+<p>If the flags <code>--platform</code> or <code>--template</code> are used, it will create a copy of the cluster configuration and then execute the <code>init cluster</code> command to provide default parameters for the new platform or use the parameters from the given template.</p>
+<p>If <code>--path</code> is not used, the cluster configuration file will be stored in the default location.</p>
+<p>If <code>--export</code> is used the cluster will be copied with the same name to the given path. If the path is not provided the cluster will be exported to the current directory. Use the <code>--zip</code> flag with export to create the copy in a zip file, using the cluster name as filename.</p>
+<p>The flag <code>--export</code> cannot be used with <code>--platform</code> or <code>--template</code>.</p>
+<p>The <code>--zip</code> flag is to be used only with <code>--export</code>.</p>
+<h4>Copy a <code>template</code></h4>
+<p>This command creates a copy of an existing template with a different name.</p>
+<pre><code class='language-shell' lang='shell'>kubekit copy template NAME \
+  --to new-template-name \
+  --platforms platform[,platform ...] \
+  --path /path/to/new/template/file
+</code></pre>
+<p>If the <code>--platform</code> flag is used, the new template will be created for the given platforms. For the listed platforms that exists in the source template, the same configuration will be used. For the listed platforms that are not in the source template, the default values will be used.</p>
+<p>If <code>--path</code> is not used, the template will be stored in the default location.</p>
+<h4>Copy a <code>file</code></h4>
+<p>Copy a file is like <code>scp</code> to transfer files from the local host to an specific location at the selected nodes.</p>
+<pre><code class='language-shell' lang='shell'>kubekit copy files CLUSTER-NAME \
+  --from [host:]/path/to/files \
+  --to [host:]/path/to/files \
+  --nodes node[,node ...] \
+  --pool pool-name[,pool-name ...] \
+  --force \
+  --backup \
+  --sudo \
+  --owner owner \
+  --group group \
+  --mode mode
+</code></pre>
+<p>The copy command use the following flags:</p>
+<ul>
+<li><code>--from</code> or <code>-f</code>: specifies the location of the source file or files to copy/transfer to the target nodes. Usually this file is on localhost but it&#39;s possible to get a file from a remote host, just make sure KubeKit have access to this host with the provided or generated SSL keys. By definition the source file(s) should be located in  only one location, so KubeKit cannot get files from different hosts.</li>
+<li><code>--to</code> or <code>-t</code>: specifies the path where to put the transferred file. If the target host is just one it can be specified here, otherwise use the <code>--nodes</code> or <code>--pool</code> flags. If the goal is to get a file from remote hosts to localhost, do not specify host, nodes not pools.</li>
+<li><code>--nodes</code> or <code>-n</code>: specifies the list of hosts or nodes where to put the file in the path given with <code>--to</code>. A node name of the list could be an IP, DNS or node name, and these could use wildcards (<code>?</code>, <code>*</code>) or a range (<code>[1-3]</code>).</li>
+<li><code>--pool</code> or <code>-p</code>: specifies a list of pool names. The file(s) will be transferred to all the nodes that belong to each pool.</li>
+<li><code>--force</code>: By default if the file exists at the target host and path, the file won&#39;t be transferred. Use the force flag to make KubeKit to overwrite the file if it already exists.</li>
+<li><code>--backup</code> or <code>-b</code>: creates a backup file if it already exists.</li>
+<li><code>--sudo</code>: let KubeKit to use the <code>sudo</code> command to create the backup or change owner or group. The user used to access the nodes need to have sudo access.</li>
+<li><code>--owner</code> or <code>-o</code>: specifies the name or uid (user id) of the user that will own the target file. The user to access the nodes must have sudo access.</li>
+<li><code>--group</code> or <code>-g</code>: specifies the name or gid (group id) of the group that will own the target file. The user to access the nodes must have sudo access.</li>
+<li><code>--mode</code> or <code>-m</code>: specifies the mode of the target file. The mode has to be an octal number (<code>0644</code> or <code>01755</code>) prefixed by zero.</li>
+
+</ul>
+<p>Make sure the username provided to KubeKit has permissions to copy the file to the desired location/path or to read it from the remote location.</p>
+<p>The flags <code>--owner</code>, <code>--group</code> and <code>--sudo</code> are not used when coping files from a remote server to localhost.</p>
+<h4>Copy <code>certificates</code></h4>
+<p>This command is used to import or export certificates to/from a cluster. After the certificates are imported they will be applied into the cluster, just like the <code>apply</code> command with the flag <code>--generate-certificates</code>.</p>
+<pre><code class='language-shell' lang='shell'>kubekit copy certificates \
+  --from [host:]/path/to/cert/files \
+  --from-cluster cluster-name \
+  --to [host:]/path/to/cert/files \
+  --to-cluster cluster-name \
+  --dry-run \
+  --zip \
+  --no-backup
+</code></pre>
+<p>If the flag <code>--dry-run</code> is used the to import certificates into a cluster, the certificates won&#39;t be applied in the cluster.</p>
+<p>The exported certificates will be stored in the given path in a directory named like the cluster name. If the flag <code>--zip</code> is used they will be in a zip file named like the cluster name.</p>
+<p>If there are some certificates at the target path, they will be backed up unless the flag <code>--no-backup</code> is used.</p>
+<h4>Copy a <code>package</code></h4>
+<p>The copy package command is used to transfer a package file to every cluster node. It&#39;s similar to copy a file but with less parameters.</p>
+<pre><code class='language-shell' lang='shell'>kubekit copy package CLUSTER-NAME \
+  --package-file FILE \
+  --backup
+</code></pre>
+<p>If the package is not in the default location use the flag <code>--package-file</code> or <code>-f</code>. If there is a previously copied package in the node, it will be overwritten unless the flag <code>--backup</code> is used.</p>
+<p>This command will not install the package, to do so use the command <code>exec package</code> to install it after been uploaded or <code>apply package</code> to upload it and install it.</p>
+<h3><code>exec</code></h3>
+<p>The exec action or command applies only to the clusters and packages.</p>
+<h4>Execute a command or script file on a <code>cluster</code></h4>
+<p>Exec cluster is used to execute a remote command in all the nodes of the cluster or some of them specified with the flag <code>--nodes</code>, <code>-n</code>, or <code>--pool</code>, <code>-p</code>.</p>
+<pre><code class='language-shell' lang='shell'>kubekit exec [cluster] NAME \
+  --cmd command \
+  --file script-file \
+  --nodes node[,node ...] \
+  --pools pool[,pool ...] \
+  --sudo \
+  --output json|yaml|toml \
+  --pp
+</code></pre>
+<p>The <code>--sudo</code> flag is to allow KubeKit to use the <code>sudo</code> command to execute the command or script.</p>
+<p>The output, error from StdErr and exit status will be printed on screen for every host the command was executed. This output could be on JSON, YAML or Toml, as specified by the flag <code>--output</code>.</p>
+<h4>Execute or install a previously copied <code>package</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit exec package CLUSTER-NAME
+</code></pre>
+<p>Use this command to install a previously copied package with the <code>copy package</code> command.</p>
+<h3><code>login</code></h3>
+<p>The login command is used on clusters and a node. It&#39;s a required command for clusters as it provide the credentials to login or use the cluster platform. Each platform will have different kind of credentials. When used with a node, it&#39;s for login or ssh into a node.</p>
+<h4>Login or enter credentials of a <code>cluster</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit login [cluster] NAME \
+  --list \
+  --access_key aws_access_key_id \
+  --secret_key aws_secret_access_key \
+  --region aws_default_region \
+  --profile aws_profile \
+  --server server_ip_or_dns \
+  --username username \
+  --password password
+</code></pre>
+<p>Login into a cluster is to provide the credentials to the platform where KubeKit is going to create or modify the Kubernetes cluster. It&#39;s a command that is required before execute <code>kubekit apply</code> and usually done after <code>kubekit init</code>.</p>
+<p>Depending of the platform are the flags to provide:</p>
+<ul>
+<li>For <strong>vSphere</strong>, the required flags are: <code>--server</code>, <code>--username</code> and <code>--password</code>. The other flags are not required.</li>
+<li>For <strong>vSphere</strong> the variables are: <strong>VSPHERE_SERVER</strong>, <strong>VSPHERE_USERNAME</strong> and <strong>VSPHERE_PASSWORD</strong></li>
+
+</ul>
+<p>Example:</p>
+<pre><code class='language-shell' lang='shell'>export VSPHERE_SERVER=153.0.0.101
+export VSPHERE_USERNAME=&#39;username@vsphere.local&#39;
+export VSPHERE_PASSWORD=&#39;SuperSecure!Pa55w0rd&#39;
+</code></pre>
+<p>If you are not comfortable with providing the credentials using the command flags, then don&#39;t do it and KubeKit will ask for the credentials. The input won&#39;t be print out into the console.</p>
+<p>Use the flag <code>--list</code> to show the credentials. When it&#39;s sensitive information such as passwords or keys, KubeKit will show only stars <code>*</code> or stars and the last 4 characters.</p>
+<p>There is a 3rd way to provide the credentials which is through environment variables. Using the following environment variables, KubeKit will use them as credentials, and the <code>--list</code> flag will show them [partially or completely hide] if they are set.</p>
+<ul>
+<li><p>For <strong>AWS</strong> or <strong>EKS</strong>, There are 3 options for authentication. The order of precedence is: cli options, aws profile, env variables:</p>
+<ol start='' >
+<li><code>--access_key</code>, <code>--secret_key</code>, <code>--region</code></li>
+<li><code>--profile</code></li>
+<li>using environment variables.</li>
+
+</ol>
+<ul>
+<li><code>--session_token</code> is optional if you require aws session token authentication.</li>
+
+</ul>
+</li>
+
+</ul>
+<p> Aws profile information can be found here: <a href='https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html' target='_blank' class='url'>https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html</a></p>
+<p> Session token information can be found here: See (<a href='https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html' target='_blank' class='url'>https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html</a>) &quot;Using Temporary Security Credentials with the AWS CLI&quot; for more details.</p>
+<p>For <strong>AWS</strong> and <strong>EKS</strong> the variables are: <strong>AWS_ACCESS_KEY_ID</strong>, <strong>AWS_SECRET_ACCESS_KEY</strong>, <strong>AWS_DEFAULT_REGION</strong> OR <strong>AWS_PROFILE</strong></p>
+<ul>
+<li>If you require session tokens the additional variable:  <strong>AWS_SESSION_TOKEN</strong> will be used as well.</li>
+
+</ul>
+<p>Example:</p>
+<pre><code class='language-shell' lang='shell'>export AWS_ACCESS_KEY_ID=&#39;YOUR_AWS_ACCESS_KEY&#39;
+export AWS_SECRET_ACCESS_KEY=&#39;YOUR_AWS_SECRET_KEY&#39;
+export AWS_DEFAULT_REGION=us-west-2
+</code></pre>
+<h4>Login to a <code>node</code></h4>
+<p>The login to a node is not like login to a cluster, it&#39;s actually login into a node using SSH.</p>
+<pre><code class='language-shell' lang='shell'>kubekit login node node-name-ip-or-dns \
+  --cluster cluster-name
+</code></pre>
+<p>It&#39;s only possible to login into a single node. Use the node name, IP address or DNS to indicate the node to login in.</p>
+<p>It&#39;s required to enter the cluster name where this node belongs as KubeKit will use the username and SSL keys for this cluster.</p>
+<h3><code>describe</code></h3>
+<p>The describe command is similar to get but will give more information, it&#39;s limited to a number of objects and the output is in the formats JSON, YAML or TOML, by default is JSON. The objects you can get a description are: clusters, template, nodes or package.</p>
+<p>The <code>--pp</code> flag is used only when the output is JSON and will display the JSON in a pretty print format or indented.</p>
+<h4>Describe <code>clusters</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit describe [clusters] NAME[,NAME ...] \
+  --output json|yaml|toml \
+  --pp
+</code></pre>
+<h4>Describe <code>templates</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit describe templates NAME[,NAME ...]
+  --output json|yaml|toml \
+  --pp
+</code></pre>
+<h4>Describe <code>nodes</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit describe nodes node-name-ip-or-dns \
+  --cluster cluster-name \
+  --output json|yaml|toml \
+  --pp
+</code></pre>
+<h4>Describe <code>packages</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit describe packages CLUSTER-NAME[,CLUSTER-NAME ...] \
+  --package-files file,[file ...]
+</code></pre>
+<p>Display the content or manifest of the package file (RPM or DEB) located in the cluster directory of the given cluster names. If there are packages in a different location, use the <code>--package-files</code> or <code>-f</code> to indicate the different package files to describe.</p>
+<h3><code>start</code>, <code>stop</code> and <code>restart</code></h3>
+<p>The start, stop and restart commands applies to server, clusters and nodes. As the name implies they are to start, stop or restart a KubeKit server, a cluster, a single or multiple nodes of a cluster filtered by node name, IP, DNS or by the pool name.</p>
+<h4>Start/Stop <code>cluster</code></h4>
+<pre><code class='language-shell' lang='shell'>kubekit start|stop|restart [cluster] NAME[,NAME ...] \
+  --nodes node[,node ...] \
+  --pools pool[,pool ...]
+</code></pre>
+<p>To start, stop or restart the entire cluster just use the cluster name, no other flag is required, and you can give a list of clusters to restart.</p>
+<p>If you only want to restart a node or set of nodes, use the flags <code>--nodes</code> or <code>-n</code> to list the nodes or use wildcards (<code>*</code>, <code>?</code>) or ranges (<code>[2-5]</code>). You may also restart/start/stop all the nodes in a pool or from multiple pools using the flags <code>--pool</code> or <code>-p</code>. With pools you can also use wildcards and ranges.</p>
+<h4>Start/Stop <code>server</code></h4>
+<p>The command for server have different parameters:</p>
+<pre><code class='language-shell' lang='shell'>kubekit start|stop|restart server \
+  --host 0.0.0.0 \
+  --port 5823 \
+  --grpc-port 0 \
+  --no-http \
+  --healthz-port 5823 \
+  --cert-dir $HUBEKIT_HOME/server/pki \
+  --tls-cert-file /path/to/my/certs/kubekit.cert \
+  --tls-private-key-file /path/to/my/certs/kubekit.key \
+  --ca-file /path/to/my/certs/ca.key \
+  --insecure
+</code></pre>
+<p>The <code>--host</code> parameter is the IP address or hostname for KubeKit Server to serve on, the default value is <code>0.0.0.0</code>. The default port where KubeKit serve is on, is <code>5823</code> but if you want to use a different port use the flag <code>—-port</code> to define it.</p>
+<p>The server by default expose the API as a REST/HTTP API and as a gRPC API on same port (<code>--port</code>), or different ports if <code>--grpc-port</code> is set (REST on <code>--port</code> and gRPC on <code>--grpc-port</code>). However, it is possible to not expose the REST/HTTP API with the flag <code>--no-http</code>. It is not possible to not expose the gRPC API, this is always exposed, it&#39;s up to you to use it or not.</p>
+<p>The gRPC API is recommended for any kind of access to KubeKit Server: from internal applications/services running on the same cluster/network, and from external applications or services. The REST/HTTP API is recommended for external applications or services or if gRPC is not supported the client.</p>
+<p>The parameter  <code>--healthz-port</code> is used to define the port for the healthz server to serve on, the default value is the same as the server port  <code>5823</code>. Set the port to <code>0</code> to disable the healthz server.</p>
+<p>The flag <code>--cert-dir</code> is the directory where the TLS certs are located. If <code>--tls-cert-file</code> and <code>--tls-private-key-file</code> are provided, this flag will be ignored. The default certificates directory is the directory <code>/server/pki</code> in the KubeKit directory which by default is <code>~/kubekit.d</code>. The flag <code>--tls-cert-file</code> is the file containing x509 Certificate used for serving HTTPS and <code>--tls-private-key-file</code> is the file containing x509 private key matching <code>--tls-cert-file</code>.</p>
+<p>If <code>--tls-cert-file</code> and <code>--tls-private-key-file</code> are not provided, and there isn&#39;t any certificate/key in the <code>--cert-dir</code> directory, a self-signed certificate and key are generated for the public address and saved to the directory passed to <code>--cert-dir</code>.</p>
+<p>If <code>--ca-file</code> is set, the given TLS certificate and private key should match with it. If no TLS certificate nor private key is set then they will be generated using this CA certificate file. A client certificate will be generated with this CA certificate and any request presenting a client certificate signed by one of the authorities in the ca-file is authenticated with an identity corresponding to the CommonName of the client certificate.</p>
+<p>The <code>--insecure</code> flag is set when TLS is not required. This may be used in non-production environments or if the access to KubeKit Server is only from internal applications and there is no exposure of KubeKit outside of the cluster or network.</p>
+<p><strong><u>Note</u></strong>: At this time, the only way to have gRPC and REST/HTTP API running on different ports is using the insecure mode.</p>
+<p><u>Example</u>:</p>
+<pre><code class='language-shell' lang='shell'>kubekit start server
+</code></pre>
+<pre><code class='language-shell' lang='shell'>$ curl -s -k -X GET https://localhost:5823/api/v1/version | jq
+{
+  &quot;api&quot;: &quot;v1&quot;,
+  &quot;kubekit&quot;: &quot;2.1.0&quot;,
+  &quot;kubernetes&quot;: &quot;1.12.5&quot;,
+  &quot;docker&quot;: &quot;18.06.2-ce&quot;,
+  &quot;etcd&quot;: &quot;v3.3.12&quot;
+}
+$ curl -s -k -X GET https://localhost:5823/healthz/v1/Kubekit | jq
+{
+  &quot;code&quot;: 1,
+  &quot;status&quot;: &quot;SERVING&quot;,
+  &quot;message&quot;: &quot;service \&quot;v1.Kubekit\&quot; is serving&quot;,
+  &quot;service&quot;: &quot;v1.Kubekit&quot;
+}
+</code></pre>
+<h3><code>scale</code></h3>
+<p>The scale command is used to increase or decrease the number of nodes of a clusters. It will modify the cluster configuration file and apply the changes, which is to increase/decrease the number of nodes and configure Kubernetes and services in the new nodes.</p>
+<pre><code class='language-shell' lang='shell'>kubekit scale [cluster] cluster-name pool-name=[+|-]number[ pool-name=[+|-]number ...]
+</code></pre>
+<p>This command will set a new number of nodes in the given pool names of the given cluster. If the sign of plus <code>+</code> or minus <code>-</code> are used before the number, it means that will increase or decrease the existing number of nodes by that given number.</p>
+<p>For example, if we have the cluster named <code>kkdemo</code> with one master (pool name is <code>master</code>) and 3 workers (pool name is <code>worker</code>). The following commands will scale to:</p>
+<p>Executing <code>kubekit scale kkdemo master=2</code> scales to: masters = 2, workers = 3.</p>
+<p>Executing <code>kubekit scale kkdemo master=2 worker=2</code> scales to: masters = 2, workers = 2.</p>
+<p>To the previous cluster (2x2), executing<code>kubekit scale kkdemo master=-1 worker=+2</code> scales to: masters = 1, workers = 4.</p>
+<p>The scale command will basically modify the number of nodes in the cluster configuration file and apply the changes like <code>kubekit apply</code> command would do. So, you may also scale the cluster that way, the <code>scale</code> command is just a shortcut.</p>
+<h2>Implementation matrix</h2>
+<p>There is a total of <strong>36 commands</strong>, <strong>19</strong> of them are done, fully implemented and tested, <strong>5</strong> of them implemented but not fully tested, the rest <strong>12</strong> are in the backlog without estimate sprint or implementation date yet.</p>
+<figure><table>
+<thead>
+<tr><th>Verb</th><th>Noun</th><th>Implemented</th><th>Tested</th><th>Sprint</th></tr></thead>
+<tbody><tr><td>help</td><td>&nbsp;</td><td>100%</td><td>100%</td><td>30</td></tr><tr><td>version</td><td>&nbsp;</td><td>100%</td><td>100%</td><td>30</td></tr><tr><td>show-config</td><td>&nbsp;</td><td>100%</td><td>100%</td><td>30</td></tr><tr><td><strong>completion</strong></td><td>&nbsp;</td><td><strong>0%</strong></td><td><strong>0%</strong></td><td><strong>*</strong></td></tr><tr><td>init</td><td>cluster</td><td>100%</td><td>100%</td><td>30</td></tr><tr><td>&nbsp;</td><td>template</td><td>100%</td><td><strong>50% **</strong></td><td>30</td></tr><tr><td>&nbsp;</td><td>certificates</td><td>100%</td><td><strong>50% **</strong></td><td>30</td></tr><tr><td>&nbsp;</td><td><strong>package</strong></td><td><strong>5%</strong></td><td><strong>0%</strong></td><td><strong>*</strong></td></tr><tr><td>apply</td><td>cluster</td><td>100%</td><td>100%</td><td>30</td></tr><tr><td>&nbsp;</td><td>package</td><td>100%</td><td><strong>50% **</strong></td><td>30</td></tr><tr><td>delete</td><td>cluster</td><td>100%</td><td>100%</td><td>30</td></tr><tr><td>&nbsp;</td><td>cluster-config</td><td>100%</td><td>100%</td><td>30</td></tr><tr><td>&nbsp;</td><td><strong>template</strong></td><td><strong>5%</strong></td><td><strong>0%</strong></td><td><strong>*</strong></td></tr><tr><td>&nbsp;</td><td><strong>file</strong></td><td><strong>5%</strong></td><td><strong>0%</strong></td><td><strong>*</strong></td></tr><tr><td>&nbsp;</td><td><strong>package</strong></td><td><strong>0%</strong></td><td><strong>0%</strong></td><td><strong>*</strong></td></tr><tr><td>edit</td><td>clusters</td><td>100%</td><td>100%</td><td>30</td></tr><tr><td>get</td><td>clusters</td><td>100%</td><td>100%</td><td>30</td></tr><tr><td>&nbsp;</td><td>nodes</td><td>100%</td><td>100%</td><td>31</td></tr><tr><td>&nbsp;</td><td><strong>templates</strong></td><td><strong>5%</strong></td><td><strong>0%</strong></td><td><strong>*</strong></td></tr><tr><td>&nbsp;</td><td>env</td><td>100%</td><td>100%</td><td>34</td></tr><tr><td>copy</td><td><strong>clusters</strong></td><td><strong>5%</strong></td><td><strong>0%</strong></td><td><strong>*</strong></td></tr><tr><td>&nbsp;</td><td>cluster-config</td><td>100%</td><td>100%</td><td>31</td></tr><tr><td>&nbsp;</td><td><strong>template</strong></td><td><strong>5%</strong></td><td><strong>0%</strong></td><td><strong>*</strong></td></tr><tr><td>&nbsp;</td><td>files</td><td>100%</td><td>100%</td><td>30</td></tr><tr><td>&nbsp;</td><td><strong>certificates</strong></td><td><strong>5%</strong></td><td><strong>0%</strong></td><td><strong>*</strong></td></tr><tr><td>&nbsp;</td><td>package</td><td>100%</td><td>100%</td><td>30</td></tr><tr><td>exec</td><td>cluster</td><td>100%</td><td><strong>75% **</strong></td><td>30</td></tr><tr><td>&nbsp;</td><td>package</td><td>100%</td><td><strong>50% **</strong></td><td>30</td></tr><tr><td>login</td><td>cluster</td><td>100%</td><td>100%</td><td>30</td></tr><tr><td>&nbsp;</td><td>node</td><td>100%</td><td>100%</td><td>31</td></tr><tr><td>describe</td><td>cluster</td><td>100%</td><td>100%</td><td>31</td></tr><tr><td>&nbsp;</td><td><strong>template</strong></td><td><strong>5%</strong></td><td><strong>0%</strong></td><td><strong>*</strong></td></tr><tr><td>&nbsp;</td><td>nodes</td><td>100%</td><td>100%</td><td>31</td></tr><tr><td>&nbsp;</td><td>packages</td><td>5%</td><td>0%</td><td>31</td></tr><tr><td><strong>[re]start, stop</strong></td><td><strong>cluster</strong></td><td><strong>5%</strong></td><td><strong>0%</strong></td><td><strong>*</strong></td></tr><tr><td><strong>scale</strong></td><td><strong>cluster</strong></td><td><strong>5%</strong></td><td><strong>0%</strong></td><td><strong>*</strong></td></tr></tbody>
+</table></figure>
+<p>(<strong>*</strong>) Task to implement this command is in backlog (12 commands)</p>
+<p>(<strong>**</strong>) Command implemented but not fully tested due to dependencies (5 commands)</p>
+<p>(** **) Considering to remove the command (1 command)</p>
+</body>
+</html>

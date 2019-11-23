@@ -1,0 +1,30 @@
+kind: KubeSchedulerConfiguration
+apiVersion: kubescheduler.config.k8s.io/v1alpha1
+algorithmSource:
+  provider: DefaultProvider
+bindTimeoutSeconds: 600
+clientConnection:
+  acceptContentTypes: ""
+  burst: 100
+  contentType: application/vnd.kubernetes.protobuf
+  kubeconfig: {{ kube_config_filename }}
+  qps: 50
+disablePreemption: false
+enableContentionProfiling: false
+enableProfiling: false
+failureDomains: kubernetes.io/hostname,failure-domain.beta.kubernetes.io/zone,failure-domain.beta.kubernetes.io/region
+featureGates:
+{{ feature_gates | to_nice_yaml | indent(2, true) }}
+hardPodAffinitySymmetricWeight: 1
+healthzBindAddress: 0.0.0.0:10251
+leaderElection:
+  leaderElect: true
+  leaseDuration: 15s
+  lockObjectName: kube-scheduler
+  lockObjectNamespace: kube-system
+  renewDeadline: 10s
+  resourceLock: endpoints
+  retryPeriod: 2s
+metricsBindAddress: 0.0.0.0:10251
+percentageOfNodesToScore: 50
+schedulerName: default-scheduler

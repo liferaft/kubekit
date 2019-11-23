@@ -1,0 +1,26 @@
+- name: <precheck>
+  debug:
+    msg: Print tag <precheck> for KubeKit Configurator parser
+
+- block:
+  - include_tasks: all_hosts_alive.yml
+  - include_tasks: ansible_version.yml
+  - include_tasks: memory_check.yml
+  - include_tasks: swap_check.yml
+  - include_tasks: user_settings.yml
+  - include_tasks: format_check.yml
+  - include_tasks: ha_host_check.yml
+  - include_tasks: ip_precheck.yml
+  - include_tasks: ip_validate.yml
+  - include_tasks: sysctl.yml
+  - include_tasks: openssl_check.yml
+  - include_tasks: fix_stacki.yml
+  - include_tasks: time_check.yml
+  when: prechecks_enabled
+
+- include_tasks: cloud-init.yml
+  when: cloud_provider == "aws"
+
+- name: </precheck>
+  debug:
+    msg: Print tag </precheck> for KubeKit Configurator parser

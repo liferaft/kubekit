@@ -1,0 +1,95 @@
+#https://cbonte.github.io/haproxy-dconv/1.5/configuration.html#3.3
+global
+  nbproc {{ haproxy_num_cpus }}
+{% for i in range(haproxy_num_cpus|int) %}
+  cpu-map {{ i + 1 }} {{ i }}
+{% endfor %}
+  ca-base {{cert_dir}}
+  log 127.0.0.1 local0 {{ haproxy_log_level }}
+  log-send-hostname
+  maxconn 8192
+  chroot /var/lib/haproxy
+  user haproxy
+  group haproxy
+  daemon
+  tune.bufsize 32768
+  tune.ssl.default-dh-param 2048
+  tune.ssl.cachesize 100000
+  tune.ssl.lifetime 600
+  tune.ssl.maxrecord 1460
+  ssl-default-bind-options {{ haproxy_ssl_bind_options }}
+  ssl-default-bind-ciphers {{ haproxy_ssl_bind_ciphers }}
+  # ssl-server-verify none
+
+defaults
+  # balance leastconn
+  log     global
+  mode    http
+  #option  log-health-checks
+  #option  log-separate-errors
+  option  dontlog-normal
+  option  dontlognull
+  option  httplog
+  option  http-server-close
+  retries 3
+  option  redispatch
+  maxconn 2000
+  timeout connect    5000
+  timeout client     {{ haproxy_client_timeout | default(haproxy_server_timeout, true) | default('30m', true) }}
+  timeout server     {{ haproxy_server_timeout | default(haproxy_client_timeout, true) | default('30m', true) }}
+
+frontend apiserver
+  bind {{ kube_virtual_ip_api }}:{{ kube_vip_api_ssl_port }}
+  bind 127.0.0.1:{{ kube_vip_api_ssl_port }}
+  mode tcp
+  option tcplog
+  default_backend apiserver
+
+frontend registry
+  bind {{ kube_virtual_ip_api }}:{{ registry_lb_port }} ssl crt /usr/local/etc/haproxy/node.pem
+  bind 127.0.0.1:{{ registry_lb_port }} ssl crt /usr/local/etc/haproxy/node.pem
+  mode http
+  option forwardfor
+  acl docker_writes method POST PUT DELETE PATCH
+  http-request deny if docker_writes
+  http-request set-header X-Forwarded-Proto https if { ssl_fc }
+  redirect scheme https if !{ ssl_fc }
+  default_backend registry
+
+backend apiserver
+  mode tcp
+  #option tcplog
+  option httpchk GET /healthz
+  http-check expect string ok
+  balance static-rr
+  default-server inter 10s downinter 5s rise 2 fall 2 slowstart 60s maxconn 250 maxqueue 256 weight 100
+  {% for host in groups['master'] -%}
+  server apiserver{{ loop.index }} {{ hostvars[host][address_inventory_field] }}:{{ kube_api_ssl_port }} ca-file /usr/local/etc/haproxy/{{root_ca_crt_filename }} check-ssl verify none
+  {% endfor %}
+
+backend registry
+  redirect scheme https if !{ ssl_fc }
+  mode http
+  option forwardfor
+  option redispatch
+  option httpchk GET /v2/
+  balance static-rr
+  http-response set-header X-Server %s
+  default-server inter 10s downinter 5s rise 2 fall 2 slowstart 60s maxconn 250 maxqueue 256 weight 100
+  {% for host in groups['master'] -%}
+  server registry{{ loop.index }} {{ hostvars[host][address_inventory_field] }}:{{ registry_port }} ssl verify none check
+  {% endfor %}
+
+{% if enable_etcd_local_proxy %}
+{% for host in groups['master'] -%}
+listen etcd-{{ hostvars[host][address_inventory_field] | replace('.', '-') }}-initial-advertise-peer
+  mode tcp
+  bind 127.0.0.1:{{ etcd_starting_proxy_initial_advertise_port|int + loop.index0 }}
+  server etcd{{ loop.index }}-initial-advertise-peer {{ hostvars[host][address_inventory_field] }}:2380
+listen etcd-{{ hostvars[host][address_inventory_field] | replace('.', '-') }}-advertise-peer
+  mode tcp
+  bind 127.0.0.1:{{ etcd_starting_proxy_advertise_port|int + loop.index0 }}
+  server etcd{{ loop.index }}-advertise-peer {{ hostvars[host][address_inventory_field] }}:2379
+
+{% endfor %}
+{% endif %}

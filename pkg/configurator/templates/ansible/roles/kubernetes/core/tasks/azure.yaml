@@ -1,0 +1,37 @@
+- name: Check all hosts are still available
+  include_role:
+    name: precheck
+    tasks_from: all_hosts_alive
+  
+- name: assert directories exists
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - /srv/kubernetes/manifests
+
+- block:
+
+  - name: wait until kube apiserver is available
+    uri:
+      url: "{{ kube_api_server_local }}/healthz"
+      status_code: 200
+      client_cert: "{{ cert_dir }}/{{ certs.admin.crt }}"
+      client_key: "{{ cert_dir }}/{{ certs.admin.key }}"
+    retries: 12
+    delay: 5
+    register: apiserver_availability
+    until: ('status' in apiserver_availability) and (apiserver_availability.status == 200)
+    # action has no previous state to compare. should be pass fail.
+    changed_when: no
+
+  - name: render azure storage class manifests
+    template:
+      src: "srv/kubernetes/manifests/azure-storage-classes.yaml.j2"
+      dest: "/srv/kubernetes/manifests/azure-storage-classes.yaml"
+
+  - name: create ebs storage classes
+    shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply -f /srv/kubernetes/manifests/azure-storage-classes.yaml"
+
+  # end block
+  when: "'master' in group_names" 

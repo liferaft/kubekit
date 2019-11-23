@@ -1,0 +1,8 @@
+- name: create and remove systemd-tmpfiles
+  shell: systemd-tmpfiles --create --remove
+
+- name: reload and restart containerd
+  systemd:
+    name: containerd
+    state: restarted
+    daemon_reload: yes

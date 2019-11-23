@@ -1,0 +1,105 @@
+---
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: default-http-backend-v1.0
+      namespace: kube-system
+      labels:
+        app: default-http-backend
+        version: "{{ current_manifest['dependencies']['core']['default-backend']['version'] }}" 
+        kubernetes.io/cluster-service: "true"
+        role: backend
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: default-http-backend
+      template:
+        metadata:
+          labels:
+            app: default-http-backend
+            version: "{{ current_manifest['dependencies']['core']['default-backend']['version'] }}"
+        spec:
+          serviceAccountName: default-http-backend-sa
+          priorityClassName: kube-system-high
+          terminationGracePeriodSeconds: 60
+          containers:
+          - name: default-http-backend
+            # Any image is permissable as long as:
+            # 1. It serves a 404 page at /
+            # 2. It serves 200 on a /healthz endpoint
+            image: {{ core_repo_root }}{{ current_manifest['dependencies']['core']['default-backend']['src'] }}
+            livenessProbe:
+              httpGet:
+                path: /healthz
+                port: 8080
+                scheme: HTTP
+              initialDelaySeconds: 30
+              timeoutSeconds: 5
+            ports:
+            - containerPort: 8080
+            resources:
+              requests:
+                cpu: {{ default_backend_requests_cpu }}
+                memory: {{ default_backend_requests_memory }}
+{% if default_backend_limits_cpu or default_backend_limits_memory %}
+              limits:
+{% if default_backend_limits_cpu %}
+                cpu: {{ default_backend_limits_cpu }}
+{% endif %}
+{% if default_backend_limits_memory %}
+                memory: {{ default_backend_limits_memory }}
+{% endif %}
+{% endif %}
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: default-http-backend
+      namespace: kube-system
+      labels:
+        app: default-http-backend
+        kubernetes.io/cluster-service: "true"
+    spec:
+      ports:
+      - port: 80
+        protocol: TCP
+        targetPort: 8080
+      selector:
+        app: default-http-backend
+      sessionAffinity: None
+      type: ClusterIP
+
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: default-http-backend-sa
+      namespace: kube-system
+
+#  - apiVersion: rbac.authorization.k8s.io/v1
+#    kind: ClusterRoleBinding
+#    metadata:
+#     name: default--http-backend-rb
+#    roleRef:
+#      apiGroup: rbac.authorization.k8s.io
+#      kind: ClusterRole
+#      name: default-http-backend-role
+#    subjects:
+#    - kind: ServiceAccount
+#      name: default-http-backend-sa
+#      namespace: kube-system
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: default-http-backend-role
+    rules:
+    - apiGroups:
+      - ""
+      resources:
+      - ""
+      verbs:
+      - ""

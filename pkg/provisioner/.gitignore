@@ -1,0 +1,24 @@
+# Ignore vendors in this repository
+
+vendor/
+vendor.tmp/
+
+# Ignore Terraform files used for unit testing
+
+*/templates/.terraform
+*/templates/*.tfstate*
+*/templates/*.tfvars*
+
+# Ignore EKS generated outputs from testing
+*/templates/config-map-aws-auth.yaml
+*/templates/kubeconfig
+
+# Temporal files
+
+delete_me*
+.idea/
+cobertura.xml
+go-build/
+gitconfig-for-pr
+build/
+golang.org/

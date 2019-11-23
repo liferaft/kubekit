@@ -1,0 +1,6 @@
+- name: reload and restart network
+  systemd:
+    name: network
+    state: restarted
+    enabled: yes
+    daemon_reload: yes

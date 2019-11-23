@@ -1,0 +1,183 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: etcd
+  namespace: kube-system
+  annotations:
+    scheduler.alpha.kubernetes.io/critical-pod: ""
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "2381"
+  labels:
+    component: etcd
+    tier: control-plane
+spec:
+  hostNetwork: true
+  priorityClassName: system-cluster-critical
+  containers:
+  - name: etcd
+    image: {{ core_repo_root }}{{ current_manifest['dependencies']['control-plane']['etcd']['src'] }}
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: ETCDCTL_API
+      value: "3"
+{% if groups['master']|length == 1 %}
+    - name: NODE_HOST
+      value: "localhost"
+{% elif cloud_provider == "aws" %}
+    - name: NODE_HOST
+      valueFrom:
+        fieldRef:
+          fieldPath: status.hostIP
+{% else %}
+    - name: NODE_HOST
+      value: {{ hostvars[inventory_hostname][address_inventory_field] }}
+{% endif %}
+{% if is_ha_cluster and enable_etcd_local_proxy %}
+    - name: ADVERTISE_PORT
+      value: "{{ etcd_starting_proxy_advertise_port|int + hostvars[inventory_hostname][address_inventory_field].split('-')[-1]|int - 1 }}"
+    - name: INITIAL_ADVERTISE_PORT
+      value: "{{ etcd_starting_proxy_initial_advertise_port|int + hostvars[inventory_hostname][address_inventory_field].split('-')[-1]|int - 1 }}"
+{% else %}
+    - name: ADVERTISE_PORT
+      value: "2379"
+    - name: INITIAL_ADVERTISE_PORT
+      value: "2380"
+{% endif %}
+    - name: CLUSTER_PEERS
+{% if groups['master']|length == 1 %}
+      value: "etcd-{% if cloud_provider == "aws" %}{{ groups['master'][0] | replace('master', '') }}{% else %}{{ hostvars[groups['master'][0]]['hostname'] | lower }}{% endif %}=https://localhost:2380"
+{% elif is_ha_cluster and enable_etcd_local_proxy %}
+      # Etcd binds DNS names to an IP only at startup which causes issues with TLS when IPs change
+      # Etcd expects the IP SANs in the certificate to match the binding
+      # this means that we have to update the Etcd certificate
+      # ...using the Etcd local proxy gets around this issue
+      value: "{% for host in groups['master'] -%}etcd-{{ hostvars[host]['hostname'] | lower }}=https://127.0.0.1:{{ etcd_starting_proxy_initial_advertise_port|int + loop.index0 }}{% if not loop.last %},{% endif %}{%- endfor %}"
+{% elif cloud_provider == "aws" %}
+      value: "{% for host in groups['master'] -%}etcd-{{ host | replace('master', '') }}=https://{{ hostvars[host]['private_ip'] }}:2380{% if not loop.last %},{% endif %}{%- endfor %}"
+{% elif groups['master']|length == 1 %}
+      value: "etcd-{{ hostvars[groups['master'][0]]['hostname'] | lower }}=https://localhost:2380"
+{% else %}
+      value: "{% for host in groups['master'] -%}etcd-{{ hostvars[host]['hostname'] | lower }}=https://{{ hostvars[host][address_inventory_field] }}:2380{% if not loop.last %},{% endif %}{%- endfor %}"
+{% endif %}
+    command:
+    - sh
+    - -c
+    - etcdctl_version=$(etcdctl help);
+      etcdctl_version_status=$?;
+      echo "$etcdctl_version" > /etcdctl.version.tmp;
+      if [ $etcdctl_version_status -ne 0 ] || [ ! -f /etc/kubernetes/bin/.etcdctl.version ] || [ ! $(diff /etc/kubernetes/bin/.etcdctl.version /etcdctl.version.tmp) ]; then
+        etcdctl_path=$(readlink -f $(which etcdctl)) &&
+        /bin/cp "$etcdctl_path" "/etc/kubernetes/bin/etcdctl" &&
+        echo "$etcdctl_version" > /etc/kubernetes/bin/.etcdctl.version;
+      fi;
+      /usr/local/bin/etcd
+{% if cloud_provider == "aws" %}
+       --name=etcd-{{ inventory_hostname | replace('master', '') }}
+{% else %}
+       --name=etcd-{{ hostvars[inventory_hostname]['hostname'] | lower }}
+{% endif %}
+       --data-dir={{ etcd_data_dir }}
+       --election-timeout={{ etcd_election_timeout }}
+       --heartbeat-interval={{ etcd_heartbeat_interval }}
+       --max-wals={{ etcd_max_wals }}
+       --snapshot-count={{ etcd_snapshot_count }}
+       --listen-client-urls=https://0.0.0.0:$(ADVERTISE_PORT)
+       --listen-peer-urls=https://0.0.0.0:$(INITIAL_ADVERTISE_PORT)
+{% if is_ha_cluster and enable_etcd_local_proxy %}
+       --advertise-client-urls=https://127.0.0.1:$(ADVERTISE_PORT)
+       --initial-advertise-peer-urls=https://127.0.0.1:$(INITIAL_ADVERTISE_PORT)
+{% else %}
+       --advertise-client-urls=https://$(NODE_HOST):$(ADVERTISE_PORT)
+       --initial-advertise-peer-urls=https://$(NODE_HOST):$(INITIAL_ADVERTISE_PORT)
+{% endif %}
+       --client-cert-auth=true
+       --trusted-ca-file={{ cert_dir }}/{{ etcd_root_ca_crt_filename }}
+       --cert-file={{ cert_dir }}/{{ certs.etcd.crt }}
+       --key-file={{ cert_dir }}/{{ certs.etcd.key }}
+       --peer-client-cert-auth=true
+       --peer-trusted-ca-file={{ cert_dir }}/{{ etcd_root_ca_crt_filename }}
+       --peer-cert-file={{ cert_dir }}/{{ certs.etcd.crt }}
+       --peer-key-file={{ cert_dir }}/{{ certs.etcd.key }}
+       --initial-cluster-state=new
+       --initial-cluster-token={{ etcd_initial_cluster_token }}
+       --initial-cluster=$(CLUSTER_PEERS)
+       --peer-cert-allowed-cn=etcd
+       --listen-metrics-urls=http://0.0.0.0:2381
+       --metrics=extensive
+       # --debug
+    resources:
+      requests:
+        cpu: {{ etcd_requests_cpu }}
+        memory: {{ etcd_requests_memory }}
+{% if etcd_limits_cpu or etcd_limits_memory %}
+      limits:
+{% if etcd_limits_cpu %}
+        cpu: {{ etcd_limits_cpu }}
+{% endif %}
+{% if etcd_limits_memory %}
+        memory: {{ etcd_limits_memory }}
+{% endif %}
+{% endif %}
+    ports:
+    - containerPort: 2379
+      hostPort: 2379
+    - containerPort: 2380
+      hostPort: 2380
+    - containerPort: 2381
+      hostPort: 2381
+    livenessProbe:
+      exec:
+        command:
+        - /bin/sh
+        - -ec
+        - ETCDCTL_API=3 etcdctl --endpoints=https://[127.0.0.1]:2379 --cacert={{ cert_dir }}/{{ etcd_root_ca_crt_filename }}
+          --cert={{ cert_dir }}/{{ certs.etcd.crt }} --key={{ cert_dir }}/{{ certs.etcd.key }}
+          get foo
+      failureThreshold: 8
+      initialDelaySeconds: 15
+      timeoutSeconds: 15
+    volumeMounts:
+{% if controlplane_timezone != "" %}
+    - name: tz-config
+      mountPath: /etc/localtime
+{% endif %}
+    - mountPath: {{ etcd_data_dir }}
+      name: etcd-data
+    - mountPath: {{ cert_dir }}
+      name: etcd-certs
+      readOnly: true
+    - mountPath: /etc/kubernetes/bin
+      name: kubernetes-bin
+      readOnly: false
+    #- mountPath: /etc/resolv.conf
+    #  name: etc-resolv
+    #  readOnly: true
+    #- mountPath: /etc/hosts
+    #  name: etc-hosts
+    #  readOnly: true
+  volumes:
+  - hostPath:
+      path: {{ etcd_data_dir }}
+      type: DirectoryOrCreate
+    name: etcd-data
+  - hostPath:
+      path: {{ cert_dir }}
+      type: DirectoryOrCreate
+    name: etcd-certs
+  - hostPath:
+      path: /etc/kubernetes/bin
+      type: DirectoryOrCreate
+    name: kubernetes-bin
+  #- hostPath:
+  #    path: /etc/resolv.conf
+  #    type: File
+  #  name: etc-resolv
+  #- hostPath:
+  #    path: /etc/hosts
+  #    type: File
+  #  name: etc-hosts
+{% if controlplane_timezone != "" %}
+  - hostPath:
+      path: "/usr/share/zoneinfo/{{ controlplane_timezone }}"
+    name: tz-config
+{% endif %}

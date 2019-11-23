@@ -1,0 +1,13 @@
+  - name: "update node labels"
+    shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig label nodes {{ hostvars[label_host]['hostname'] }} {{ item }}  {% if overwrite_kubelet_labels %} --overwrite {% endif %}"
+    with_items: "{{ hostvars[label_host]['kubelet_labels'] | valid_labels }}"
+    register: label_updates
+    failed_when: "label_updates.rc > 0 and 'already has a value' not in label_updates.stderr"
+    changed_when: "label_updates.rc == 0"
+
+  - name: "update node taints"
+    shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig taint nodes {{ hostvars[label_host]['hostname'] }} {{ item }} {% if overwrite_kubelet_taints %} --overwrite {% endif %}"
+    register: taint_updates
+    failed_when: "taint_updates.rc > 0 and 'not found' not in taint_updates.stderr and 'at least one taint update is required' not in taint_updates.stderr and 'with same effect' not in taint_updates.stderr"
+    changed_when: "taint_updates.rc == 0"
+    with_items: "{{ hostvars[label_host]['kubelet_taints'] | valid_taints(untaints=true) }}"

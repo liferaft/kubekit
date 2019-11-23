@@ -1,0 +1,32 @@
+---
+- name: reload and restart keepalived
+  systemd:
+    name: keepalived
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  when: "'master' in group_names"
+
+- name: reload and restart haproxy
+  systemd:
+    name: haproxy
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  when: "'master' in group_names"
+
+- name: reload and restart bynet
+  systemd:
+    name: bynet
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  when: "'master' in group_names"
+
+- name: reload and restart rsyslog
+  systemd:
+    name: rsyslog
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  when: "'master' in group_names"

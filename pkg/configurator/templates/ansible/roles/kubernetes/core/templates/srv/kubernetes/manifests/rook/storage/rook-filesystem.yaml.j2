@@ -1,0 +1,38 @@
+#################################################################################################################
+# Create a filesystem with settings with replication enabled for a production environment.
+# A minimum of 3 OSDs on different nodes are required in this example.
+#  kubectl create -f rook-filesystem.yaml
+#################################################################################################################
+
+apiVersion: ceph.rook.io/v1
+kind: CephFilesystem
+metadata:
+  name: rook-global-filestore
+  namespace: rook-ceph
+spec:
+  # The metadata pool spec. Must use replication.
+  metadataPool:
+    replicated:
+      size: {{ rook_ceph_filesystem_meta_pool_replication_count }}
+  # The list of data pool specs. Can use replication or erasure coding.
+  dataPools:
+    - failureDomain: osd
+      replicated:
+        size: {{ rook_ceph_filesystem_data_pool_replication_count }}
+  # The metadata service (mds) configuration
+  metadataServer:
+    # The number of active MDS instances
+    activeCount: {{ rook_ceph_filesystem_mds_count }}
+    # Whether each active MDS instance will have an active standby with a warm metadata cache for faster failover.
+    # If false, standbys will be available, but will not have a warm cache.
+    activeStandby: {{ rook_ceph_filesystem_active_standby }}
+    # The affinity rules to apply to the mds deployment
+    placement: {{ rook_ceph_filesystem_placement_options }}
+    annotations: {{ rook_ceph_filesystem_annotation_options }}
+    resources:
+      limits:
+        cpu: "{{ rook_ceph_filesystem_resource_limits_cpu }}"
+        memory: "{{ rook_ceph_filesystem_resource_limits_mem }}"
+      requests:
+        cpu: "{{ rook_ceph_filesystem_resource_requests_cpu }}"
+        memory: "{{ rook_ceph_filesystem_resource_requests_mem }}"

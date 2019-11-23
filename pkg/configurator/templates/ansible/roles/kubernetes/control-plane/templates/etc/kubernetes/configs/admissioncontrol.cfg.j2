@@ -1,0 +1,19 @@
+kind: AdmissionConfiguration
+apiVersion: apiserver.k8s.io/v1alpha1
+plugins:
+- name: "EventRateLimit"
+  path: /etc/kubernetes/configs/eventratelimit.yaml
+- name: "ResourceQuota"
+  configuration:
+    apiVersion: resourcequota.admission.k8s.io/v1alpha1
+    kind: Configuration
+    limitedResources:
+    - resource: pods
+    matchScopes:
+    - operator : In
+      scopeName: PriorityClass
+      values:
+      - "system-node-critical"
+      - "system-cluster-critical"
+      - "kube-system-critical"
+      - "kube-system-high"

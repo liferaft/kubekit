@@ -1,0 +1,32 @@
+- name: <root-cert>
+  debug:
+    msg: Print tag <root-cert> for KubeKit Configurator parser
+
+- name: Check all hosts are still available
+  include_role:
+    name: precheck
+    tasks_from: all_hosts_alive
+
+- name: Ensure openssl is installed
+  shell: openssl version
+  failed_when: openssl_version.rc != 0
+  register: openssl_version
+
+- name: ensure '{{ cert_dir }}/trust/anchors/' exists
+  file:
+    path: "{{ cert_dir }}/trust/anchors/"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: test if kube-apiserver is running
+  shell: systemctl status kube-apiserver
+  register: apiserver_result
+  failed_when: apiserver_result.rc not in [0,3,4]
+  notify: reload and restart kube-apiserver
+  changed_when: apiserver_result.stdout.find('(running)') != -1
+
+- name: </root-cert>
+  debug:
+    msg: Print tag </root-cert> for KubeKit Configurator parser

@@ -1,0 +1,46 @@
+#################################################################################################################
+# Create an object store with settings for replication in a production environment.
+# A minimum of 3 hosts with OSDs are required in this example.
+#  kubectl create -f rook-object-store.yaml
+#################################################################################################################
+
+apiVersion: ceph.rook.io/v1
+kind: CephObjectStore
+metadata:
+  name: rook-s3-object-store
+  namespace: rook-ceph
+spec:
+  # The pool spec used to create the metadata pools. Must use replication.
+  metadataPool:
+    failureDomain: host
+    replicated:
+      size: {{ rook_ceph_object_store_meta_pool_replication_count }}
+  # The pool spec used to create the data pool. Can use replication or erasure coding.
+  dataPool:
+    failureDomain: osd
+    replicated:
+      size: {{ rook_ceph_object_store_data_pool_replication_count }}
+  # The gaeteway service configuration
+  gateway:
+    # type of the gateway (s3)
+    type: {{ rook_ceph_object_store_gateway_type }}
+    # A reference to the secret in the rook namespace where the ssl certificate is stored
+    sslCertificateRef: # rook-s3-object-store-pem
+    # The port that RGW pods will listen on (http)
+    port: 20080
+    # The port that RGW pods will listen on (https). An ssl certificate is required.
+    securePort:
+    # The number of pods in the rgw deployment (ignored if allNodes=true)
+    instances: {{ rook_ceph_object_store_instance_count }}
+    # Whether the rgw pods should be deployed on all nodes as a daemonset
+    allNodes: {{ rook_ceph_object_store_all_nodes }}
+    # The affinity rules to apply to the rgw deployment or daemonset.
+    placement: {{ rook_ceph_object_store_placement }}
+    annotations: {{ rook_ceph_object_store_annotations }}
+    resources:
+      limits:
+        cpu: "{{ rook_ceph_object_store_resource_limits_cpu }}"
+        memory: "{{ rook_ceph_object_store_resource_limits_mem }}"
+      requests:
+        cpu: "{{ rook_ceph_object_store_resource_requests_cpu }}"
+        memory: "{{ rook_ceph_object_store_resource_requests_mem }}"

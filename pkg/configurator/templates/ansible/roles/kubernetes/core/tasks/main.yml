@@ -1,0 +1,23 @@
+- name: <kubernetes/core>
+  debug:
+    msg: Print tag <kubernetes/core> for KubeKit Configurator parser
+
+- import_tasks: defaults.yml
+
+- name: Check all hosts are still available
+  include_role:
+    name: precheck
+    tasks_from: all_hosts_alive
+
+- include_tasks: rook.yaml
+  when: rook_enabled | bool
+
+- include_tasks: ebs.yaml
+  when: cloud_provider == "aws"
+
+- include_tasks: azure.yaml
+  when: cloud_provider == "azure"
+
+- name: </kubernetes/core>
+  debug:
+    msg: Print tag </kubernetes/core> for KubeKit Configurator parser

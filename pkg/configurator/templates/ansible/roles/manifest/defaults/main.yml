@@ -1,0 +1,5 @@
+version_file_path: "{{ role_path }}/../../VERSION"
+release_file_path: "{{ role_path }}/../../RELEASE"
+manifest_file_path: "{{ role_path }}/../../MANIFEST"
+version_match: '^(.*)'
+version_replace: '\1'

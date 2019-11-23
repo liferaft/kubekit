@@ -1,0 +1,109 @@
+- name: <kubernetes/security-policies>
+  debug:
+    msg: Print tag <kubernetes/security-policies> for KubeKit Configurator parser
+
+- name: Check all hosts are still available
+  include_role:
+    name: precheck
+    tasks_from: all_hosts_alive
+
+- block:
+
+  - name: wait until kube apiserver is available
+    uri:
+      url: "{{ kube_api_server_local }}/healthz"
+      status_code: 200
+      client_cert: "{{ cert_dir }}/{{ certs.admin.crt }}"
+      client_key: "{{ cert_dir }}/{{ certs.admin.key }}"
+    retries: 12
+    delay: 5
+    register: apiserver_availability
+    until: ('status' in apiserver_availability) and (apiserver_availability.status == 200)
+    # action has no previous state to compare. should be pass fail.
+    changed_when: no
+
+  - name: assert /srv/kubernetes/manifests{{ item }} exists
+    file:
+      path: /srv/kubernetes/manifests/{{ item }}
+      state: directory
+    with_items:
+      - rbac
+      - network
+      - psp
+      - priority-class
+      - resource-quota
+
+  - name: copy rbac manifests to /srv/kubernetes/manifests/rbac
+    copy:
+      src: "srv/kubernetes/manifests/rbac/{{ item }}.yaml"
+      dest: "/srv/kubernetes/manifests/rbac/{{ item }}.yaml"
+    with_items: "{{ rbac_manifests }}"
+
+  - name: copy psp files to /srv/kubernetes/manifests/psp
+    copy:
+      src: "srv/kubernetes/manifests/psp/{{ item }}.yaml"
+      dest: /srv/kubernetes/manifests/psp/{{ item }}.yaml
+    with_items: "{{ psp_manifests }}"
+
+  - name: copy network policy files to /srv/kubernetes/manifests/network
+    copy:
+      src: "srv/kubernetes/manifests/network/{{ item }}.yaml"
+      dest: /srv/kubernetes/manifests/network/{{ item }}.yaml
+    with_items: "{{ net_policy_manifests }}"
+
+  - name: copy priority class files to /srv/kubernetes/manifests/priority-class
+    copy:
+      src: "srv/kubernetes/manifests/priority-class/{{ item }}.yaml"
+      dest: /srv/kubernetes/manifests/priority-class/{{ item }}.yaml
+    with_items: "{{ priority_class_manifests }}"
+
+  - name: copy resource quota files to /srv/kubernetes/manifests/resource-quota
+    copy:
+      src: "srv/kubernetes/manifests/resource-quota/{{ item }}.yaml"
+      dest: /srv/kubernetes/manifests/resource-quota/{{ item }}.yaml
+    with_items: "{{ resource_quota_manifests }}"
+
+  - block:
+    # no efficient way to check these for 'changed' state.
+
+    - name: apply RBAC manifests
+      shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply -f /srv/kubernetes/manifests/rbac/{{ item }}.yaml"
+      with_items: "{{ rbac_manifests }}"
+
+    - name: apply psp manifests
+      shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply -f /srv/kubernetes/manifests/psp/{{ item }}.yaml"
+      with_items: "{{ psp_manifests }}"
+
+    - name: apply network policy manifests
+      shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply -f /srv/kubernetes/manifests/network/{{ item }}.yaml"
+      with_items: "{{ net_policy_manifests }}"
+
+    - name: apply priority class manifests
+      shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply -f /srv/kubernetes/manifests/priority-class/{{ item }}.yaml"
+      with_items: "{{ priority_class_manifests }}"
+
+    - name: apply resource quota manifests
+      shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply -f /srv/kubernetes/manifests/resource-quota/{{ item }}.yaml"
+      with_items: "{{ resource_quota_manifests }}"
+
+    when: inventory_hostname == 'master000'
+
+  when: "'master' in group_names"
+
+- name: Add KUBECONFIG to /etc/profile.local
+  lineinfile:
+    path: /etc/profile.local
+    line: 'export KUBECONFIG=/var/lib/kubelet/kubeconfig'
+    state: present
+    create: yes
+    mode: 0644
+
+- name: add user to kube group
+  user:
+    name: "{{ ansible_user  }}"
+    append: yes
+    groups: kube
+
+- name: </kubernetes/security-policies>
+  debug:
+    msg: Print tag </kubernetes/security-policies> for KubeKit Configurator parser

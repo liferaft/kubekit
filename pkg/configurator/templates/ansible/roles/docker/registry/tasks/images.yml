@@ -1,0 +1,70 @@
+  # the override is meant to override all prebake-paths in the MANIFEST
+  # the file should only contain a list of prebake paths, 1 path per line, that can be natively loaded by docker
+  - name: read MANIFEST image prebake-path override
+    shell: "[ -f /root/manifest.src ] && cat /root/manifest.src || echo ''"
+    register: manifest_src
+
+  - set_fact:
+      manifest_items: "{{ manifest_items | default({}) | combine(item) }}"
+    with_items: "{{ current_manifest.dependencies.values()| list }}"
+
+  - set_fact:
+      missing_images: "{{ manifest_items.values()| list | selectattr('prebake-path', 'equalto', '') | map(attribute='src') | list | sort | unique }}"
+      manifest_paths: "{{ manifest_items.values()| list | rejectattr('prebake-path', 'equalto', '') | map(attribute='prebake-path') | list | sort | unique }}"
+      manifest_paths_override: "{{ manifest_src.stdout_lines | map('trim') | reject('equalto', '') | list }}"
+
+  - name: docker pull missing images if enabled
+    shell: "docker pull {{ item }}"
+    register: docker_pull
+    failed_when: docker_pull.rc != 0
+    with_items: "{{ missing_images }}"
+    when: download_images_if_missing
+
+  - name: decide if missing images should fail configurator
+    fail:
+      msg: "Some images are missing and we will be unable to complete the configuration."
+    when: "not download_images_if_missing and (missing_images | length) > 0"
+
+  - name: docker load image files
+    shell: "docker load -i {{ item }}"
+    register: docker_load
+    failed_when: docker_load.rc != 0
+    # load unique image sources from both control-plane and core
+    with_items: "{% if not manifest_paths_override %}{{ manifest_paths }}{% else %}{{ manifest_paths_override }}{% endif %}"
+    when: images_already_loaded is not defined or not images_already_loaded
+
+  - block:
+
+    - set_fact:
+        loaded_images: "{{ loaded_images | default([]) + item.stdout_lines | flatten | list }}"
+      with_items: "{{ loaded_image_results.results }}"
+
+    when: images_already_loaded is defined and images_already_loaded
+
+  - block:
+
+    - set_fact:
+        loaded_images: "{{ loaded_images | default([]) + item.stdout_lines | flatten | list }}"
+      with_items: "{{ docker_load.results }}"
+
+    when: images_already_loaded is not defined or not images_already_loaded
+
+  - set_fact:
+      all_images: "{{ missing_images + (loaded_images | sort | unique | select('match', 'Loaded image: .*') | map('replace', 'Loaded image: ', '') | list) }}"
+
+  # if repo is tagged with lrk, we assume that we dont have to add docker.io to it
+  - name: retag docker images
+    shell: "{% set repo = item.split('/')[0].split(':')[0] %}docker tag {{ item }} {% if repo != 'lrk' %}lrk/{% if '.' not in repo %}docker.io/{% endif %}{% endif %}{{ item }}"
+    with_items: "{{ all_images }}"
+
+  # if repo is tagged with lrk, we assume that we dont have to add docker.io to it
+  - name: retag docker images with localhost:{{registry_port}} as repo
+    shell: "{% set repo = item.split('/')[0].split(':')[0] %}docker tag {{ item }} localhost:{{registry_port}}/{% if repo != 'lrk' %}lrk/{% if '.' not in repo %}docker.io/{% endif %}{% endif %}{{ item }}"
+    with_items: "{{ all_images }}"
+
+  # if repo is tagged with lrk, we assume that we dont have to add docker.io to it
+  - name: docker push to registry at localhost:{{registry_port}}
+    shell: "{% set repo = item.split('/')[0].split(':')[0] %}docker push localhost:{{registry_port}}/{% if repo != 'lrk' %}lrk/{% if '.' not in repo %}docker.io/{% endif %}{% endif %}{{ item }}"
+    register: docker_push
+    failed_when: docker_push.rc != 0
+    with_items: "{{ all_images }}"

@@ -1,0 +1,134 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-proxy
+  namespace: kube-system
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: system:kube-proxy
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+subjects:
+  - kind: ServiceAccount
+    name: kube-proxy
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: system:node-proxier
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kube-proxy
+  namespace: kube-system
+  labels:
+    component: kube-proxy
+    tier: control-plane
+spec:
+  selector:
+    matchLabels:
+      component: kube-proxy
+      tier: control-plane
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+        prometheus.io/port: "10249"
+        prometheus.io/scrape: "true"
+      labels:
+        component: kube-proxy
+        tier: control-plane
+    spec:
+      hostNetwork: true
+      priorityClassName: system-node-critical
+      serviceAccountName: kube-proxy
+      tolerations:
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - effect: NoSchedule
+        operator: Exists
+      - effect: NoExecute
+        operator: Exists
+      containers:
+      - name: kube-proxy
+        image: {{ core_repo_root }}{{ current_manifest['dependencies']['control-plane']['kube-proxy']['src'] }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MY_HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        command:
+{% if current_manifest['dependencies']['control-plane']['kube-proxy']['src'].split('/')[-1].startswith('hyperkube') %}
+        - /hyperkube
+        - proxy
+{% else %}
+        - /usr/local/bin/kube-proxy
+{% endif %}
+        - --bind-address={{ kube_api_secure_bind_address }}
+{% for item in kube_proxy_args %}
+        - {{ item }}
+{% endfor %}
+{% for key, val in feature_gates.items()|list %}
+        - --feature-gates={{ key }}={{ val }}
+{% endfor %}
+        securityContext:
+          privileged: true
+        resources:
+          requests:
+            cpu: {{ kube_proxy_requests_cpu }}
+            memory: {{ kube_proxy_requests_memory }}
+{% if kube_proxy_limits_cpu or kube_proxy_limits_memory %}
+          limits:
+{% if kube_proxy_limits_cpu %}
+            cpu: {{ kube_proxy_limits_cpu }}
+{% endif %}
+{% if kube_proxy_limits_memory %}
+            memory: {{ kube_proxy_limits_memory }}
+{% endif %}
+{% endif %}
+        volumeMounts:
+        - mountPath: /var/lib/kubelet/kubeconfig
+          name: kubeconfig
+          readOnly: true
+        - mountPath: /run/xtables.lock
+          name: xtables-lock
+        - mountPath: /lib/modules
+          name: lib-modules
+          readOnly: true
+        - mountPath: /var/run/dbus
+          name: dbus
+        - mountPath: {{ cert_dir }}
+          name: kube-proxy-certs
+          readOnly: true
+      volumes:
+      - hostPath:
+          path: /var/lib/kubelet/kubeconfig
+          type: File
+        name: kubeconfig
+      - hostPath:
+          path: /run/xtables.lock
+          type: FileOrCreate
+        name: xtables-lock
+      - hostPath:
+          path: /lib/modules
+          type: ""
+        name: lib-modules
+      - hostPath:
+          path: /var/run/dbus
+          type: Directory
+        name: dbus
+      - hostPath:
+          path: {{ cert_dir }}
+          type: Directory
+        name: kube-proxy-certs

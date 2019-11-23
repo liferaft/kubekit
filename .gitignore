@@ -1,0 +1,54 @@
+## Project stuff to ignore
+binaries/
+delete_me*
+
+# Project related folders and files
+/vendor/
+/bin/
+/tmp/
+.DELETE
+.idea
+kubekit_*.tgz
+
+# GO stuff to ignore
+vendor.tmp/
+*.go.old
+
+# Testing files to ignore
+coverage.txt
+cobertura.xml
+
+# Dependencies/vendors/packages
+vendor/**/.git
+#vendor/**/
+#!vendor/vendor.json
+
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+# Go related folders
+_obj
+_test
+
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
+
+*.cgo1.go
+*.cgo2.c
+_cgo_defun.c
+_cgo_gotypes.go
+_cgo_export.*
+
+_testmain.go
+
+*.exe
+*.test
+*.prof
+*.bak*
+.DS_Store
+tags
+pkg/manifest/MANIFEST
+cscope.*

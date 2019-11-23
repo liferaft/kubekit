@@ -1,0 +1,4 @@
+- name: Ensure openssl is installed
+  shell: openssl version
+  failed_when: openssl_version.rc != 0
+  register: openssl_version

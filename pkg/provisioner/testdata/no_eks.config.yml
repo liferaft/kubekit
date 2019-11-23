@@ -1,0 +1,32 @@
+aws_env: aws-k8s
+kube_api_ssl_port: 8081
+disable_master_ha: true
+kube_virtual_ip_shortname: ""
+kube_virtual_ip_api: ""
+kube_vip_api_ssl_port: 8443
+public_apiserver_dns_name: ""
+private_apiserver_dns_name: ""
+username: ec2-user
+aws_region: aws_region
+aws_vpc_id: '# Required value. Example: vpc-8d56b9e9'
+private_key_file: ""
+public_key_file: ""
+configure_from_private_net: false
+aws_instance_placement_group: ""
+dns_servers: []
+dns_search: []
+time_servers:
+- 169.254.169.123
+default_node_pool:
+  aws_security_group_id: '# Required value. Example: sg-502d9a37'
+  connection_timeout: 5m
+  aws_ami: ami-0b8485a3553c5d032
+  aws_instance_type: m4.2xlarge
+  aws_subnet_id: '# Required value. Example: subnet-5bddc82c'
+  root_vol_size: 200
+  root_vol_type: gp2
+node_pools:
+  master:
+    count: 1
+  worker:
+    count: 1

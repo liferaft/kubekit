@@ -1,0 +1,23 @@
+- name: reload and restart docker
+  systemd:
+    name: docker
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+
+- name: reload and restart rsyslog
+  systemd:
+    name: rsyslog
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+
+- name: reload and restart logrotate and timers
+  systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  with_items:
+    - logrotate.service
+    - logrotate.timer

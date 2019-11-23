@@ -1,0 +1,125 @@
+syntax = "proto3";
+
+package kubekit.v1;
+
+option go_package = "v1";
+
+import "google/api/annotations.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+import "version.proto";
+import "token.proto";
+import "init.proto";
+import "apply.proto";
+import "delete.proto";
+import "get_cluster.proto";
+import "describe.proto";
+import "update.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+	info: {
+		title: "KubeKit Service";
+		version: "1.0";
+		contact: {
+			name: "KubeKit";
+			url: "https://kubekit.dev/";
+			email: "team@kubekit.dev";
+    };
+  };
+  external_docs: {
+		url: "slack://channel?team=TQN0L5ZU1&id=CQY6PKLDD";
+		description: "KubeKit Development - Slack";
+	};
+  schemes: HTTP;
+  schemes: HTTPS;
+  consumes: "application/json";
+  produces: "application/json";
+  responses: {
+		key: "404";
+		value: {
+			description: "Returned when the resource does not exist.";
+			schema: {
+				json_schema: {
+					type: STRING;
+				}
+			}
+		}
+	}
+  responses: {
+	  key: "400";
+	  value: {
+		  description: "Returned when a request is invalid or missing parameters";
+	  }
+  }
+};
+
+service Kubekit {
+  rpc Version(VersionRequest) returns (VersionResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/version"
+		};
+	}
+
+	rpc Token(TokenRequest) returns (TokenResponse) {
+		option (google.api.http) = {
+			get: "/api/v1/cluster/{cluster_name}/token"
+		};
+	}
+
+	rpc Init(InitRequest) returns (InitResponse) {
+		option (google.api.http) = {
+			post: "/api/v1/cluster"
+			body: "*"
+		};
+	}
+
+	rpc Apply(ApplyRequest) returns (ApplyResponse) { //stream
+		option (google.api.http) = {
+			post: "/api/v1/cluster/{cluster_name}"
+			body: "*"
+		};
+	}
+
+	rpc Delete(DeleteRequest) returns (DeleteResponse) { //stream
+		option (google.api.http) = {
+			delete: "/api/v1/cluster/{cluster_name}"
+		};
+	}
+
+	rpc GetClusters(GetClustersRequest) returns (GetClustersResponse) {
+		option (google.api.http) = {
+			get: "/api/v1/cluster"
+		};
+	}
+
+	rpc Describe(DescribeRequest) returns (DescribeResponse) {
+		option (google.api.http) = {
+			get: "/api/v1/cluster/{cluster_name}"
+		};
+	}
+
+	rpc DeleteClusterConfig(DeleteClusterConfigRequest) returns (DeleteClusterConfigResponse) {
+		option (google.api.http) = {
+			delete: "/api/v1/cluster/{cluster_name}/config"
+		};
+	}
+
+	rpc UpdateCluster(UpdateClusterRequest) returns (UpdateClusterResponse) {
+		option (google.api.http) = {
+			put: "/api/v1/cluster/{cluster_name}"
+			body: "*"
+		};
+	}
+
+	// TODO:
+	// rpc Copy(CopyRequest) returns (CopyResponse) {
+	// }
+	// rpc Exec(ExecRequest) returns (ExecResponse) {
+	// }
+	// rpc Plan(PlanRequest) returns (PlanResponse) {
+	// }
+	// rpc Terraform(TerraformRequest) returns (TerraformResponse) {
+	// }
+	// rpc KubeManifests(KubeManifestsRequest) returns (KubeManifestsResponse) {
+	// }
+}

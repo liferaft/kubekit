@@ -1,0 +1,46 @@
+- name: Install ipsec binaries
+  shell: "{% set ext = (current_manifest['dependencies']['ipsec']['strongswan']['prebake-path']|splitext)[1] %}{% if ext == '.rpm' %}rpm -Uvh{% elif ext == '.deb' %}dpkg -i{% endif %} --force {{ current_manifest['dependencies']['ipsec']['strongswan']['prebake-path'] }}"
+  when:
+  - current_manifest['dependencies']['ipsec']['strongswan']['prebake-path'] is defined
+  - current_manifest['dependencies']['ipsec']['strongswan']['prebake-path'] != ''
+
+- name: create ipsec.conf
+  template:
+    src: "etc/ipsec.conf.j2"
+    dest: "/etc/ipsec.conf"
+    owner: root
+    group: root
+    mode: 0600
+
+- name: create ipsec.key
+  template:
+    src: "etc/ipsec.secrets.j2"
+    dest: "/etc/ipsec.secrets"
+    owner: root
+    group: root
+    mode: 0600
+
+- name: create strongswan.conf
+  template:
+    src: "etc/strongswan.conf.j2"
+    dest: "/etc/strongswan.conf"
+    owner: root
+    group: root
+    mode: 0600
+
+- name: enforce strongswan running
+  systemd:
+    name: strongswan
+    state: restarted
+    enabled: yes
+
+- name: update ipsec
+  shell: ipsec update
+
+- name: ping all hosts
+  shell: "ping -c 1 {{ hostvars[item][cluster_iface_name]['ipv4']['address'] }}"
+  with_items:  "{{ groups['kube_cluster'] }}"
+  register: ping_result
+  retries: 2
+  until: ping_result.rc == 0
+  delay: 1

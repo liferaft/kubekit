@@ -1,0 +1,10 @@
+- name: get current editing mode
+  shell: bind -V | awk '$1 == "editing-mode" {print $NF}' | tr -cd '[:alpha:]'
+  register: edit_mode
+
+- name: set edit mode if editing-mode is user provided and not already set
+  lineinfile:
+    line: "set -o {{ shell_editing_mode }}"  # set editing-mode doesn't always take for some reason
+    path: "~/.bashrc"
+    state: present
+  when: shell_editing_mode and edit_mode.stdout != shell_editing_mode

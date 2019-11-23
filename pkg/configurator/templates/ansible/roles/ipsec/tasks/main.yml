@@ -1,0 +1,10 @@
+- name: <ipsec>
+  debug:
+    msg: Print tag <ipsec> for KubeKit Configurator parser
+
+- include_tasks: strongswan.yml
+  when: ipsec_enabled | bool
+
+- name: </ipsec>
+  debug:
+    msg: Print tag </ipsec> for KubeKit Configurator parser

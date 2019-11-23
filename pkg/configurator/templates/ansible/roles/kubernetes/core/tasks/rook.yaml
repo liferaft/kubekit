@@ -1,0 +1,138 @@
+- name: Check all hosts are still available
+  include_role:
+    name: precheck
+    tasks_from: all_hosts_alive
+
+- name: assert directories exists
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items: "{{ rook_ceph_storage_directories }}"
+  
+- name: assert directories exists
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - /srv/kubernetes/manifests/rook/cluster
+    - /srv/kubernetes/manifests/rook/storage
+    - /srv/kubernetes/manifests/rook/toolbox
+    - /var/lib/kubelet/volumeplugins
+    - "{{ rook_config_data_dir }}"
+
+# rook files have been moved under its own subfolder
+- name: cleanup any old rook files
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /srv/kubernetes/manifests/rook-operator.yaml
+    - /srv/kubernetes/manifests/rook-cluster.yaml
+    - /srv/kubernetes/manifests/rook-filesystem.yaml
+    - /srv/kubernetes/manifests/rook-object-store.yaml
+    - /srv/kubernetes/manifests/rook-object-user.yaml
+    - /srv/kubernetes/manifests/rook-pool.yaml
+    - /srv/kubernetes/manifests/rook-storage-class.yaml
+
+- block:
+
+  - name: wait until kube apiserver is available
+    uri:
+      url: "{{ kube_api_server_local }}/healthz"
+      status_code: 200
+      client_cert: "{{ cert_dir }}/{{ certs.admin.crt }}"
+      client_key: "{{ cert_dir }}/{{ certs.admin.key }}"
+    retries: 12
+    delay: 5
+    register: apiserver_availability
+    until: ('status' in apiserver_availability) and (apiserver_availability.status == 200)
+    # action has no previous state to compare. should be pass fail.
+    changed_when: no
+
+  - name: generate pem
+    shell: "cat {{ cert_dir }}/{{ ingress_cert_crt_filename }} {{ cert_dir }}/{{ ingress_cert_key_filename }} > {{ cert_dir }}/ingress.pem"
+
+  - name: generate base64 encode TLS certificate for test s3 api
+    shell: "cat {{ cert_dir }}/ingress.pem | base64 | tr '\r' '\n' | tr -d '\n'"
+    register: s3_b64_tls_cert
+
+  - name: generate base64 encode TLS certificate for 3s api controller secret
+    shell: "cat {{ cert_dir }}/{{ ingress_root_ca_crt_filename }} | base64 | tr '\r' '\n' | tr -d '\n'"
+    register: s3_b64_tls_ca_cert
+
+  - name: render rook manifests
+    template:
+      src: "srv/kubernetes/manifests/rook/{{ item.folder }}/{{ item.name }}.yaml.j2"
+      dest: "/srv/kubernetes/manifests/rook/{{ item.folder }}/{{ item.name }}.yaml"
+    with_items: "{{ rook_manifests }}"
+    when: item.enabled
+    loop_control:
+      label: "{{ item.name }}"
+
+  - name: create rook operators
+    shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply {{ force_apply_flag }}-f /srv/kubernetes/manifests/rook/{{ item.folder }}/{{ item.name }}.yaml"
+    with_items: "{{ rook_manifests }}"
+    when: 
+     - inventory_hostname == 'master000' 
+     - ( item.enabled | bool )
+     - ( item.operator | bool )
+
+  - name: assert rook operator is ready
+    shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig get pods -n rook-ceph-system | grep rook-ceph-operator"
+    register: operator_ready
+    retries: 10
+    delay: 30
+    until: 
+      - "'1/1' in operator_ready.stdout"
+      - "'Running' in operator_ready.stdout"
+
+  - name: create rook deployments
+    shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply {{ force_apply_flag }}-f /srv/kubernetes/manifests/rook/{{ item.folder }}/{{ item.name }}.yaml"
+    with_items: "{{ rook_manifests }}"
+    when: 
+     - inventory_hostname == 'master000' 
+     - ( item.enabled | bool )
+     - not ( item.operator | bool )
+
+  - block:
+    # temporary workaround pending rook fix to have object store user queue if object store pending
+    # public issue and pr number to follow
+
+    # assuming that if rook-object-store is enabled, rook-object-user would also be enabled
+
+    - name: assert rook objectstore is ready
+      shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig get pods -n rook-ceph | grep rook-ceph-rgw-rook-s3-object-store"
+      register: objectstore_ready
+      retries: 10 # increasing to 10x90 from 10x60 due to frequent timeouts on eventually healthy systems
+      delay: 90 # should add a delay with a base wait + modifier on number of osd + extra if filestore enabled
+      until:
+        - "'1/1' in objectstore_ready.stdout"
+        - "'Running' in objectstore_ready.stdout"
+    
+    # rook-object-user is set to enabled false to prevent it being applied
+    # before the object store is up, so it has not been not rendered yet 
+    - name: render rook objectstore user manifests
+      template:
+        src: "srv/kubernetes/manifests/rook/storage/rook-object-user.yaml.j2"
+        dest: "/srv/kubernetes/manifests/rook/storage/rook-object-user.yaml"
+
+    # rook-object-user is set to enabled false to prevent it being applied
+    # before the object store is up, so it has not been not applied yet 
+    - name: create rook deployments
+      shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply {{ force_apply_flag }}-f /srv/kubernetes/manifests/rook/storage/rook-object-user.yaml"
+
+    when: (rook_enabled | bool) and (rook_object_store_enabled | bool) 
+
+  # end block
+  when: "'master' in group_names" 
+
+- name: set bash aliases
+  lineinfile:
+    path: "/root/.bashrc"
+    line: 'alias {{ item.key }}="{{ item.value }}"'
+    create: yes
+    owner: root
+    group: root
+  with_dict:
+    krc: "kubectl -n=rook-ceph"
+    krcs: "kubectl -n=rook-ceph-system"

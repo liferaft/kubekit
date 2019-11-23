@@ -1,0 +1,27 @@
+- name: check that ipv4 localhost is defined in /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    state: present
+    regexp: '^127\.0\.0\.1\s*localhost'
+    line: '127.0.0.1	localhost'
+    owner: root
+    group: root
+    mode: 0644
+  check_mode: yes
+
+- name: check that ipv6 localhost is defined in /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    state: present
+    regexp: '^::1\s*localhost ipv6-localhost ipv6-loopback'
+    line: '::1             localhost ipv6-localhost ipv6-loopback'
+    owner: root
+    group: root
+    mode: 0644
+  check_mode: yes
+
+- name: verify that kube_virtual_ip_api is not used by host in inventory
+  assert:
+    that: hostvars[inventory_hostname]['ansible_host'] != kube_virtual_ip_api
+    msg: "You CANNOT assign {{ kube_virtual_ip_api }} as a kube_virtual_ip_api address.  It is taken by {{ inventory_hostname }}"
+  when: not disable_master_ha | bool

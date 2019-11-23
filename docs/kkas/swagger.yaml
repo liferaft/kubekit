@@ -1,0 +1,604 @@
+---
+swagger: "2.0"
+info:
+  version: "1.0"
+  title: KubeKit Service
+  contact:
+    name: KubeKit
+    url: https://kubekit.dev
+    email: team@kubekit.dev
+schemes:
+- http
+- https
+consumes:
+- application/json
+produces:
+- application/json
+paths:
+  /api/v1/cluster:
+    get:
+      tags:
+      - Kubekit
+      operationId: GetClusters
+      parameters:
+      - name: api
+        in: query
+        required: false
+        type: string
+      - name: names
+        in: query
+        required: false
+        type: array
+        items:
+          type: string
+        collectionFormat: multi
+      - name: filter
+        in: query
+        required: false
+        type: array
+        items:
+          type: string
+        collectionFormat: multi
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetClustersResponse'
+        400:
+          description: Returned when a request is invalid or missing parameters
+          schema: {}
+        404:
+          description: Returned when the resource does not exist.
+          schema:
+            format: string
+    post:
+      tags:
+      - Kubekit
+      operationId: Init
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1InitRequest'
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1InitResponse'
+        400:
+          description: Returned when a request is invalid or missing parameters
+          schema: {}
+        404:
+          description: Returned when the resource does not exist.
+          schema:
+            format: string
+  /api/v1/cluster/{cluster_name}:
+    get:
+      tags:
+      - Kubekit
+      operationId: Describe
+      parameters:
+      - name: cluster_name
+        in: path
+        required: true
+        type: string
+      - name: api
+        in: query
+        required: false
+        type: string
+      - name: show_params
+        in: query
+        required: false
+        type: array
+        items:
+          type: string
+        collectionFormat: multi
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1DescribeResponse'
+        400:
+          description: Returned when a request is invalid or missing parameters
+          schema: {}
+        404:
+          description: Returned when the resource does not exist.
+          schema:
+            format: string
+    post:
+      tags:
+      - Kubekit
+      operationId: Apply
+      parameters:
+      - name: cluster_name
+        in: path
+        required: true
+        type: string
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1ApplyRequest'
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ApplyResponse'
+        400:
+          description: Returned when a request is invalid or missing parameters
+          schema: {}
+        404:
+          description: Returned when the resource does not exist.
+          schema:
+            format: string
+    put:
+      tags:
+      - Kubekit
+      operationId: UpdateCluster
+      parameters:
+      - name: cluster_name
+        in: path
+        required: true
+        type: string
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1UpdateClusterRequest'
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateClusterResponse'
+        400:
+          description: Returned when a request is invalid or missing parameters
+          schema: {}
+        404:
+          description: Returned when the resource does not exist.
+          schema:
+            format: string
+    delete:
+      tags:
+      - Kubekit
+      operationId: Delete
+      parameters:
+      - name: cluster_name
+        in: path
+        required: true
+        type: string
+      - name: api
+        in: query
+        required: false
+        type: string
+      - name: destroy_all
+        in: query
+        required: false
+        type: boolean
+        format: boolean
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1DeleteResponse'
+        400:
+          description: Returned when a request is invalid or missing parameters
+          schema: {}
+        404:
+          description: Returned when the resource does not exist.
+          schema:
+            format: string
+  /api/v1/cluster/{cluster_name}/config:
+    delete:
+      tags:
+      - Kubekit
+      operationId: DeleteClusterConfig
+      parameters:
+      - name: cluster_name
+        in: path
+        required: true
+        type: string
+      - name: api
+        in: query
+        required: false
+        type: string
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1DeleteClusterConfigResponse'
+        400:
+          description: Returned when a request is invalid or missing parameters
+          schema: {}
+        404:
+          description: Returned when the resource does not exist.
+          schema:
+            format: string
+  /api/v1/cluster/{cluster_name}/token:
+    get:
+      tags:
+      - Kubekit
+      operationId: Token
+      parameters:
+      - name: cluster_name
+        in: path
+        required: true
+        type: string
+      - name: api
+        in: query
+        required: false
+        type: string
+      - name: role
+        in: query
+        required: false
+        type: string
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1TokenResponse'
+        400:
+          description: Returned when a request is invalid or missing parameters
+          schema: {}
+        404:
+          description: Returned when the resource does not exist.
+          schema:
+            format: string
+  /api/v1/version:
+    get:
+      tags:
+      - Kubekit
+      operationId: Version
+      parameters:
+      - name: api
+        in: query
+        required: false
+        type: string
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1VersionResponse'
+        400:
+          description: Returned when a request is invalid or missing parameters
+          schema: {}
+        404:
+          description: Returned when the resource does not exist.
+          schema:
+            format: string
+definitions:
+  protobufListValue:
+    type: object
+    properties:
+      values:
+        type: array
+        description: Repeated field of dynamically typed values.
+        items:
+          $ref: '#/definitions/protobufValue'
+    description: |-
+      `ListValue` is a wrapper around a repeated field of values.
+
+      The JSON representation for `ListValue` is JSON array.
+  protobufNullValue:
+    type: string
+    description: |-
+      `NullValue` is a singleton enumeration to represent the null value for the
+      `Value` type union.
+
+       The JSON representation for `NullValue` is JSON `null`.
+
+       - NULL_VALUE: Null value.
+    enum:
+    - NULL_VALUE
+    default: NULL_VALUE
+  protobufStruct:
+    type: object
+    properties:
+      fields:
+        type: object
+        description: Unordered map of dynamically typed values.
+        additionalProperties:
+          $ref: '#/definitions/protobufValue'
+    description: |-
+      `Struct` represents a structured data value, consisting of fields
+      which map to dynamically typed values. In some languages, `Struct`
+      might be supported by a native representation. For example, in
+      scripting languages like JS a struct is represented as an
+      object. The details of that representation are described together
+      with the proto support for the language.
+
+      The JSON representation for `Struct` is JSON object.
+  protobufValue:
+    type: object
+    properties:
+      null_value:
+        description: Represents a null value.
+        $ref: '#/definitions/protobufNullValue'
+      number_value:
+        type: number
+        format: double
+        description: Represents a double value.
+      string_value:
+        type: string
+        description: Represents a string value.
+      bool_value:
+        type: boolean
+        format: boolean
+        description: Represents a boolean value.
+      struct_value:
+        description: Represents a structured value.
+        $ref: '#/definitions/protobufStruct'
+      list_value:
+        description: Represents a repeated `Value`.
+        $ref: '#/definitions/protobufListValue'
+    description: |-
+      `Value` represents a dynamically typed value which can be either
+      null, a number, a string, a boolean, a recursive struct value, or a
+      list of values. A producer of value is expected to set one of that
+      variants, absence of any variant indicates an error.
+
+      The JSON representation for `Value` is JSON value.
+  v1ApplyAction:
+    type: string
+    enum:
+    - ALL
+    - PROVISION
+    - CONFIGURE
+    default: ALL
+  v1ApplyRequest:
+    type: object
+    properties:
+      api:
+        type: string
+      cluster_name:
+        type: string
+      action:
+        $ref: '#/definitions/v1ApplyAction'
+      package_url:
+        type: string
+      force_package:
+        type: boolean
+        format: boolean
+      ca_certs:
+        type: object
+        additionalProperties:
+          type: string
+  v1ApplyResponse:
+    type: object
+    properties:
+      api:
+        type: string
+      status:
+        type: string
+  v1Cluster:
+    type: object
+    properties:
+      name:
+        type: string
+      platform:
+        $ref: '#/definitions/v1PlatformName'
+      nodes:
+        type: integer
+        format: int32
+      status:
+        $ref: '#/definitions/v1Status'
+  v1ClusterConfig:
+    type: object
+    properties:
+      variables:
+        type: object
+        additionalProperties:
+          type: string
+      resources:
+        type: array
+        items:
+          type: string
+  v1ClusterNodes:
+    type: object
+    properties:
+      node_pools:
+        type: array
+        items:
+          $ref: '#/definitions/v1NodePool'
+  v1DeleteClusterConfigResponse:
+    type: object
+    properties:
+      api:
+        type: string
+      cluster_name:
+        type: string
+      status:
+        $ref: '#/definitions/v1DeleteClusterConfigStatus'
+  v1DeleteClusterConfigStatus:
+    type: string
+    enum:
+    - DELETED
+    - NOT_FOUND
+    default: DELETED
+  v1DeleteResponse:
+    type: object
+    properties:
+      api:
+        type: string
+      status:
+        type: string
+  v1DescribeResponse:
+    type: object
+    properties:
+      api:
+        type: string
+      cluster:
+        $ref: '#/definitions/v1Cluster'
+      entrypoint:
+        type: string
+      config:
+        $ref: '#/definitions/v1ClusterConfig'
+      nodes:
+        $ref: '#/definitions/v1ClusterNodes'
+      kubeconfig:
+        type: string
+  v1GetClustersResponse:
+    type: object
+    properties:
+      api:
+        type: string
+      clusters:
+        type: array
+        items:
+          $ref: '#/definitions/v1Cluster'
+  v1InitRequest:
+    type: object
+    properties:
+      api:
+        type: string
+      kind:
+        type: string
+      cluster_name:
+        type: string
+      platform:
+        $ref: '#/definitions/v1PlatformName'
+      variables:
+        type: object
+        additionalProperties:
+          type: string
+      credentials:
+        type: object
+        additionalProperties:
+          type: string
+      resources:
+        type: array
+        items:
+          type: string
+  v1InitResponse:
+    type: object
+    properties:
+      api:
+        type: string
+      kind:
+        type: string
+      name:
+        type: string
+  v1Node:
+    type: object
+    properties:
+      name:
+        type: string
+      pool_name:
+        type: string
+      public_ip:
+        type: string
+      private_ip:
+        type: string
+      other_ips:
+        type: array
+        items:
+          type: string
+      public_dns:
+        type: string
+      private_dns:
+        type: string
+      other_dns:
+        type: array
+        items:
+          type: string
+  v1NodePool:
+    type: object
+    properties:
+      pool_name:
+        type: string
+      nodes:
+        type: array
+        items:
+          $ref: '#/definitions/v1Node'
+  v1PlatformName:
+    type: string
+    enum:
+    - UNKNOWN
+    - AWS
+    - EKS
+    - AZURE
+    - AKS
+    - OPENSTACK
+    - VSPHERE
+    - VRA
+    - STACKI
+    - RAW
+    default: UNKNOWN
+  v1Status:
+    type: string
+    enum:
+    - UNKNOWN_STATUS
+    - ABSENT
+    - CREATING
+    - PROVISIONED
+    - FAILED_PROVISIONING
+    - FAILED_CONFIGURATION
+    - CREATED
+    - FAILED_CREATION
+    - RUNNING
+    - STOPPED
+    - TERMINATING
+    - TERMINATED
+    - FAILED_TERMINATION
+    default: UNKNOWN_STATUS
+  v1TokenResponse:
+    type: object
+    properties:
+      kind:
+        type: string
+      apiVersion:
+        type: string
+      spec:
+        $ref: '#/definitions/protobufStruct'
+      status:
+        $ref: '#/definitions/v1TokenStatus'
+  v1TokenStatus:
+    type: object
+    properties:
+      expirationTimestamp:
+        type: string
+        format: date-time
+      token:
+        type: string
+  v1UpdateClusterRequest:
+    type: object
+    properties:
+      api:
+        type: string
+      kind:
+        type: string
+      cluster_name:
+        type: string
+      variables:
+        type: object
+        additionalProperties:
+          type: string
+      credentials:
+        type: object
+        additionalProperties:
+          type: string
+      resources:
+        type: array
+        items:
+          type: string
+  v1UpdateClusterResponse:
+    type: object
+    properties:
+      api:
+        type: string
+  v1VersionResponse:
+    type: object
+    properties:
+      api:
+        type: string
+      kubekit:
+        type: string
+      kubernetes:
+        type: string
+      docker:
+        type: string
+      etcd:
+        type: string
+externalDocs:
+  description: KubeKit Development - Slack
+  url: slack://channel?team=T02EV1PAT&id=C65ANUC95

@@ -1,0 +1,29 @@
+[Unit]
+Description=Private Docker Registry Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=on-failure
+RestartSec=5
+ExecStartPre=-/usr/bin/docker kill registry
+ExecStartPre=-/usr/bin/docker rm registry
+ExecStart=/usr/bin/docker run --rm \
+    -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/client.crt \
+    -e REGISTRY_HTTP_TLS_KEY=/certs/client.key \
+    -e REGISTRY_HTTP_TLS_CLIENTCAS_0=/certs/ca.crt \
+    -e REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY={{ docker_registry_path }} \
+    -e REGISTRY_HTTP_SECRET='{{ docker_registry_secret }}' \
+    -v {{ cert_dir }}/{{ cert_crt_filename }}:/certs/client.crt:ro \
+    -v {{ cert_dir }}/{{ cert_key_filename }}:/certs/client.key:ro \
+    -v {{ cert_dir }}/{{ root_ca_crt_filename }}:/certs/ca.crt:ro \
+    -v {{ docker_registry_path }}:{{ docker_registry_path }}:rw \
+    -p 0.0.0.0:{{ registry_port }}:5000 \
+    --name registry \
+    lrk/{{ current_manifest['dependencies']['core']['registry']['src'] }}
+ExecStop=/usr/bin/docker stop -t 2 registry
+RestartForceExitStatus=SIGPIPE
+
+[Install]
+WantedBy=multi-user.target

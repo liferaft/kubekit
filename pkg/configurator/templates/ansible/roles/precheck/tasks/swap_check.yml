@@ -1,0 +1,4 @@
+- name: check if swap is disabled
+  shell: cat /proc/swaps | awk 'NR > 1 {print $0}'
+  register: active_swap
+  failed_when: active_swap.stdout|trim|length > 0

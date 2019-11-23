@@ -1,0 +1,30 @@
+- lineinfile:
+    path: /etc/resolv.conf
+    regexp: '^search (.*){{ item }}(.*)$'
+    line: 'search \1\2'
+    backrefs: yes
+    backup: yes
+  with_items:
+    - byn0
+    - byn1
+    - ipmi
+
+#Stacki broke logrotate, Kubekit fixed it.
+- name: Does /etc/logrotate.d/stack exist
+  stat:
+    path: /etc/logrotate.d/stack
+  register: stat_result
+
+- block:
+
+  - replace:
+      path: /etc/logrotate.d/stack
+      regexp: '{'
+      replace: '{\n missingok'
+
+  - lineinfile:
+      path: /etc/logrotate.d/stack
+      regexp: '/var/log/mail'
+      line: '/var/log/mail.stacki {'
+
+  when: stat_result.stat.exists == True

@@ -1,0 +1,80 @@
+version: "1.0"
+kind: cluster
+name: invalid-eks
+platforms:
+  eks:
+    username: ec2-user
+    aws_vpc_id: vpc-test
+    ingress_subnets:
+      - subnet-test
+      - subnet-test2
+    cluster_security_groups:
+      - sg-test
+    private_key_file: ""
+    public_key_file: ""
+    kubernetes_version: ""
+    endpoint_public_access: true
+    endpoint_private_access: false
+    route_53_name: ""
+    cluster_logs_types:
+      - api
+      - audit
+      - authenticator
+      - controllerManager
+      - scheduler
+    s3_buckets: []
+    max_pods: 110
+    max_map_count: 262144
+    default_node_pool:
+      kubelet_node_labels:
+        - node-role.kubernetes.io/compute=""
+      kubelet_node_taints:
+        - ""
+      root_volume_size: 100
+      placementgroup_strategy: cluster
+      worker_pool_subnets:
+        - subnet-test
+      security_groups:
+        - sg-test
+    node_pools:
+      compute_fast_ephemeral:
+        count: 1
+        aws_instance_type: m5d.2xlarge
+        kubelet_node_labels:
+          - node-role.kubernetes.io/compute=""
+          - ephemeral-volumes=fast
+        root_volume_size: 100
+      compute_slow_ephemeral:
+        count: 1
+        aws_instance_type: m5.2xlarge
+        kubelet_node_labels:
+          - node-role.kubernetes.io/compute=""
+          - ephemeral-volumes=slow
+        root_volume_size: 100
+      persistent_storage:
+        count: 3
+        aws_instance_type: i3.2xlarge
+        kubelet_node_labels:
+          - node-role.kubernetes.io/persistent=""
+          - ephemeral-volumes=slow
+          - storage=persistent
+        kubelet_node_taints:
+          - storage=persistent:NoSchedule
+        root_volume_size: 100
+        placementgroup_strategy: spread
+state:
+  eks:
+    status: absent
+resources:
+  - aws-auth
+  - eks-calico
+  - rook-operator
+  - rook-blockstore
+  - rook-filestore
+  - ebs-blockstore
+  - pod-security-policies
+  - priority-classes
+  - resource-quotas
+  - eks-heapster
+  - kube-state-metrics
+  - eks-network-policies

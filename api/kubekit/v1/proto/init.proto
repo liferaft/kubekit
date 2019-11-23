@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package kubekit.v1;
+
+option go_package = "v1";
+
+import "cluster.proto";
+
+message InitRequest {
+	string api = 1;
+	string kind = 2;
+	string cluster_name = 3;
+	PlatformName platform = 4;
+	map<string,string>	variables = 5;
+	map<string,string>	credentials = 6;
+	repeated string resources = 7;
+}
+
+message InitResponse {
+	string api = 1;
+	string kind = 2;
+	string name = 3;
+}

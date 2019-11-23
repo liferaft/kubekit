@@ -1,0 +1,26 @@
+---
+apiVersion: v1
+kind: List
+items:
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: rook-ceph-rgw-s3-object-store-external
+      namespace: rook-ceph
+      labels:
+        app: rook-ceph-rgw
+        rook_cluster: rook-ceph
+        rook_object_store: rook-s3-object-store
+    spec:
+      ports:
+      - name: rgw
+        port: 80
+        protocol: TCP
+        targetPort: 80
+      selector:
+        app: rook-ceph-rgw
+        rook_cluster: rook-ceph
+        rook_object_store: rook-s3-object-store
+      sessionAffinity: None
+      type: NodePort

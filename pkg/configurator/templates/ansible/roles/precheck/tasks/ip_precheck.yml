@@ -1,0 +1,9 @@
+---
+
+  - name: "Check that the {{ inventory_hostname }} has ansible_host defined"
+    assert:
+      that: hostvars[inventory_hostname]['ansible_host'] is defined and
+            hostvars[inventory_hostname]['ansible_host'] != ""
+      msg: >
+           "You must specify 'ansible_host=' ip addresses for the host {{ inventory_hostname }} in the inventory file"
+    any_errors_fatal: true

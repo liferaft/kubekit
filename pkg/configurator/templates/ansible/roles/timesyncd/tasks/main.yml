@@ -1,0 +1,61 @@
+- name: <timesyncd>
+  debug:
+    msg: Print tag <timesyncd> for KubeKit Configurator parser
+
+- name: Check all hosts are still available
+  include_role:
+    name: precheck
+    tasks_from: all_hosts_alive
+
+- name: Set timezone
+  timezone:
+    name: "{{ host_timezone }}"
+  when: host_timezone is defined
+
+# collect facts and system services to check ntpd service status
+- name: collect facts and system services
+  service_facts:
+  register: services_state
+
+# setting up default timesyncd when ntp is inactive
+- name: set timesyncd time servers
+  lineinfile:
+    path: /etc/systemd/timesyncd.conf
+    regexp: '^NTP='
+    line: "NTP={{ time_servers | join(' ') }}"
+  when: (services_state.ansible_facts.services["ntpd"] is defined and services_state.ansible_facts.services["ntpd"] == 'stopped') and (ansible_distribution == "SLES" or ansible_distribution == "Ubuntu")
+
+# setting up default chrony when ntp is inactive
+- name: setup chrony service for operating systems that use chrony
+  replace:
+    path: /etc/chrony.conf
+    regexp: '^server .*$'
+    replace: "server {{ item }} iburst"
+  with_items:
+  - "{{ time_servers }}"
+  when: (services_state.ansible_facts.services["ntpd"] is defined and services_state.ansible_facts.services["ntpd"] == 'stopped') and ansible_distribution == "CentOS"
+
+# assumes vmware-toolbox-cmd is in PATH
+- name: check if vmware vmtools is being used to sync time
+  shell: vmware-toolbox-cmd timesync status || echo 'Disabled'
+  register: vmtools_time_sync
+  # action has no previous state to compare. should be pass fail.
+  changed_when: no
+
+- name: enable timesyncd if vmware vmtools, ntpd is not being used to sync time
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: systemd-timesyncd
+  when: vmtools_time_sync.stdout.find('Disabled') > -1 and (services_state.ansible_facts.services["ntpd"] is defined and services_state.ansible_facts.services["ntpd"] == 'stopped') and (ansible_distribution == "SLES" or ansible_distribution == "Ubuntu")
+
+- name: enable chronyd if vmware vmtools, ntpd is not being used to sync time
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: chronyd
+  when: vmtools_time_sync.stdout.find('Disabled') > -1 and (services_state.ansible_facts.services["ntpd"] is defined and services_state.ansible_facts.services["ntpd"] == 'stopped') and ansible_distribution == "CentOS"
+
+- name: </timesyncd>
+  debug:
+    msg: Print tag </timesyncd> for KubeKit Configurator parser

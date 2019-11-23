@@ -1,0 +1,44 @@
+---
+apiVersion: v1
+kind: List
+items:
+
+  - apiVersion: scheduling.k8s.io/v1beta1
+    kind: PriorityClass
+    metadata:
+        name: default
+    value: 200000000
+    globalDefault: true
+    description: |
+        Pods not assigned a PriorityClass will be dropped into the default class with value 200000000.
+        Pods with lower priority are still possible
+
+  - apiVersion: scheduling.k8s.io/v1beta1
+    kind: PriorityClass
+    metadata:
+      name: kube-system-critical
+    value: 1000000000
+    globalDefault: false
+    description: |
+      Critical pods that are not considered system level and reside in the kube-system namespace.
+      This will still get trumped by the system level critical classes.
+
+  - apiVersion: scheduling.k8s.io/v1beta1
+    kind: PriorityClass
+    metadata:
+      name: kube-system-high
+    value: 800000000
+    globalDefault: false
+    description: |
+      High priority pods that are not considered system level and reside in the kube-system namespace.
+      This will still get trumped by the system level and kube-system critical classes.
+
+  - apiVersion: scheduling.k8s.io/v1beta1
+    kind: PriorityClass
+    metadata:
+      name: ceph-critical
+    value: 900000000
+    globalDefault: false
+    description: |
+      Critical pods that are not considered system level and reside in the rook-ceph-system namespace.
+      This will still get trumped by the system level critical classes.

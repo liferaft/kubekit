@@ -1,0 +1,26 @@
+is_ha_cluster: "{{ groups['master'] | length > 1 and (not disable_master_ha | bool) }}"
+
+registry_archive_path: "{{ current_manifest['dependencies']['core']['registry']['prebake-path'] }}"
+
+registry_port: 5000
+platform_registry_port: 32010
+
+cert_dir: /etc/pki
+root_ca_crt_filename: root_ca.crt
+cert_key_filename: node.key
+cert_crt_filename: node.crt
+
+docker_registry_path: /var/lib/docker/registry
+docker_cert_path: /etc/docker/certs.d
+docker_registry_secret: "aff218de-c8c8-4004-90f5-1d29aa7499fe"
+
+fail_if_image_archive_missing: no
+download_images_if_missing: yes
+
+docker_certs:
+  - src_path: "{{ cert_dir }}/{{ root_ca_crt_filename }}"
+    dest_file: ca.crt
+  - src_path: "{{ cert_dir }}/{{ cert_crt_filename }}"
+    dest_file: client.cert
+  - src_path: "{{ cert_dir }}/{{ cert_key_filename }}"
+    dest_file: client.key

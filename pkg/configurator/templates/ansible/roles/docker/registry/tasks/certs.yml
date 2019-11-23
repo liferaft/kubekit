@@ -1,0 +1,17 @@
+- name: "assert {{ docker_registry_host }} exists"
+  file:
+    path: "{{ docker_cert_path }}/{{ docker_registry_host }}"
+    state: directory
+    mode: 640
+    owner: root
+    group: docker
+
+- name: "symlink certificates and key to {{ docker_registry_host }}"
+  file:
+    src: "{{ file_item['src_path'] }}"
+    dest: "{{ docker_cert_path }}/{{ docker_registry_host }}/{{ file_item['dest_file'] }}"
+    state: link
+  with_items: "{{ docker_certs }}"
+  loop_control:
+    loop_var: file_item
+  

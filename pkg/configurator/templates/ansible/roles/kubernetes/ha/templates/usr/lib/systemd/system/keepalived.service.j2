@@ -1,0 +1,28 @@
+[Unit]
+Description=Keepalived for Master nodes
+After=docker.service {% if bynet_enabled|bool %}bynet.service{% endif %}
+Requires=docker.service
+{% if bynet_enabled|bool %}
+Wants=bynet.service
+PartOf=bynet.service
+{% endif %}
+
+[Service]
+TimeoutStartSec=0
+Restart=on-failure
+RestartSec=5
+ExecStartPre=-/usr/bin/docker kill keepalived
+ExecStartPre=-/usr/bin/docker rm keepalived
+ExecStart=/usr/bin/docker run --rm --network=host --privileged \
+    -v /etc/keepalived:/etc/keepalived:ro \
+    -v /etc/sysconfig/keepalived:/etc/sysconfig/keepalived:ro \
+    -v /etc/systemd/system/bynet.service.d:/etc/systemd/system/bynet.service.d:ro \
+    --name keepalived \
+    lrk/{{ current_manifest['dependencies']['control-plane']['keepalived']['src'] }} \
+        /usr/sbin/keepalived --dont-fork --dump-conf --log-console --log-detail --log-facility 7 --vrrp -f /etc/keepalived/keepalived.conf
+
+ExecStop=/usr/bin/docker stop -t 2 keepalived
+RestartForceExitStatus=SIGPIPE
+
+[Install]
+WantedBy=multi-user.target {% if bynet_enabled|bool %}bynet.service{% endif %}

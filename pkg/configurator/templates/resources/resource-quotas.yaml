@@ -1,0 +1,60 @@
+---
+apiVersion: v1
+kind: List
+items:
+
+  - apiVersion: v1
+    kind: ResourceQuota
+    metadata:
+      name: cluster-services
+      namespace: kube-system
+    spec:
+      scopeSelector:
+        matchExpressions:
+        - operator : In
+          scopeName: PriorityClass
+          values:
+          - "system-node-critical"
+          - "system-cluster-critical"
+          - "kube-system-critical"
+          - "kube-system-high"
+
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: rook-ceph-system
+
+  - apiVersion: v1
+    kind: ResourceQuota
+    metadata:
+      name: cluster-services
+      namespace: rook-ceph-system
+    spec:
+      scopeSelector:
+        matchExpressions:
+        - operator : In
+          scopeName: PriorityClass
+          values:
+          - "system-node-critical"
+          - "system-cluster-critical"
+          - "ceph-critical"
+
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: rook-ceph
+
+  - apiVersion: v1
+    kind: ResourceQuota
+    metadata:
+      name: cluster-services
+      namespace: rook-ceph
+    spec:
+      scopeSelector:
+        matchExpressions:
+        - operator : In
+          scopeName: PriorityClass
+          values:
+          - "system-node-critical"
+          - "system-cluster-critical"
+          - "ceph-critical"

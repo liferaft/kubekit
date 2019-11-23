@@ -1,0 +1,17 @@
+- name: >
+    Verify the Ansible version {{ ansible_version.full }}
+    is supported by kubekit
+  assert:
+    that: "{{ ansible_version.full is version_compare('2.4', '>=') }}"
+    msg: "You must use Ansible to use the kubekit configurator."
+  run_once: yes
+  any_errors_fatal: true
+
+- name: Verify inventory hostname are RFC-1123 compliant
+  assert:
+    that: "{{ inventory_hostname is hostname_validate }}"
+    msg: >
+          "You MUST ensure hostname: {{ inventory_hostname }} are compliant
+          with RFC-1123. Only (a-z0-9) and dash(-) allowed; starts
+          with an alpha character, ends with alphanumeric, and is lower case"
+  any_errors_fatal: true

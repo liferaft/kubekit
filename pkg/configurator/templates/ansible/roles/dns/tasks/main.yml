@@ -1,0 +1,38 @@
+- name: <dns>
+  debug:
+    msg: Print tag <dns> for KubeKit Configurator parser
+
+- name: Check all hosts are still available
+  include_role:
+    name: precheck
+    tasks_from: all_hosts_alive
+
+- lineinfile:
+    path: /etc/sysconfig/network/config
+    state: present
+    regexp: '^NETCONFIG_DNS_STATIC_SEARCHLIST'
+    line: 'NETCONFIG_DNS_STATIC_SEARCHLIST="{{ dns_search | default([" "]) | join(" ") }}"'
+  when: dns_search is defined
+  notify: reload and restart network
+
+- lineinfile:
+    path: /etc/sysconfig/network/config
+    state: present
+    regexp: '^NETCONFIG_DNS_STATIC_SERVERS'
+    line: 'NETCONFIG_DNS_STATIC_SERVERS="{{ dns_servers | default([" "]) | join (" ") }}"'
+  when: dns_servers is defined
+  notify: reload and restart network
+
+- lineinfile:
+    path: /etc/sysconfig/network/config
+    state: present
+    regexp: '^NETCONFIG_DNS_RESOLVER_OPTIONS'
+    line: 'NETCONFIG_DNS_RESOLVER_OPTIONS="{{ dns_args }}"'
+  when: dns_args is defined
+  notify: reload and restart network
+
+- meta: flush_handlers
+
+- name: </dns>
+  debug:
+    msg: Print tag </dns> for KubeKit Configurator parser

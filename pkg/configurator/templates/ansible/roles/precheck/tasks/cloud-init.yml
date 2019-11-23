@@ -1,0 +1,6 @@
+- name: Wait until the file /var/lib/cloud/instance/boot-finished is present before continuing
+  wait_for:
+    path: /var/lib/cloud/instance/boot-finished
+    state: present
+    timeout: 300
+    delay: 10

@@ -1,0 +1,11 @@
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: dns-policy
+  namespace: kube-system
+spec:
+  podSelector:
+    matchLabels:
+      app: kube-dns
+  ingress:
+  - {}

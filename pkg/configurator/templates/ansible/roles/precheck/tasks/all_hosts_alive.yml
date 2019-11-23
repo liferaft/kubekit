@@ -1,0 +1,4 @@
+---
+- assert:
+    that:
+      - ansible_play_hosts == ansible_play_hosts_all

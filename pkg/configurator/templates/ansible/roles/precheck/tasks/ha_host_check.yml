@@ -1,0 +1,18 @@
+- block:
+  # disable_master_ha must be true if masters < 2
+  - assert:
+      msg: "set disable_master_ha: true when masters < 2"
+      that: disable_master_ha | bool
+    when:  groups.master | length < 2
+
+  - assert:
+      msg: "kube_virtual_ip_api must have an ip address when disable_master_ha is false"
+      that: not kube_virtual_ip_api is undefined and kube_virtual_ip_api|trim != '' and not kube_virtual_ip_api is none
+    when:  not disable_master_ha | bool
+
+  - assert:
+      msg: "kube_vip_api_ssl_port must be set when disable_master_ha is true"
+      that: kube_vip_api_ssl_port
+    when:  disable_master_ha | bool
+
+  when: inventory_hostname in groups.master

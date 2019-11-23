@@ -1,0 +1,5 @@
+etcd_defrag_crontab_hour: "1"
+etcd_logs_days_to_keep: 30
+etcd_logs_crontab_minute: "0,30"
+etcd_logs_crontab_hour: "*"
+etcd_snapshots_directory: "/data/etcd-snapshots"

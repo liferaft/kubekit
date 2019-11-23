@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rook-ceph-system
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: cluster-services
+  namespace: rook-ceph-system
+spec:
+  scopeSelector:
+    matchExpressions:
+    - operator : In
+      scopeName: PriorityClass
+      values:
+      - "system-node-critical"
+      - "system-cluster-critical"
+      - "ceph-critical"
+

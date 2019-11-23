@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package kubekit.v1;
+
+option go_package = "v1";
+
+import "cluster.proto";
+
+enum DescribeLevel {
+	BASIC = 0;
+	EVERYTHING = 1;
+	CONFIG = 2;
+	NODES = 3;
+}
+
+message ClusterConfig {
+	map<string,string>	variables = 7;
+	repeated string resources = 6;
+}
+
+message Node {
+	string name = 1;
+	string pool_name = 2;
+	string role_name = 3;
+	string public_ip = 4;
+	string private_ip = 5;
+	repeated string other_ips = 6;
+	string public_dns = 7;
+	string private_dns = 8;
+	repeated string other_dns = 9;
+}
+
+message NodePool {
+	string pool_name = 1;
+	repeated Node nodes = 2;
+}
+
+message ClusterNodes {
+	repeated NodePool node_pools = 1;
+}
+
+message DescribeRequest {
+	string api = 1;
+	string cluster_name = 2;
+	repeated string show_params = 3; // [] = basic params, ["all"] = all params, ["p1", "p2"] = only 'p1' and 'p2' params
+}
+
+message DescribeResponse {
+	string api = 1;
+	Cluster cluster = 2;
+	string entrypoint = 3;
+	ClusterConfig config = 4;
+	ClusterNodes nodes = 5;
+	string kubeconfig = 6;
+}

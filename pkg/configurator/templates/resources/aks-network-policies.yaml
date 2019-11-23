@@ -1,0 +1,96 @@
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  namespace: kube-system
+  name: backend-policy
+spec:
+  podSelector:
+    matchLabels:
+      role: backend
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              role: frontend
+
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: dns-policy
+  namespace: kube-system
+spec:
+  ingress:
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      k8s-app: kube-dns
+  policyTypes:
+    - Ingress
+
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  namespace: kube-system
+  name: frontend-policy
+spec:
+  podSelector:
+    matchLabels:
+      role: frontend
+  ingress:
+    - ports:
+        # Allow http traffic to frontend pods
+        - port: 80
+        - port: 443
+        - port: 30080
+        - port: 30443
+        - port: 5000
+        - port: 3000
+        - port: 5601
+        - port: 8080
+        - port: 8081
+        - port: 8082
+        - port: 8083
+        - port: 9089
+        - port: 9090
+        - port: 9093
+        - port: 8443
+        - port: 5193
+      from: []
+
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  namespace: kube-system
+  name: kube-state-metrics-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: kube-state-metrics
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kube-state-metrics: ingress
+        - podSelector:
+            matchLabels:
+              app: kube-state-metrics
+        - podSelector:
+            matchLabels:
+              kube-state-metrics: enabled
+
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: default-deny
+  namespace: kube-system
+spec:
+  podSelector: {}

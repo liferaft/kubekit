@@ -1,0 +1,27 @@
+# acceptable units for docker_log_size are the initials:
+#   k (kilobytes), m (megabytes), g (gigabytes)
+# setting the value to -1, sets it to unlimited
+docker_log_max_size: "16m"  # better to set over filebeat max_bytes parameter for a single message (default of 10MiB)
+docker_log_max_files: "3"  # needs to be a string
+docker_max_concurrent_downloads: 10
+docker_max_concurrent_uploads: 10
+
+registry_port: 5000
+docker_mtu: "{{ hostvars[inventory_hostname][cluster_iface_name]['mtu'] | default(1500) }}"
+docker_args: {}
+
+docker_iptables: false
+docker_bip: "172.17.0.1/16"
+
+docker_daemon_config:
+  "bip": "{{ docker_bip }}"
+  "dns": "{% if cloud_provider != 'stacki' %}{{ dns_servers | default([]) }}{% else %}{{ [] }}{% endif %}"
+  "dns-opts": "{% if cloud_provider != 'stacki' %}{{ docker_dns_opts | default([]) }}{% else %}{{ [] }}{% endif %}"
+  "dns-search": "{% if cloud_provider != 'stacki' %}{{ dns_search | default([]) }}{% else %}{{ [] }}{% endif %}"
+  "iptables": "{{ docker_iptables }}"
+  "log-opts":
+    "max-size": "{{ docker_log_max_size }}"
+    "max-file": "{{ docker_log_max_files }}"
+  "storage-driver": "overlay2"
+  "live-restore": true
+  "ip-masq": false

@@ -1,0 +1,54 @@
+- name: <manifest>
+  debug:
+    msg: Print tag <manifest> for KubeKit Configurator parser
+
+- name: "check for {{ version_file_path }}"
+  local_action: stat path="{{ version_file_path }}"
+  become: no
+  register: version_presence
+
+- name: "check for {{ release_file_path }}"
+  local_action: stat path="{{ release_file_path }}"
+  become: no
+  register: release_presence
+
+- set_fact:
+    kubekit_version: "{{ lookup('file', version_file_path) | regex_replace(version_match, version_replace) }}"
+  when: version_presence.stat.exists
+
+- set_fact:
+    kubekit_version: "{{ lookup('file', release_file_path) | regex_replace(version_match, version_replace) }}"
+  when: not version_presence.stat.exists and release_presence.stat.exists
+
+- name: "Assert that kubekit_version is defined"
+  assert:
+    that: kubekit_version is defined and
+          ( version_presence.stat.exists or release_presence.stat.exists ) and
+          not ( version_presence.stat.exists and release_presence.stat.exists )
+    msg: |
+          Either {{ version_file_path }} or {{ release_file_path }} or must exist.
+  any_errors_fatal: true
+
+- name: "check for {{ manifest_file_path }}"
+  local_action: stat path="{{ manifest_file_path }}"
+  become: no
+  register: manifest_presence
+
+- include_vars: "{{ manifest_file_path }}"
+  when: manifest_presence.stat.exists
+
+- set_fact:
+    current_manifest: "{{ releases[kubekit_version] }}"
+  when: releases is defined
+
+- name: "Assert that current_manifest is defined"
+  assert:
+    that: current_manifest is defined
+    msg: |
+          {{ manifest_file_path }} must exist
+          {{ kubekit_version }} must match an entry in current_manifest
+  any_errors_fatal: true
+
+- name: </manifest>
+  debug:
+    msg: Print tag </manifest> for KubeKit Configurator parser

@@ -1,0 +1,27 @@
+/var/log/kube-services.log /var/log/haproxy.log /var/log/keepalived.log
+{
+  rotate 5
+  copytruncate
+  missingok
+  notifempty
+  compress
+  size 100M
+  daily
+  dateext
+  dateformat -%Y%m%d-%s
+  create 0644 root root
+}
+
+/var/log/audit/kube-audit.log
+{
+  rotate 5
+  copytruncate
+  missingok
+  notifempty
+  compress
+  size 100M
+  daily
+  dateext
+  dateformat -%Y%m%d-%s
+  create 0660 root kube
+}

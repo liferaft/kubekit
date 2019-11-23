@@ -1,0 +1,9 @@
+apiVersion: scheduling.k8s.io/v1beta1
+kind: PriorityClass
+metadata:
+    name: default
+value: 200000000
+globalDefault: true
+description: |
+    Pods not assigned a PriorityClass will be dropped into the default class with value 200000000.
+    Pods with lower priority are still possible

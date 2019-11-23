@@ -1,0 +1,130 @@
+- block:
+
+  - set_fact:
+      has_cert_and_key: "{{ (nginx_ingress_controller_tls_cert_local_path|default('') != '' and nginx_ingress_controller_tls_key_local_path|default('') != '') | bool }}"
+
+  - block:
+
+    - name: base64 encode TLS key for nginx ingress controller
+      local_action: "shell cat {{ nginx_ingress_controller_tls_key_local_path }} | base64 | tr '\r' '\n' | tr -d '\n'"
+      become: no
+      register: nginx_ingress_controller_b64_tls_key_A
+
+    - name: base64 encode TLS certificate for nginx ingress controller
+      local_action: "shell cat {{ nginx_ingress_controller_tls_cert_local_path }} | base64 | tr '\r' '\n' | tr -d '\n'"
+      become: no
+      register: nginx_ingress_controller_b64_tls_cert_A
+
+    when: has_cert_and_key
+
+  - block:
+
+    - name: generate base64 encode TLS key for nginx ingress controller if none provided
+      shell: "cat {{ cert_dir }}/{{ ingress_cert_key_filename }} | base64 | tr '\r' '\n' | tr -d '\n'"
+      register: nginx_ingress_controller_b64_tls_key_B
+
+    - name: generate base64 encode TLS certificate for nginx ingress controller if none provided
+      shell: "cat {{ cert_dir }}/{{ ingress_cert_crt_filename }} | base64 | tr '\r' '\n' | tr -d '\n'"
+      register: nginx_ingress_controller_b64_tls_cert_B
+
+    when: not has_cert_and_key
+
+  - set_fact:
+      nginx_ingress_controller_b64_tls_key: "{{ (nginx_ingress_controller_b64_tls_key_A.stdout_lines if has_cert_and_key else nginx_ingress_controller_b64_tls_key_B.stdout_lines | default('')) | join('') }}"
+      nginx_ingress_controller_b64_tls_cert: "{{ (nginx_ingress_controller_b64_tls_cert_A.stdout_lines if has_cert_and_key else nginx_ingress_controller_b64_tls_cert_B.stdout_lines | default('')) | join('') }}"
+
+  - name: generate basic auth htpasswd for nginx ingress controller
+    shell: printf "{{ nginx_ingress_controller_basic_auth_username }}:$(openssl passwd -apr1 '{{ nginx_ingress_controller_basic_auth_password }}')" | base64
+    register: nginx_ingress_controller_basic_auth_htpasswd
+
+  - set_fact:
+      nginx_ingress_controller_b64_basic_auth_htpasswd: "{{ nginx_ingress_controller_basic_auth_htpasswd.stdout }}"
+
+  - name: wait until kube apiserver is available
+    uri:
+      url: "{{ kube_api_server_local }}/healthz"
+      status_code: 200
+      client_cert: "{{ cert_dir }}/{{ certs.admin.crt }}"
+      client_key: "{{ cert_dir }}/{{ certs.admin.key }}"
+    retries: 12
+    delay: 5
+    register: apiserver_availability
+    until: ('status' in apiserver_availability) and (apiserver_availability.status == 200)
+    # action has no previous state to compare. should be pass fail.
+    changed_when: no
+
+  - name: assert /srv/kubernetes/manifests exists
+    file:
+      path: /srv/kubernetes/manifests
+      state: directory
+
+  - slurp:
+      src: "{{ cert_dir }}/{{ certs.etcd.key }}"
+    register: etcd_key
+
+  - slurp:
+      src: "{{ cert_dir }}/{{ certs.etcd.crt }}"
+    register: etcd_cert
+
+  - slurp:
+      src: "{{cert_dir }}/{{ etcd_root_ca_crt_filename}}"
+    register: etcd_ca
+
+  - block:
+
+      - name: "find tc pareto.dist file"
+        find:
+          paths:
+            - /usr/share/tc
+            - /usr/lib/tc
+            - /usr/lib64/tc
+            - /lib/tc
+          file_type: file
+          patterns:
+            - 'pareto.dist'
+        register: pareto_dist
+
+      - set_fact:
+          tc_pareto_dist_folder: "{{ pareto_dist.files[0].path | dirname }}"
+
+    when: dns_aaaa_delay_enabled
+
+  - name: render core manifests
+    template:
+      src: "srv/kubernetes/manifests/{{ item.name }}.yaml.j2"
+      dest: "/srv/kubernetes/manifests/{{ item.name }}.yaml"
+    with_items: "{{ core_manifests }}"
+    when: item.enabled
+
+  # end block
+  when: "'master' in group_names"
+
+- block:
+
+  - name: "apply Calico CNI manifest"
+    shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply {{ force_apply_flag }}-f /srv/kubernetes/manifests/calico.yaml"
+
+  - name: "apply DNS AAAA Delay manifest"
+    shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply {{ force_apply_flag }}-f /srv/kubernetes/manifests/dns-aaaa-delay.yaml"
+    when: dns_aaaa_delay_enabled
+
+  - name: assert cluster is ready
+    shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig get nodes | grep Ready | grep -v NotReady | wc -l"
+    register: ready_count
+    retries: "{{ groups['kube_cluster'] | length }}"
+    delay: 120
+    until: "ready_count.stdout | int == groups['kube_cluster'] | length "
+
+  - include_tasks: dns.yaml
+
+  - name: apply control plane services
+    shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply {{ force_apply_flag }}-f /srv/kubernetes/manifests/control-plane-services.yaml"
+
+  - name: apply core manifest
+    shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply {{ force_apply_flag }}-f /srv/kubernetes/manifests/{{ item.name }}.yaml"
+    with_items: "{{ core_manifests }}"
+    when:
+      - item['enabled']
+      - not item['prerequisite']
+
+  when: inventory_hostname == 'master000'

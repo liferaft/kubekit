@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package kubekit.v1;
+
+option go_package = "v1";
+
+message UpdateClusterRequest {
+  string api = 1;
+  string kind = 2;
+	string cluster_name = 3;
+	map<string,string>	variables = 4;
+	map<string,string>	credentials = 5;
+	repeated string resources = 6;
+}
+
+message UpdateClusterResponse {
+  string api = 1;
+}

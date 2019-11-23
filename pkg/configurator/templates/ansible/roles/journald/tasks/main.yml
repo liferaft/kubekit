@@ -1,0 +1,71 @@
+- name: <journald>
+  debug:
+    msg: Print tag <journald> for KubeKit Configurator parser
+
+- name: Check all hosts are still available
+  include_role:
+    name: precheck
+    tasks_from: all_hosts_alive
+
+# needs to be present for journald log rotation when using storage=auto (which is the default)
+- name: assert /var/log/journal exists
+  file:
+    path: /var/log/journal
+    state: directory
+
+- name: Update Journald configuration to persist data
+  lineinfile:
+    path: /etc/systemd/journald.conf
+    state: present
+    regexp: '^Storage='
+    line: 'Storage=persistent'
+  register: journald_unit_storage_persistent
+  notify: reload and restart journald
+
+- name: Update Journald configuration to limit runtime aggregate log size
+  lineinfile:
+    path: /etc/systemd/journald.conf
+    state: present
+    regexp: '^RuntimeMaxUse='
+    line: 'RuntimeMaxUse={{ journald_max_size }}'
+  register: journald_unit_runtime_max_use
+  notify: reload and restart journald
+
+- name: Update Journald configuration to limit aggregate stored size
+  lineinfile:
+    path: /etc/systemd/journald.conf
+    state: present
+    regexp: '^SystemMaxUse='
+    line: 'SystemMaxUse={{ journald_max_size }}'
+  register: journald_unit_system_max_use
+  notify: reload and restart journald
+
+- name: Update Journald configuration to limit runtime log size
+  lineinfile:
+    path: /etc/systemd/journald.conf
+    state: present
+    regexp: '^RuntimeMaxFileSize='
+    line: 'RuntimeMaxFileSize={{ journald_log_size }}'
+  register: journald_unit_runtime_max_file_size
+  notify: reload and restart journald
+
+- name: Update Journald configuration to limit stored log size
+  lineinfile:
+    path: /etc/systemd/journald.conf
+    state: present
+    regexp: '^SystemMaxFileSize='
+    line: 'SystemMaxFileSize={{ journald_log_size }}'
+  register: journald_unit_system_max_file_size
+  notify: reload and restart journald
+
+- meta: flush_handlers
+  when: >
+    journald_unit_storage_persistent.changed or
+    journald_unit_runtime_max_use.changed or
+    journald_unit_system_max_use.changed or
+    journald_unit_runtime_max_file_size.changed or
+    journald_unit_system_max_file_size.changed
+
+- name: </journald>
+  debug:
+    msg: Print tag </journald> for KubeKit Configurator parser

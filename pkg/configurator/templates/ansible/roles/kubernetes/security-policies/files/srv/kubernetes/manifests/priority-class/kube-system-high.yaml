@@ -1,0 +1,9 @@
+apiVersion: scheduling.k8s.io/v1beta1
+kind: PriorityClass
+metadata:
+  name: kube-system-high
+value: 800000000
+globalDefault: false
+description: |
+  High priority pods that are not considered system level and reside in the kube-system namespace.
+  This will still get trumped by the system level and kube-system critical classes.

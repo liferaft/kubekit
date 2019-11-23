@@ -1,0 +1,137 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kube-controller-manager
+  namespace: kube-system
+  annotations:
+    scheduler.alpha.kubernetes.io/critical-pod: ""
+    prometheus.io/port: "10252"
+    prometheus.io/scrape: "true"
+  labels:
+    component: kube-controller-manager
+    tier: control-plane
+spec:
+  hostNetwork: true
+  priorityClassName: system-cluster-critical
+  containers:
+  - name: kube-controller-manager
+    image: {{ core_repo_root }}{{ current_manifest['dependencies']['control-plane']['kube-controller-manager']['src'] }}
+    imagePullPolicy: IfNotPresent
+    command:
+{% if current_manifest['dependencies']['control-plane']['kube-controller-manager']['src'].split('/')[-1].startswith('hyperkube') %}
+    - /hyperkube
+{% endif %}
+    - kube-controller-manager
+    - --bind-address={{ kube_api_secure_bind_address }}
+{% if cloud_provider_enabled and cloud_provider == "aws" %}
+    - --cloud-provider=aws
+    - --cloud-config=/etc/aws/aws.conf
+{% elif cloud_provider_enabled and cloud_provider == "vsphere" %}
+    - --cloud-provider=vsphere
+    - --cloud-config=/etc/kubernetes/configs/vsphere.conf
+{% else %}
+    - --cloud-provider=
+{% endif %}
+{% for item in kube_controller_manager_args %}
+    - {{ item }}
+{% endfor %}
+{% for key, val in feature_gates.items() | list %}
+    - --feature-gates={{ key }}={{ val }}
+{% endfor %}
+    ports:
+    - containerPort: 10257
+      hostPort: 10257
+    - containerPort: 10252
+      hostPort: 10252
+    livenessProbe:
+      failureThreshold: 8
+      httpGet:
+        host: 127.0.0.1
+        path: /healthz
+        port: 10252
+        scheme: HTTP
+      initialDelaySeconds: 15
+      timeoutSeconds: 15
+    resources:
+      requests:
+        cpu: 200m
+    volumeMounts:
+{% if controlplane_timezone != "" %}
+    - name: tz-config
+      mountPath: /etc/localtime
+{% endif %}
+    - mountPath: {{ cert_dir }}
+      name: kube-controller-certs
+      readOnly: true
+    - mountPath: {{ kube_config_filename }}
+      name: kubeconfig
+      readOnly: true
+    - mountPath: {{ kube_folder }}
+      name: etc-kubernetes
+      readOnly: true
+{% if cloud_provider_enabled and cloud_provider == "aws" %}
+    - mountPath: /etc/aws/aws.conf
+      name: cloud-provider-conf
+      readOnly: true
+{% elif cloud_provider_enabled and cloud_provider == "vsphere" %}
+    - mountPath: /etc/kubernetes/configs/vsphere.conf
+      name: cloud-provider-conf
+      readOnly: true
+{% endif %}
+    - mountPath: /etc/ssl/certs
+      name: ca-certs
+      readOnly: true
+    - mountPath: /usr/local/share/ca-certificates
+      name: usr-local-share-ca-certificates
+      readOnly: true
+    - mountPath: /etc/ca-certificates
+      name: etc-ca-certificates
+      readOnly: true
+    - mountPath: /usr/share/ca-certificates
+      name: usr-share-ca-certificates
+      readOnly: true
+  volumes:
+  - hostPath:
+      path: {{ cert_dir }}
+      type: Directory
+    name: kube-controller-certs
+  - hostPath:
+      path: {{ kube_config_filename }}
+      type: File
+    name: kubeconfig
+  - hostPath:
+      path: {{ kube_folder }}
+      type: Directory
+    name: etc-kubernetes
+{% if cloud_provider_enabled and cloud_provider == "aws" %}
+  - hostPath:
+      path: /etc/aws/aws.conf
+      type: File
+    name: cloud-provider-conf
+{% elif cloud_provider_enabled and cloud_provider == "vsphere" %}
+  - hostPath:
+      path: /etc/kubernetes/configs/vsphere.conf
+      type: File
+    name: cloud-provider-conf
+{% endif %}
+  - hostPath:
+      path: /etc/ssl/certs
+      type: DirectoryOrCreate
+    name: ca-certs
+  - hostPath:
+      path: /usr/share/ca-certificates
+      type: DirectoryOrCreate
+    name: usr-share-ca-certificates
+  - hostPath:
+      path: /usr/local/share/ca-certificates
+      type: DirectoryOrCreate
+    name: usr-local-share-ca-certificates
+  - hostPath:
+      path: /etc/ca-certificates
+      type: DirectoryOrCreate
+    name: etc-ca-certificates
+{% if controlplane_timezone != "" %}
+  - hostPath:
+      path: "/usr/share/zoneinfo/{{ controlplane_timezone }}"
+    name: tz-config
+{% endif %}

@@ -1,0 +1,85 @@
+- name: <kubernetes/systemd>
+  debug:
+    msg: Print tag <kubernetes/systemd> for KubeKit Configurator parser
+
+- name: Check all hosts are still available
+  include_role:
+    name: precheck
+    tasks_from: all_hosts_alive
+
+- name: assert permissions on /sys/class/dmi/id/product_serial
+  file:
+    path: /sys/class/dmi/id/product_serial
+    mode: 0444
+
+- name: check if containerd.service exists
+  stat: 
+    path: /usr/lib/systemd/system/containerd.service
+  register: st
+
+- block:
+  - name: force systemd to reread configs and restart containerd
+    systemd:
+      name: containerd
+      state: restarted
+      daemon_reload: yes
+
+  - name: assert /etc/systemd/system/containerd.service.d/ systemd folder exists
+    file:
+      path: "/etc/systemd/system/containerd.service.d/"
+      state: directory
+
+  - name: render containerd systemd override file
+    template:
+      src: "etc/systemd/system/containerd.service.d/override.conf.j2"
+      dest: "/etc/systemd/system/containerd.service.d/override.conf"
+    register: containerd_override
+    notify: reload and restart containerd
+
+  - meta: flush_handlers
+    when: >
+      containerd_override.changed
+
+  when: st.stat.exists == true
+
+- block:
+  - name: force systemd to reread configs and restart docker
+    systemd:
+      name: docker
+      state: restarted
+      daemon_reload: yes
+
+  - name: assert /etc/systemd/system/docker.service.d/ systemd folder exists
+    file:
+      path: "/etc/systemd/system/docker.service.d/"
+      state: directory
+
+  - name: render docker systemd override file
+    template:
+      src: "etc/systemd/system/docker.service.d/override.conf.j2"
+      dest: "/etc/systemd/system/docker.service.d/docker.conf"
+    register: docker_override
+    notify: reload and restart docker
+
+  - meta: flush_handlers
+    when: >
+      docker_override.changed
+
+  when: st.stat.exists == false
+
+- name: Get name of the host running ansible
+  local_action: command hostname
+  register: host_running_ansible
+  become: false
+
+- name: copy '/etc/motd'
+  template:
+    src: etc/motd.j2
+    dest: /etc/motd
+    mode: 0644
+    owner: root
+    group: root
+
+- name: </kubernetes/systemd>
+  debug:
+    msg: Print tag </kubernetes/systemd> for KubeKit Configurator parser

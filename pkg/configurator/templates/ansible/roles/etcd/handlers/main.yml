@@ -1,0 +1,6 @@
+- name: reload and restart rsyslog
+  systemd:
+    name: rsyslog
+    state: restarted
+    enabled: yes
+    daemon_reload: yes

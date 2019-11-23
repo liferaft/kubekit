@@ -1,0 +1,26 @@
+- name: assert modprobe br_netfilter installed
+  modprobe:
+    name: br_netfilter
+    state: present
+
+- name: save modprobe br_netfilter config to /etc/modules-load.d/br_netfilter.conf
+  copy:
+    src: etc/modules-load.d/br_netfilter.conf
+    dest: /etc/modules-load.d/br_netfilter.conf
+
+- name: assert modprobe ip_conntrack installed
+  modprobe:
+    name: ip_conntrack
+    state: present
+
+- name: save modprobe ip_conntrack config to /etc/modules-load.d/ip_conntrack.conf
+  copy:
+    src: etc/modules-load.d/ip_conntrack.conf
+    dest: /etc/modules-load.d/ip_conntrack.conf
+
+- sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_set: yes
+    reload: yes
+  with_dict: "{{ sysctl_settings }}"

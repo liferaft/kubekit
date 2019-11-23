@@ -1,0 +1,5 @@
+[Service]
+# https://github.com/coreos/bugs/issues/1909#issuecomment-333271038
+Environment=GOMAXPROCS={{ [((ansible_processor_count * 0.75)|int), 1] | max }}
+# https://github.com/containerd/containerd/blob/master/docs/ops.md#systemd
+KillMode=process

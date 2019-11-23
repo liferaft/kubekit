@@ -1,0 +1,315 @@
+---
+# Copyright 2016 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Should keep target in cluster/addons/dns-horizontal-autoscaler/dns-horizontal-autoscaler.yaml
+# in sync with this file.
+
+# __MACHINE_GENERATED_WARNING__
+
+apiVersion: v1
+kind: List
+items:
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: kube-dns
+      namespace: kube-system
+      labels:
+        app: kube-dns
+        kubernetes.io/cluster-service: "true"
+        addonmanager.kubernetes.io/mode: Reconcile
+        kubernetes.io/name: "KubeDNS"
+      annotations:
+        prometheus.io/port: "10054"
+        prometheus.io/scrape: "true"
+    spec:
+      selector:
+        app: kube-dns
+      clusterIP: "{{ kube_cluster_dns }}"
+      ports:
+      - name: dns
+        port: 53
+        protocol: UDP
+      - name: dns-tcp
+        port: 53
+        protocol: TCP
+      - name: metrics
+        port: 10054
+        targetPort: 10054
+        protocol: TCP
+
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: kubedns-sa
+      namespace: kube-system
+      labels:
+        kubernetes.io/cluster-service: "true"
+        addonmanager.kubernetes.io/mode: Reconcile
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      namespace: kube-system
+      name: kubedns-role
+    rules:
+    - apiGroups:
+      - ""
+      resources:
+      - configmaps
+      verbs:
+      - get
+      - list
+      - watch
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: kubedns-cr
+    rules:
+    - apiGroups:
+      - ""
+      resources:
+      - endpoints
+      - services
+      verbs:
+      - get
+      - list
+      - watch
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: kubedns
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kubedns-cr
+    subjects:
+    - kind: ServiceAccount
+      name: kubedns-sa
+      namespace: kube-system
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: kubedns-rb
+      namespace: kube-system
+    roleRef:
+      kind: Role
+      name: kubedns-role
+      apiGroup: rbac.authorization.k8s.io
+    subjects:
+    - kind: ServiceAccount
+      name: kubedns-sa
+
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: kube-dns
+      namespace: kube-system
+      labels:
+        addonmanager.kubernetes.io/mode: EnsureExists
+
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: kube-dns
+      namespace: kube-system
+      labels:
+        app: kube-dns
+        version: "{{ current_manifest['dependencies']['core']['kubedns']['version'] }}"
+        kubernetes.io/cluster-service: "true"
+        addonmanager.kubernetes.io/mode: Reconcile
+        role: backend
+    spec:
+      # replicas: not specified here:
+      # 1. In order to make Addon Manager do not reconcile this replicas parameter.
+      # 2. Default is 1.
+      # 3. Will be tuned in real time if DNS horizontal auto-scaling is turned on.
+      strategy:
+        rollingUpdate:
+          maxSurge: 10%
+          maxUnavailable: 0
+      selector:
+        matchLabels:
+          app: kube-dns
+      template:
+        metadata:
+          labels:
+            app: kube-dns
+            version: "{{ current_manifest['dependencies']['core']['kubedns']['version'] }}"
+            #kubernetes.io/cluster-service: "true"
+          annotations:
+            scheduler.alpha.kubernetes.io/critical-pod: ''
+            seccomp.security.alpha.kubernetes.io/pod: 'docker/default'
+        spec:
+          serviceAccountName: kubedns-sa
+          priorityClassName: system-cluster-critical
+          tolerations:
+          - key: "CriticalAddonsOnly"
+            operator: "Exists"
+          # Allow the pod to run on the master.  This is required for
+          # the master to communicate with pods.
+          - key: node-role.kubernetes.io/master
+            effect: NoSchedule
+          volumes:
+          - name: kube-dns-config
+            configMap:
+              name: kube-dns
+              optional: true
+          containers:
+          - name: kubedns
+            image: {{ core_repo_root }}{{ current_manifest['dependencies']['core']['kubedns']['src'] }}
+            resources:
+              # TODO: Set memory limits when we've profiled the container for large
+              # clusters, then set request = limit to keep this container in
+              # guaranteed class. Currently, this container falls into the
+              # "burstable" category so the kubelet doesn't backoff from restarting it.
+              requests:
+                cpu: {{ kube_dns_requests_cpu }}
+                memory: {{ kube_dns_requests_memory }}
+{% if kube_dns_limits_cpu or kube_dns_limits_memory %}
+              limits:
+{% if kube_dns_limits_cpu %}
+                cpu: {{ kube_dns_limits_cpu }}
+{% endif %}
+{% if kube_dns_limits_memory %}
+                memory: {{ kube_dns_limits_memory }}
+{% endif %}
+{% endif %}
+            livenessProbe:
+              httpGet:
+                path: /healthcheck/kubedns
+                port: 10054
+                scheme: HTTP
+              initialDelaySeconds: 60
+              timeoutSeconds: 5
+              successThreshold: 1
+              failureThreshold: 5
+            readinessProbe:
+              httpGet:
+                path: /readiness
+                port: 8081
+                scheme: HTTP
+              # we poll on pod startup for the Kubernetes master service and
+              # only setup the /readiness HTTP server once that's available.
+              initialDelaySeconds: 3
+              timeoutSeconds: 5
+            args:
+            - --domain=cluster.local.
+            - --dns-port=10053
+            - --config-dir=/kube-dns-config
+            - --v=2
+            env:
+            - name: PROMETHEUS_PORT
+              value: "10055"
+            ports:
+            - containerPort: 10053
+              name: dns-local
+              protocol: UDP
+            - containerPort: 10053
+              name: dns-tcp-local
+              protocol: TCP
+            - containerPort: 10055
+              name: prometheus
+              protocol: TCP
+            volumeMounts:
+            - name: kube-dns-config
+              mountPath: /kube-dns-config
+          - name: dnsmasq
+            image: {{ core_repo_root }}{{ current_manifest['dependencies']['core']['kubedns-dnsmasq-nanny']['src'] }}
+            livenessProbe:
+              httpGet:
+                path: /healthcheck/dnsmasq
+                port: 10054
+                scheme: HTTP
+              initialDelaySeconds: 60
+              timeoutSeconds: 5
+              successThreshold: 1
+              failureThreshold: 5
+            args:
+            - -v=2
+            - -logtostderr
+            - -configDir=/etc/k8s/dns/dnsmasq-nanny
+            - -restartDnsmasq=true
+            - --
+            - -k
+            - --cache-size=1000
+            - --no-negcache
+            - --dns-loop-detect
+            - --log-facility=-
+            - --server=/cluster.local/127.0.0.1#10053
+            - --server=/in-addr.arpa/127.0.0.1#10053
+            - --server=/ip6.arpa/127.0.0.1#10053
+            ports:
+            - containerPort: 53
+              name: dns
+              protocol: UDP
+            - containerPort: 53
+              name: dns-tcp
+              protocol: TCP
+            # see: https://github.com/kubernetes/kubernetes/issues/29055 for details
+            resources:
+              requests:
+                cpu: {{ dnsmasq_requests_cpu }}
+                memory: {{ dnsmasq_requests_memory }}
+{% if dnsmasq_limits_cpu or dnsmasq_limits_memory %}
+              limits:
+{% if dnsmasq_limits_cpu %}
+                cpu: {{ dnsmasq_limits_cpu }}
+{% endif %}
+{% if dnsmasq_limits_memory %}
+                memory: {{ dnsmasq_limits_memory }}
+{% endif %}
+{% endif %}
+            volumeMounts:
+            - name: kube-dns-config
+              mountPath: /etc/k8s/dns/dnsmasq-nanny
+          - name: sidecar
+            image: {{ core_repo_root }}{{ current_manifest['dependencies']['core']['kubedns-sidecar']['src'] }}
+            livenessProbe:
+              httpGet:
+                path: /metrics
+                port: 10054
+                scheme: HTTP
+              initialDelaySeconds: 60
+              timeoutSeconds: 5
+              successThreshold: 1
+              failureThreshold: 5
+            args:
+            - --v=2
+            - --logtostderr
+            - --probe=kubedns,127.0.0.1:10053,kubernetes.default.svc.cluster.local,5,SRV
+            - --probe=dnsmasq,127.0.0.1:53,kubernetes.default.svc.cluster.local,5,SRV
+            ports:
+            - containerPort: 10054
+              name: metrics
+              protocol: TCP
+            resources:
+              requests:
+                cpu: {{ dnsmasq_metrics_requests_cpu }}
+                memory: {{ dnsmasq_metrics_requests_memory }}
+{% if dnsmasq_metrics_limits_cpu or dnsmasq_metrics_limits_memory %}
+              limits:
+{% if dnsmasq_metrics_limits_cpu %}
+                cpu: {{ dnsmasq_metrics_limits_cpu }}
+{% endif %}
+{% if dnsmasq_metrics_limits_memory %}
+                memory: {{ dnsmasq_metrics_limits_memory }}
+{% endif %}
+{% endif %}
+          dnsPolicy: Default  # Don't use cluster DNS.

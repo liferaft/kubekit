@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package kubekit.v1;
+
+option go_package = "v1";
+
+import "cluster.proto";
+
+enum ApplyAction {
+	ALL = 0;
+	PROVISION = 1;
+	CONFIGURE = 2;
+}
+
+message ApplyRequest {
+	string api = 1;
+	string cluster_name = 2;
+	ApplyAction action = 3;
+	string package_url = 4;
+	bool force_package = 5;
+	map<string,string> ca_certs = 6; // Possible keys are: 'root_ca', 'etcd_root_ca', 'ingress_root_ca', 'srv_acc' with '_key' and '_crt'
+	// string etcd_ca_cert = 6;
+	// string ingress_ca_cert = 7;
+	// string kube_ca_cert = 8;
+}
+
+message ApplyResponse {
+	string api = 1; 
+	string status = 2;
+}

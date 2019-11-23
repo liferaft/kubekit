@@ -1,0 +1,30 @@
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  namespace: kube-system
+  name: frontend-policy
+spec:
+  podSelector:
+    matchLabels:
+      role: frontend 
+  ingress:
+    - ports:
+      # Allow http traffic to frontend pods
+      - port: 80
+      - port: 443
+      - port: 30080
+      - port: 30443
+      - port: 5000
+      - port: 3000
+      - port: 5601
+      - port: 8080
+      - port: 8081
+      - port: 8082
+      - port: 8083
+      - port: 9089
+      - port: 9090
+      - port: 9093
+      - port: 8443
+      - port: 5193
+      from: []

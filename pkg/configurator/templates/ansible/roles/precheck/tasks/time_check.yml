@@ -1,0 +1,31 @@
+# - name: assert time is correct on all hosts for certificates
+#   assert:
+#     that: master_time_check <= hostvars[inventory_hostname].ansible_date_time.epoch
+#     msg: "The epoch time on {{ inventory_hostname }} : {{ hostvars[inventory_hostname].ansible_date_time.epoch }}
+#           was less than the time on master {{ groups.master|first }} : {{ master_time_check }} by more than 30 seconds.
+#           Please make sure time is correct on the hosts"
+
+# this needs a different solution on go kubekit
+- block:
+  - name: gather valid timezones
+    command: timedatectl list-timezones
+    register: timezones
+
+  - name: verify valid host timezone
+    assert:
+      that: host_timezone in timezones.stdout
+      msg: >
+           "host_timezone must be a valid timezone as listed via timedatectl"
+    any_errors_fatal: true
+    when: ( host_timezone is defined )
+
+  - name: verify valid controlplane timezone
+    assert:
+      that: controlplane_timezone in timezones.stdout
+      msg: >
+           "controlplane_timezone must be a valid timezone as listed via timedatectl"
+    any_errors_fatal: true
+    when: ( controlplane_timezone is defined and controlplane_timezone != "" ) 
+
+  when: ( controlplane_timezone is defined and controlplane_timezone != "" ) or
+        ( host_timezone is defined )

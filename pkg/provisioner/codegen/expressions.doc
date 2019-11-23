@@ -1,0 +1,6 @@
+// Expressions in the templates to calculate
+/**
+// example
+// calico : {{ core_repo_root }}
+
+**/

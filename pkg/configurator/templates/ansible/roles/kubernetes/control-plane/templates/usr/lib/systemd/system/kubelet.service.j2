@@ -1,0 +1,94 @@
+[Unit]
+After=docker.service
+Requires=docker.service
+
+[Service]
+EnvironmentFile=/etc/environment
+Environment=K8S_CLUSTER_IFACE={{ cluster_iface_name | replace("ansible_", "") }}
+ExecStartPre=/bin/mkdir -p \
+    /var/log/containers \
+    /var/log/pods \
+    /var/lib/kubelet \
+    /opt/cni \
+    /etc/cni \
+    /var/lib/etcd \
+    /var/lib/calico
+ExecStartPre=/bin/sh -c '/usr/bin/systemctl set-environment K8S_CLUSTER_IFACE_IP=$(/sbin/ifconfig ${K8S_CLUSTER_IFACE} | /usr/bin/awk \'$1 == "inet" {print $2}\' | /usr/bin/cut -d: -f2)'
+ExecStartPre=-/usr/bin/docker kill kubelet
+ExecStartPre=-/usr/bin/docker rm kubelet
+ExecStart=/usr/bin/docker run --rm --net=host --pid=host --privileged \
+    --name kubelet \
+    -v {{ cert_dir }}:{{ cert_dir }}:ro \
+    -v /etc/kubernetes:/etc/kubernetes \
+    -v /etc/ssl/certs:/etc/ssl/certs:ro \
+    -v /usr/share/ca-certificates:/usr/share/ca-certificates:ro \
+    -v /usr/local/share/ca-certificates:/usr/local/share/ca-certificates:ro \
+    -v /etc/ca-certificates:/etc/ca-certificates:ro \
+    -v /etc/hosts:/etc/hosts:ro \
+    -v /etc/resolv.conf:/etc/resolv.conf:ro \
+    -v /var/log:/var/log:rw,shared \
+    -v /var/lib/docker:/var/lib/docker:rw \
+    -v /var/lib/kubelet:/var/lib/kubelet:rw,shared \
+    -v /srv/kubernetes/manifests:/srv/kubernetes/manifests:ro \
+    -v /opt/cni:/opt/cni:rw \
+    -v /etc/cni:/etc/cni:rw \
+    -v /var/run:/var/run:rw \
+    -v /sys:/sys:ro \
+    -v /dev:/dev \
+    -v /var/lib/calico:/var/lib/calico \
+{% for item in additional_rshared_mount_points %}
+    -v {{ item }}:{{ item }}:rshared \
+{% endfor %}
+{% if cloud_provider_enabled and cloud_provider == 'aws' %}
+    -v /etc/aws/aws.conf:/etc/aws/aws.conf:ro \
+{% elif cloud_provider_enabled and cloud_provider == "vsphere" %}
+    -v /etc/kubernetes/configs/vsphere.conf:/etc/kubernetes/configs/vsphere.conf:ro \
+{% endif %}
+    {{ core_repo_root }}{{ current_manifest['dependencies']['control-plane']['kubelet']['src'] }} \
+    sh -c '\
+      kubectl_version=$$(kubectl version); \
+      kubectl_version_status=$$?; \
+      echo "$$kubectl_version" > /kubectl.version.tmp; \
+      if [ $$kubectl_version_status -ne 0 ] || [ ! -f /etc/kubernetes/bin/.kubectl.version ] || [ ! $$(diff /etc/kubernetes/bin/.kubectl.version /kubectl.version.tmp) ]; then \
+        kubectl_path=$$(readlink -f $$(which kubectl)) && \
+        if [[ "$$kubectl_path" == *"hyperkube"* ]]; then \
+          /bin/cp "$$kubectl_path" "/etc/kubernetes/bin/hyperkube" && \
+          chown root:kube "/etc/kubernetes/bin/hyperkube"; \
+        else \
+          /bin/cp "$$kubectl_path" "/etc/kubernetes/bin/kubectl" && \
+          chown root:kube "/etc/kubernetes/bin/kubectl"; \
+        fi && \
+        echo "$$kubectl_version" > /etc/kubernetes/bin/.kubectl.version; \
+      fi; \
+      sed -i "/ext4 =/!b;n;s/metadata_csum,//" /etc/mke2fs.conf && \
+{% if current_manifest['dependencies']['control-plane']['kubelet']['src'].split('/')[-1].startswith('hyperkube') %}
+      /hyperkube kubelet \
+{% else %}
+      kubelet \
+{% endif %}
+        --v=2 \
+        --config=/etc/kubernetes/configs/kubelet.conf \
+        --node-ip=${K8S_CLUSTER_IFACE_IP} \
+        --register-with-taints={{ hostvars[inventory_hostname]['kubelet_taints'] | default([]) | valid_taints | join(',') }} \
+        --node-labels={{ hostvars[inventory_hostname]['kubelet_labels'] | default([]) | valid_labels | join(',') }} \
+{% if cloud_provider_enabled and cloud_provider == 'aws' %}
+        --cloud-provider=aws \
+        --cloud-config=/etc/aws/aws.conf \
+{% elif cloud_provider_enabled and cloud_provider == 'vsphere' %}
+        --cloud-provider=vsphere \
+        --cloud-config=/etc/kubernetes/configs/vsphere.conf \
+{% else %}
+        --cloud-provider= \
+{% endif %}
+{% for item in kube_kubelet_args %}
+        {{ item }} \
+{% endfor %}
+      '
+ExecStop=-/usr/bin/docker stop -t 5 kubelet
+Restart=on-failure
+RestartForceExitStatus=SIGPIPE
+RestartSec=10
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,28 @@
+[req]
+req_extensions = v3_req
+distinguished_name = req_distinguished_name
+[req_distinguished_name]
+[v3_req]
+basicConstraints = CA:TRUE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+subjectAltName = @alt_names
+[alt_names]
+{% set alt_names_for_first_master_host = [hostvars['master000'].fqdn | lower , hostvars['master000'].hostname, hostvars['master000'].hostname_short,  hostvars['master000'].inventory_hostname] %}
+{% set alt_names = (ingress_default_dns_alt_names + (ingress_additional_dns_alt_names|sort) + alt_names_for_first_master_host | sort) | unique %}
+{% for alt_name in alt_names %}
+DNS.{{ loop.index }} = {{ alt_name }}
+{% endfor %}
+{% if hostvars[inventory_hostname].private_ip %}
+{% set alt_ips_for_first_master_host = [hostvars['master000']['private_ip'], hostvars['master000'].ansible_host, hostvars['master000'].private_ip] %}
+{% else %}
+{% set alt_ips_for_first_master_host = [hostvars['master000']['private_ip'], hostvars['master000'].ansible_host] %}
+{% endif %}
+{% if kube_virtual_ip_api %}
+{% set alt_ip_for_vip = [kube_virtual_ip_api] %}
+{% else %}
+{% set alt_ip_for_vip = [] %}
+{% endif %}
+{% set alt_ips = (ingress_default_dns_alt_ips + alt_ip_for_vip + (ingress_additional_dns_alt_ips|sort) + alt_ips_for_first_master_host | sort) | unique %}
+{% for alt_ip in alt_ips %}
+IP.{{ loop.index }} = {{ alt_ip }}
+{% endfor %}

@@ -1,0 +1,22 @@
+- name: <kubernetes/ha>
+  debug:
+    msg: Print tag <kubernetes/ha> for KubeKit Configurator parser
+
+- name: Check all hosts are still available
+  include_role:
+    name: precheck
+    tasks_from: all_hosts_alive
+
+- block:
+  
+  - name: install & configure keepalived
+    import_tasks: keepalived.yml
+
+  - name: install & configure haproxy
+    import_tasks: haproxy.yml
+
+  when: "( 'master' in group_names ) and (is_ha_cluster | bool)"
+
+- name: </kubernetes/ha>
+  debug:
+    msg: Print tag </kubernetes/ha> for KubeKit Configurator parser

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package kubekit.v1;
+
+option go_package = "v1";
+
+message VersionRequest {
+  string api = 1;
+}
+
+message VersionResponse {
+  string api = 1;
+  string kubekit = 2;
+  string kubernetes = 3;
+  string docker = 4;
+  string etcd = 5;
+}

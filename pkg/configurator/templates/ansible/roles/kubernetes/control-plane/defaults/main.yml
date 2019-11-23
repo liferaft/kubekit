@@ -1,0 +1,293 @@
+cluster_name: "kubekit"
+
+kube_proxy_mode: "iptables"
+kubelet_serialize_image_pulls: no
+
+additional_rshared_mount_points: []
+
+# allows forcing the usage of IPs instead of DNS entries if needed
+address_inventory_field: "{% if cloud_provider == 'aws' %}private_ip{% else %}private_dns{% endif %}"
+
+etcd_version: 3.3.9
+etcd_initial_cluster_token: 0c3616cc-434e
+cluster_iface_name: "ansible_eth0"
+
+enable_etcd_local_proxy: no
+etcd_starting_proxy_advertise_port: 8888
+etcd_starting_proxy_initial_advertise_port: 9888
+
+etcd_logs_days_to_keep: 30
+etcd_logs_crontab_minute: "0,30"
+etcd_logs_crontab_hour: "*"
+
+etcd_heartbeat_interval: 120
+etcd_election_timeout: 1000
+etcd_snapshot_count: 100000  # Number of committed transactions to trigger a automatic snapshot to disk
+
+etcd_max_wals: 20
+
+etcd_data_dir: /var/lib/etcd
+
+overwrite_kubelet_taints: false
+overwrite_kubelet_labels: false
+
+# must be reachable from within your cluster
+cert_dir: /etc/pki
+root_ca_crt_filename: root_ca.crt
+etcd_root_ca_crt_filename: etcd_root_ca.crt
+service_account_key_filename: srv_acc.key
+
+certs:
+  admin:
+    key:  admin.key
+    crt:  admin.crt
+    pem:  admin.pem
+  node:
+    key:  node.key
+    crt:  node.crt
+  kubelet:
+    key:  kubelet.key
+    crt:  kubelet.crt
+  kube_proxy:
+    key:  kube_proxy.key
+    crt:  kube_proxy.crt
+  kube_controller:
+    key:  kube_controller.key
+    crt:  kube_controller.crt
+  kube_scheduler:
+    key:  kube_scheduler.key
+    crt:  kube_scheduler.crt
+  etcd:
+    key:  etcd_node.key
+    crt:  etcd_node.crt
+
+kube_config_filename: "/var/lib/kubelet/kubeconfig"
+
+registry_port: 5000
+registry_lb_port: 5005
+local_repo_root: "{{ hostvars['master000'][cluster_iface_name]['ipv4']['address'] + ':' + registry_port|string + '/lrk/' }}"
+
+kube_version: "{{ current_manifest['kubernetes-version'] }}"
+kube_cluster_cidr: "172.24.0.0/16"
+kube_services_cidr: "172.21.0.0/16"
+kube_api_secure_bind_address: "0.0.0.0"
+kube_api_ssl_port: "6558"
+
+kubelet_max_pods: 110
+
+core_repo_root: "{{ kube_virtual_ip_api if is_ha_cluster else (hostvars['master000'][address_inventory_field] if cloud_provider != 'aws' else hostvars['master000']['private_ip']) }}:{{ registry_lb_port if is_ha_cluster else registry_port }}/lrk/"
+
+# if this is enabled apiserver, control-manager get started with
+# --cloud-provider=[aws/vsphere] --cloud-config=[/tmp/vsphere.conf or /etc/aws/aws.conf]
+# valid values to enable are aws or vsphere on resp environments
+# this variable is also defined in inventory file
+cloud_provider: ""
+
+# timezone defaults to UTC and does not need any special handling to run as UTC
+# if user overrides, must be a valid timezone as per list-timezones output
+controlplane_timezone: "" 
+
+# kube does not accept a list of api servers
+# kube api servers is not truly HA/MultiMaster until
+# a load balancer (preferred)
+# or HA Proxy virtual IP has implemented (not preferred)
+kube_api_server_local: "https://localhost:{{ kube_api_ssl_port }}"
+kube_vip_api_server: "https://{{ kube_virtual_ip_api }}:{{ kube_vip_api_ssl_port }}"
+# kube api server address when VIP is not required (just one master)
+
+default_master000: "{% if cloud_provider != 'aws' %}{{ hostvars['master000'][address_inventory_field] }}{% else %}{{ hostvars['master000']['private_ip'] }}{% endif %}"
+kube_api_server: "https://{{ private_apiserver_dns_name | default(public_apiserver_dns_name, true) | default(default_master000, true) }}:{{ kube_api_ssl_port }}"
+
+is_ha_cluster: "{{ groups['master'] | length > 1 and (not disable_master_ha | bool) }}"
+
+kube_advertise_address: "{{ cluster_iface.ipv4.address }}"
+kube_cluster_dns: "172.21.0.10"
+
+container_log_max_files: 5
+container_log_max_size: 5Mi
+
+kube_audit_policy_file: /srv/kubernetes/manifests/audit/audit-policy.yaml
+kube_audit_log_path: "{{ kube_audit_log_folder }}/kube-audit.log"
+kube_audit_log_folder: /var/log/audit
+
+kube_folder: /etc/kubernetes
+kube_admission_cntrl_cfg_file: "{{ kube_folder }}/configs/admissioncontrol.cfg"
+kube_encryption_config_path: "{{ kube_folder }}/configs/encryption-config.yaml"
+
+# json or legacy
+kube_audit_log_format: json
+
+kube_audit_log_max_age: 30
+kube_audit_log_max_backup: 10
+kube_audit_log_max_size: 128
+
+terminated_pod_gc_threshold: 100
+pod_eviction_timeout: 2m
+rook_csi_enabled: no
+
+# enables local persistent volumes and gpu scheduling
+feature_gates:
+  RotateKubeletClientCertificate: true
+  RotateKubeletServerCertificate: true
+  ResourceLimitsPriorityFunction: true
+  ResourceQuotaScopeSelectors: true
+  TTLAfterFinished: true
+  CSIPersistentVolume: true
+  PersistentLocalVolumes: true
+  VolumeScheduling: true
+
+volume_plugins_dir: "/var/lib/kubelet/volumeplugins"
+
+kube_kubelet_args:
+  - "--cni-conf-dir=/etc/cni/net.d"
+  - "--cni-bin-dir=/opt/cni/bin"
+  - "--keep-terminated-pod-volumes=false"
+  - "--kubeconfig={{ kube_config_filename }}"
+  - "--network-plugin=cni"
+  - "--node-labels=kubekit-version={{ kubekit_version }}"
+  - "--pod-infra-container-image={{ core_repo_root }}{{ current_manifest['dependencies']['control-plane']['pause']['src'] }}"
+  - "--register-node=true"
+  - "--volume-plugin-dir={{ volume_plugins_dir }}"
+
+kube_apiserver_admission_control:
+  - "NamespaceLifecycle"
+  - "LimitRanger"
+  - "ServiceAccount"
+  - "ResourceQuota"
+  - "DefaultStorageClass"
+  - "DenyEscalatingExec"
+  - "PodSecurityPolicy"
+  - "NodeRestriction"
+  - "EventRateLimit"
+  - "Priority"
+  - "MutatingAdmissionWebhook"
+  - "ValidatingAdmissionWebhook"
+
+kube_apiserver_runtime_configs:
+  - "rbac.authorization.k8s.io/v1=true"
+  - "extensions/v1beta1=true"
+  - "extensions/v1beta1/deployments=true"
+  - "extensions/v1beta1/daemonsets=true"
+  - "extensions/v1beta1/podsecuritypolicy=true"
+  - "extensions/v1beta1/customresourcedefinition=true"
+  - "batch/v2alpha1=true"
+
+kube_apiserver_args:
+  - "--allow-privileged=true"
+  - "--advertise-address=$(HOST_IP)"
+  - "--admission-control-config-file={{ kube_admission_cntrl_cfg_file }}"
+  - "--anonymous-auth=false"
+  - "--endpoint-reconciler-type=lease"
+  - "--audit-policy-file={{ kube_audit_policy_file }}"
+  - "--audit-log-path={{ kube_audit_log_path }}"
+  - "--audit-log-format={{ kube_audit_log_format }}"
+  - "--audit-log-maxage={{ kube_audit_log_max_age }}"
+  - "--audit-log-maxbackup={{ kube_audit_log_max_backup }}"
+  - "--audit-log-maxsize={{ kube_audit_log_max_size }}"
+  - "--authorization-mode=RBAC,Node"
+  - "--client-ca-file={{ cert_dir }}/{{ root_ca_crt_filename }}"
+  - "--etcd-cafile={{ cert_dir }}/{{ etcd_root_ca_crt_filename }}"
+  - "--etcd-certfile={{ cert_dir }}/{{ certs.etcd.crt }}"
+  - "--etcd-keyfile={{ cert_dir }}/{{ certs.etcd.key }}"
+  - "--experimental-encryption-provider-config={{ kube_encryption_config_path }}"
+  - "--insecure-port=0"
+  - "--requestheader-client-ca-file={{ cert_dir }}/{{ root_ca_crt_filename }}"
+  - "--kubelet-client-certificate={{ cert_dir }}/{{ certs.admin.crt }}"
+  - "--kubelet-client-key={{ cert_dir }}/{{ certs.admin.key }}"
+  - "--kubelet-certificate-authority={{ cert_dir }}/{{ root_ca_crt_filename }}"
+  - "--kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP"
+  - "--profiling=false"
+  - "--request-timeout=300s"
+  - "--runtime-config={{ kube_apiserver_runtime_configs | join(',') }}"
+  - "--service-account-key-file={{ cert_dir}}/{{ service_account_key_filename }}"
+  - "--service-account-lookup=true"
+  - "--tls-cert-file={{ cert_dir}}/{{ certs.node.crt }}"
+  - "--tls-private-key-file={{ cert_dir }}/{{ certs.node.key }}"
+
+kube_controller_manager_args:
+  - "--allocate-node-cidrs=true"
+  - "--cluster-name=kubernetes"
+  - "--cluster-cidr={{ kube_cluster_cidr }}"
+  - "--experimental-cluster-signing-duration=8760h0m0s"
+  - "--kubeconfig={{ kube_config_filename }}"
+  - "--authentication-kubeconfig={{ kube_config_filename }}"
+  - "--authorization-kubeconfig={{ kube_config_filename }}"
+  - "--leader-elect=true"
+  - "--profiling=false"
+  - "--terminated-pod-gc-threshold={{ terminated_pod_gc_threshold }}"
+  - "--requestheader-client-ca-file={{ cert_dir }}/{{ root_ca_crt_filename }}"
+  - "--client-ca-file={{ cert_dir }}/{{ root_ca_crt_filename }}"
+  - "--tls-cert-file={{ cert_dir }}/{{ certs.kube_controller.crt }}"
+  - "--tls-private-key-file={{ cert_dir }}/{{ certs.kube_controller.key }}"
+  - "--root-ca-file={{ cert_dir }}/{{ root_ca_crt_filename }}"
+  - "--service-account-private-key-file={{ cert_dir}}/{{ service_account_key_filename }}"
+  - "--pod-eviction-timeout={{ pod_eviction_timeout }}"
+  # - "--use-service-account-credentials=true" # Temp removed as it causes larger security issues
+  - "--flex-volume-plugin-dir={{ volume_plugins_dir }}"
+
+kube_scheduler_args:
+  #- "--profiling=false"
+#  - "--kubeconfig={{ kube_config_filename }}"
+#  - "--leader-elect=true"
+  - "--v=2"
+
+kube_proxy_args:
+#  - "--hostname-override={% if cloud_provider != 'aws' %}{{ hostvars[inventory_hostname]['hostname'] }}{% else %}{{ kube_advertise_address }}{% endif %}"
+#  - "--hostname-override=$(MY_HOST_IP)"
+  - "--cluster-cidr={{kube_cluster_cidr}}"
+  - "--kubeconfig={{ kube_config_filename }}"
+  - "--proxy-mode={{ kube_proxy_mode | default('iptables', true) }}"
+  - "--v=2"
+
+
+control_plane_manifests:
+  - name: kube-proxy
+    enabled: yes
+    prerequisite: yes
+
+
+# resource settings
+# -------------------------
+
+# kubelet
+kubelet_system_reserved:
+  cpu: "250m"
+  memory: "0.2Gi"
+  ephemeral_storage: "1Gi"
+kubelet_kube_reserved:
+  cpu: "250m"
+  memory: "{% if ansible_memory_mb.real.total >= 8192 %}1Gi{% else %}0.5Gi{% endif %}"
+  ephemeral_storage: "1Gi"
+kubelet_eviction_hard:
+  memory_available: "0.5Gi"
+  nodefs_available: "10%"
+
+# etcd
+etcd_requests_cpu: "{% if ansible_processor_count >= 32 %}2{% elif 32 > ansible_processor_count >= 4 %}1{% else %}500m{% endif %}"
+etcd_requests_memory: "{% if ansible_memory_mb.real.total >= 16384 %}4Gi{% elif 16384 > ansible_memory_mb.real.total >= 8192 %}2Gi{% elif 8192 > ansible_memory_mb.real.total >= 4096 %}1Gi{% else %}0.5Gi{% endif %}"
+etcd_limits_cpu: "{{ etcd_requests_cpu }}"
+etcd_limits_memory: "{{ etcd_requests_memory }}"
+
+# kube-apiserver
+kube_apiserver_requests_cpu: "{% if ansible_processor_count >= 32 %}2{% elif 32 > ansible_processor_count >= 4 %}1{% else %}500m{% endif %}"
+kube_apiserver_requests_memory: "{% if ansible_memory_mb.real.total >= 16384 %}4Gi{% elif 16384 > ansible_memory_mb.real.total >= 8192 %}2Gi{% elif 8192 > ansible_memory_mb.real.total >= 4096 %}1Gi{% else %}0.5Gi{% endif %}"
+kube_apiserver_limits_cpu: "{{ kube_apiserver_requests_cpu }}"
+kube_apiserver_limits_memory: "{{ kube_apiserver_requests_memory }}"
+
+# kube-controller-manager
+kube_controller_manager_requests_cpu: "250m"
+kube_controller_manager_requests_memory: "{% if ansible_memory_mb.real.total >= 16384 %}512Mi{% else %}256Mi{% endif %}"
+kube_controller_manager_limits_cpu: "{{ kube_controller_manager_requests_cpu }}"
+kube_controller_manager_limits_memory: "{{ kube_controller_manager_requests_memory }}"
+
+# kube-scheduler
+kube_scheduler_requests_cpu: "250m"
+kube_scheduler_requests_memory: "256Mi"
+kube_scheduler_limits_cpu: "{{ kube_scheduler_requests_cpu }}"
+kube_scheduler_limits_memory: "{{ kube_scheduler_requests_memory }}"
+
+# kube-proxy
+kube_proxy_requests_cpu: "250m"
+kube_proxy_requests_memory: "256Mi"
+kube_proxy_limits_cpu: "{{ kube_proxy_requests_cpu }}"
+kube_proxy_limits_memory: "{{ kube_proxy_requests_memory }}"

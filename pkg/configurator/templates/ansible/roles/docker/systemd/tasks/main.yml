@@ -1,0 +1,60 @@
+- name: <docker/systemd>
+  debug:
+    msg: Print tag <docker/systemd> for KubeKit Configurator parser
+
+- name: Check all hosts are still available
+  include_role:
+    name: precheck
+    tasks_from: all_hosts_alive
+
+- name: create /etc/docker
+  file:
+    path: /etc/docker
+    state: directory
+    mode: 0755
+
+- name: copy new hourly logrotate unit file
+  copy:
+    src: usr/lib/systemd/system/logrotate.timer
+    dest: /usr/lib/systemd/system/logrotate.timer
+    mode: 0644
+  notify: reload and restart logrotate and timers
+
+- name: enforce logrotate started
+  systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  with_items:
+    - logrotate.service
+    - logrotate.timer
+
+- name: copy new docker rsyslog entry
+  copy:
+    src: etc/rsyslog.d/30-docker.conf
+    dest: /etc/rsyslog.d/30-docker.conf
+    mode: 0644
+  notify: reload and restart rsyslog
+
+- name: render template to /etc/docker/daemon.json
+  template:
+    src: etc/docker/daemon.json.j2
+    dest: /etc/docker/daemon.json
+    mode: 0644
+  register: docker_unit
+  notify: reload and restart docker
+
+- meta: flush_handlers
+  when: docker_unit.changed
+
+- meta: flush_handlers
+
+- name: enforce docker started
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: </docker/systemd>
+  debug:
+    msg: Print tag </docker/systemd> for KubeKit Configurator parser

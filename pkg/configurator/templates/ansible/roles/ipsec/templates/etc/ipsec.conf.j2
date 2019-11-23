@@ -1,0 +1,31 @@
+# LEFT is ALWAYS localhost. my ip:{{ hostvars[inventory_hostname][cluster_iface_name]['ipv4']['address'] }}
+# Having left=%any, allows new adapters to be easily added.  Just need to add new ip's to conn section
+config setup
+
+conn %default
+ ikelifetime=60m
+ keylife=20m
+ rekeymargin=3m
+ keyingtries=1
+ mobike=no
+ keyexchange=ikev2
+ leftcert={{ cert_dir }}/{{ certs.ipsec.crt }}
+ left=%any
+ auto=start
+ rightid="CN=ipsec"
+ leftfirewall=yes
+
+ca ipsec
+ cacert={{ cert_dir }}/{{ ipsec_root_ca_crt_filename }}
+ auto=start
+
+# Any right= specified here are encrypted connections to that host.
+# All default settings are specified above
+
+{% for ip in groups['kube_cluster']| map('extract',hostvars,[cluster_iface_name,'ipv4','address'])|list  %}
+{% if hostvars[inventory_hostname][cluster_iface_name]['ipv4']['address']  != ip %}
+conn {{ ip }}
+ right={{ ip }}
+{% endif %}{% endfor %}{% if (is_ha_cluster | bool) %}
+conn {{ kube_virtual_ip_api }}
+ right={{ kube_virtual_ip_api }}{% endif %}

@@ -1,0 +1,98 @@
+# this can't be created in the static pod manifest and they are not needed by the control plane
+# so we create the service in the core role since we only create them to be scraped by prometheus
+# clusterIPs are set to None because they dont need to be proxied
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: etcd
+  namespace: kube-system
+  labels:
+    component: etcd
+    tier: control-plane
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "2381"
+spec:
+  selector:
+    component: etcd
+    tier: control-plane
+  ports:
+  - name: metrics
+    protocol: TCP
+    port: 2381
+  type: ClusterIP
+  clusterIP: None
+  sessionAffinity: None
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kube-system
+  name: kube-controller-manager
+  labels:
+    component: kube-controller-manager
+    tier: control-plane
+  annotations:
+    prometheus.io/port: "10252"
+    prometheus.io/scrape: "true"
+spec:
+  selector:
+    component: kube-controller-manager
+    tier: control-plane
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http-metrics
+    port: 10252
+    targetPort: 10252
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kube-system
+  name: kube-scheduler
+  labels:
+    component: kube-scheduler
+    tier: control-plane
+  annotations:
+    prometheus.io/port: "10251"
+    prometheus.io/scrape: "true"
+spec:
+  selector:
+    component: kube-scheduler
+    tier: control-plane
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http-metrics
+    port: 10251
+    targetPort: 10251
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kube-system
+  name: kube-proxy
+  labels:
+    component: kube-proxy
+    tier: control-plane
+  annotations:
+    prometheus.io/port: "10249"
+    prometheus.io/scrape: "true"
+spec:
+  selector:
+    component: kube-proxy
+    tier: control-plane
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http-metrics
+    port: 10249
+    targetPort: 10249
+    protocol: TCP

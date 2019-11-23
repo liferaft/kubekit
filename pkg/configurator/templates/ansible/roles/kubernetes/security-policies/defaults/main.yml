@@ -1,0 +1,36 @@
+kube_api_server_local: "https://localhost:{{ kube_api_ssl_port }}"
+kube_api_ssl_port: "6558"
+
+net_policy_manifests:
+  - backend-policy
+  - default-deny
+  - dns-policy
+  - frontend-policy
+  - heapster-policy
+  #- kube-state-metrics-policy
+
+psp_manifests:
+  - privileged
+  - restricted
+
+rbac_manifests:
+  - privileged
+  - restricted
+
+priority_class_manifests:
+  - kube-system-critical
+  - kube-system-high
+  - ceph-critical
+  - default
+
+resource_quota_manifests:
+  - kube-system
+  - rook-ceph
+  - rook-ceph-system
+
+cert_dir: /etc/pki
+
+certs:
+  admin:
+    key:  admin.key
+    crt:  admin.crt

@@ -1,0 +1,34 @@
+---
+apiVersion: v1
+kind: List
+items:
+
+  - apiVersion: ceph.rook.io/v1
+    kind: CephFilesystem
+    metadata:
+      name: rook-global-filestore
+      namespace: rook-ceph
+    spec:
+      # The metadata pool spec
+      metadataPool:
+        replicated:
+          # Increase the replication size if you have more than one osd
+          size: {{ rook_ceph_filesystem_meta_pool_replication_count }}
+      # The list of data pool specs
+      dataPools:
+        - failureDomain: host
+          replicated:
+            size: {{ rook_ceph_filesystem_data_pool_replication_count }}
+      # The metadata service (mds) configuration
+      metadataServer:
+        # The number of active MDS instances
+        activeCount: {{ rook_ceph_filesystem_mds_count }}
+        activeStandby: {{ rook_ceph_filesystem_active_standby }}
+        placement: {{ rook_ceph_filesystem_placement_options }}
+        resources:
+          limits:
+            cpu: "{{ rook_ceph_filesystem_resource_limits_cpu }}"
+            memory: "{{ rook_ceph_filesystem_resource_limits_mem }}"
+          requests:
+            cpu: "{{ rook_ceph_filesystem_resource_requests_cpu }}"
+            memory: "{{ rook_ceph_filesystem_resource_requests_mem }}"

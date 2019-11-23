@@ -1,0 +1,419 @@
+---
+apiVersion: v1
+kind: List
+items:
+
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: nginx-ingress-sa
+      namespace: kube-system
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: nginx-ingress-clusterrole
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - configmaps
+          - endpoints
+          - nodes
+          - pods
+          - secrets
+        verbs:
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - nodes
+        verbs:
+          - get
+      - apiGroups:
+          - ""
+        resources:
+          - services
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - "extensions"
+        resources:
+          - ingresses
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+            - events
+        verbs:
+            - create
+            - patch
+      - apiGroups:
+          - "extensions"
+        resources:
+          - ingresses/status
+        verbs:
+          - update
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: nginx-ingress-role
+      namespace: kube-system
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - configmaps
+          - pods
+          - secrets
+          - namespaces
+        verbs:
+          - get
+      - apiGroups:
+          - ""
+        resources:
+          - configmaps
+        resourceNames:
+          # Defaults to "<election-id>-<ingress-class>"
+          # Here: "<ingress-controller-leader>-<nginx>"
+          # This has to be adapted if you change either parameter
+          # when launching the nginx-ingress-controller.
+          - "ingress-controller-leader-nginx"
+        verbs:
+          - get
+          - update
+      - apiGroups:
+          - ""
+        resources:
+          - configmaps
+        verbs:
+          - create
+      - apiGroups:
+          - ""
+        resources:
+          - endpoints
+        verbs:
+          - get
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: nginx-ingress-role-nisa-binding
+      namespace: kube-system
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: nginx-ingress-role
+    subjects:
+      - kind: ServiceAccount
+        name: nginx-ingress-sa
+        namespace: kube-system
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: nginx-ingress-clusterrole-nisa-binding
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: nginx-ingress-clusterrole
+    subjects:
+      - kind: ServiceAccount
+        name: nginx-ingress-sa
+        namespace: kube-system
+
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: nginx-ingress-controller-config-v1
+      namespace: kube-system
+    data:
+      # config settings from: https://github.com/kubernetes/ingress-nginx/blob/master/docs/user-guide/nginx-configuration/configmap.md
+      # not to be confused with: https://github.com/nginxinc/kubernetes-ingress/tree/master/examples/customization
+      proxy-body-size: "{{ nginx_ingress_controller_proxy_body_size }}"
+      error-log-level: "{{ nginx_ingress_controller_error_log_level }}"
+      ssl-protocols: "{{ nginx_ingress_controller_ssl_protocols }}"
+      proxy-read-timeout: "{{ nginx_ingress_controller_proxy_read_timeout }}"
+      proxy-send-timouet: "{{ nginx_ingress_controller_proxy_send_timeout }}"
+      # enable metrics
+      enable-vts-status: "true"
+      server-name-hash-bucket-size: "{{ nginx_ingress_controller_server_name_hash_bucket_size }}"
+      ssl-redirect: "true"
+
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: {{ nginx_ingress_controller_tls_secret_name }}
+      namespace: kube-system
+      labels:
+        app: nginx-ingress-lb
+        version: "{{ current_manifest['dependencies']['core']['ingress-controller']['version'] }}"
+    type: Opaque
+    data:
+      dhparam.pem: LS0tLS1CRUdJTiBESCBQQVJBTUVURVJTLS0tLS0KTUlJQkNBS0NBUUVBK0grc1p0c3hIWEQ4cGxkYTVMNlJkc2NycmIyZkxVa01SQ0luanFsblYzZUlLWm1MU1R4Swp0YjRIeCt6M3p1d0d1RE9odENhSThmTWM5WHg4V0NZdUNZSGFZNDNpSGkvMHlLNGFlSExtK0JRemJZcGtYdHRnCmJvY0pCVEJUbmV1eUw5QzMrWks2MjIzUlhhdDd3cCs0T3BHZHB5d09mOU56c1F2ZUtBNVZUUy9ZSTlXYndmZVMKa0ozODh5UjF3bUNFQUNzUHBpaUxaMjg0djRiMGNmd21qMCtNTkVXclVrMCtPRytTQmRiMGx6YkIydWtHakFNUApSOWhCRm1GSmUzSkc3ZGZpbGFkL0x0cFlRREtvUmtoV1pJOGxQcG92R1NMRmJwOTZSWGtzYXBjcng5UGZvTDlOCk5OVjdWWUVGczNNbW5Ic0tZQTVtbGNoL0Z6MHhHSzhiMHdJQkFnPT0KLS0tLS1FTkQgREggUEFSQU1FVEVSUy0tLS0tCg==
+      tls.crt: "{{ hostvars[inventory_hostname]['nginx_ingress_controller_b64_tls_cert'] }}"
+      tls.key: "{{ hostvars[inventory_hostname]['nginx_ingress_controller_b64_tls_key'] }}"
+
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: {{ nginx_ingress_controller_basic_auth_secret_name }}
+      namespace: kube-system
+      labels:
+        app: nginx-ingress-lb
+    data:
+      auth: "{{ hostvars[inventory_hostname]['nginx_ingress_controller_b64_basic_auth_htpasswd'] }}"
+    type: Opaque
+
+  - apiVersion: apps/v1
+    kind: DaemonSet
+    metadata:
+      name: nginx-ingress-controller
+      namespace: kube-system
+    spec:
+      selector:
+        matchLabels:
+            app: nginx-ingress-lb
+      template:
+        metadata:
+          labels:
+            app: nginx-ingress-lb
+            version: "{{ current_manifest['dependencies']['core']['ingress-controller']['version'] }}"
+            kubernetes.io/cluster-service: "true"
+            role: frontend
+          annotations:
+            scheduler.alpha.kubernetes.io/critical-pod: ''
+            prometheus.io/port: "10254"
+            prometheus.io/scrape: "true"
+        spec:
+          hostNetwork: true
+          serviceAccountName: nginx-ingress-sa
+          priorityClassName: kube-system-high
+          tolerations:
+            # Mark the pod as a critical add-on for rescheduling.
+            - key: "CriticalAddonsOnly"
+              operator: "Exists"
+            # Allow the pod to run on the master.  This is required for
+            # the master to communicate with pods.
+            - key: node-role.kubernetes.io/master
+              effect: NoSchedule
+{% if nginx_ingress_controller_node_affinity_ansible_group|default('') not in ['', 'all', 'none'] %}
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: node-role.kubernetes.io/{{ nginx_ingress_controller_node_affinity_ansible_group }}
+                    operator: Exists
+{% endif %}
+          containers:
+            - name: nginx-ingress-controller
+              image: {{ core_repo_root }}{{ current_manifest['dependencies']['core']['ingress-controller']['src'] }}
+              resources:
+                requests:
+                  cpu: {{ nginx_ingress_controller_requests_cpu }}
+                  memory: {{ nginx_ingress_controller_requests_memory }}
+{% if nginx_ingress_controller_limits_cpu or nginx_ingress_controller_limits_memory %}
+                limits:
+{% if nginx_ingress_controller_limits_cpu %}
+                  cpu: {{ nginx_ingress_controller_limits_cpu }}
+{% endif %}
+{% if nginx_ingress_controller_limits_memory %}
+                  memory: {{ nginx_ingress_controller_limits_memory }}
+{% endif %}
+{% endif %}
+              args:
+                - /nginx-ingress-controller
+                - --default-backend-service=$(POD_NAMESPACE)/default-http-backend
+                - --configmap=$(POD_NAMESPACE)/nginx-ingress-controller-config-v1
+                - --default-ssl-certificate=$(POD_NAMESPACE)/{{ nginx_ingress_controller_tls_secret_name }}
+              env:
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+              ports:
+                - name: metrics
+                  containerPort: 10254
+{% if is_ha_cluster %}
+                - name: http
+                  containerPort: 80
+                - name: https
+                  containerPort: 443
+{% else %}
+                - name: http
+                  containerPort: 80
+                  hostPort: 80
+                - name: https
+                  containerPort: 443
+                  hostPort: 443
+{% endif %}
+              volumeMounts:
+                - mountPath: /etc/nginx-ssl/dhparam
+                  name: dhparam
+          volumes:
+            - name: dhparam
+              secret:
+                secretName: {{ nginx_ingress_controller_tls_secret_name }}
+
+{% if is_ha_cluster %}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: nginx-ingress-lb
+      namespace: kube-system
+      labels:
+        role: frontend
+    spec:
+      type: NodePort
+      ports:
+      - name: http
+        port: 80
+        targetPort: 80
+        nodePort: 30080
+        protocol: TCP
+      - name: https
+        port: 443
+        targetPort: 443
+        nodePort: 30443
+        protocol: TCP
+      selector:
+        app: nginx-ingress-lb
+{% endif %}
+
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: nginx-ingress-sa
+      namespace: kube-system
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: nginx-ingress-clusterrole
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - configmaps
+          - endpoints
+          - nodes
+          - pods
+          - secrets
+        verbs:
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - nodes
+        verbs:
+          - get
+      - apiGroups:
+          - ""
+        resources:
+          - services
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - "extensions"
+        resources:
+          - ingresses
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+            - events
+        verbs:
+            - create
+            - patch
+      - apiGroups:
+          - "extensions"
+        resources:
+          - ingresses/status
+        verbs:
+          - update
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: nginx-ingress-role
+      namespace: kube-system
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - configmaps
+          - pods
+          - secrets
+          - namespaces
+        verbs:
+          - get
+      - apiGroups:
+          - ""
+        resources:
+          - configmaps
+        resourceNames:
+          # Defaults to "<election-id>-<ingress-class>"
+          # Here: "<ingress-controller-leader>-<nginx>"
+          # This has to be adapted if you change either parameter
+          # when launching the nginx-ingress-controller.
+          - "ingress-controller-leader-nginx"
+        verbs:
+          - get
+          - update
+      - apiGroups:
+          - ""
+        resources:
+          - configmaps
+        verbs:
+          - create
+      - apiGroups:
+          - ""
+        resources:
+          - endpoints
+        verbs:
+          - get
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: nginx-ingress-role-nisa-binding
+      namespace: kube-system
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: nginx-ingress-role
+    subjects:
+      - kind: ServiceAccount
+        name: nginx-ingress-sa
+        namespace: kube-system
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: nginx-ingress-clusterrole-nisa-binding
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: nginx-ingress-clusterrole
+    subjects:
+      - kind: ServiceAccount
+        name: nginx-ingress-sa
+        namespace: kube-system

@@ -1,0 +1,107 @@
+---
+
+- block:
+
+  - name: Create /etc/systemd/system/{{ item }} directories
+    file:
+      path: "/etc/systemd/system/{{ item }}"
+      state: directory
+      mode: 0755
+      owner: root
+      group: root
+    with_items:
+      - "bynet.service.d"
+      - "keepalived.service.d"
+
+  - set_fact:
+      bynet_enabled: cluster_iface.device is match("byn.*")
+
+  - name: set Keepalived systemd unit
+    template:
+      src: usr/lib/systemd/system/keepalived.service.j2
+      dest: "/usr/lib/systemd/system/keepalived.service"
+      mode: 0644
+      owner: root
+      group: root
+
+  - name: set keepalived configuration file
+    template:
+      src: "etc/keepalived/keepalived.conf.j2"
+      dest: "/etc/keepalived/keepalived.conf"
+      owner: root
+      group: keepalived
+      mode: 0644
+    register: keepalived_conf
+    notify:
+      - reload and restart keepalived
+
+  - name: make keepalived only run with VRRP subsystem
+    copy:
+      src: "etc/sysconfig/keepalived"
+      dest: "/etc/sysconfig/keepalived"
+      owner: root
+      group: root
+      mode: 0644
+      force: yes
+    register: keepalived_sysconf
+    notify:
+      - reload and restart keepalived
+
+  - name: make bynet know about keepalived
+    copy:
+      src: "etc/systemd/system/bynet.service.d/bynet.conf"
+      dest: "/etc/systemd/system/bynet.service.d/bynet.conf"
+      owner: root
+      group: root
+      mode: 0644
+      force: yes
+    when: cluster_iface.device is match("byn.*")
+    notify:
+      - reload and restart keepalived
+      - reload and restart bynet
+
+#  - name: make keepalived dependant on bynet
+#    copy:
+#      src: "etc/systemd/system/keepalived.service.d/keepalived.conf"
+#      dest: "/etc/systemd/system/keepalived.service.d/keepalived.conf"
+#      owner: root
+#      group: root
+#      mode: 0644
+#      force: yes
+#    when: cluster_iface.device is match("byn.*")
+#    notify:
+#      - reload and restart keepalived
+#      - reload and restart bynet
+
+  - name: "copy '/etc/rsyslog.d/30-haproxy.conf'"
+    copy:
+      src: etc/rsyslog.d/30-keepalived.conf
+      dest: "/etc/rsyslog.d/30-keepalived.conf"
+      mode: 0644
+      owner: root
+      group: root
+    notify:
+      - reload and restart rsyslog
+
+  - name: make keepalived only run with VRRP subsystem
+    copy:
+      src: "etc/sysconfig/keepalived"
+      dest: "/etc/sysconfig/keepalived"
+      owner: root
+      group: root
+      mode: 0644
+      force: yes
+    register: keepalived_sysconf
+    notify:
+      - reload and restart keepalived
+
+  - meta: flush_handlers
+    when: keepalived_conf.changed or keepalived_sysconf.changed
+
+  - name: enforce keepalived running
+    systemd:
+      name: keepalived
+      state: started
+      enabled: yes
+
+  when: "'master' in group_names"

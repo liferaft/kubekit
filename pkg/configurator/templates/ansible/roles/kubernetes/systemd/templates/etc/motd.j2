@@ -1,0 +1,10 @@
+Machine ID: {{ ansible_machine_id }}
+Internal FQDN: {{ ansible_fqdn | lower }}
+Kubekit Version: {{ kubekit_version }}
+Ansible Host: {{ host_running_ansible.stdout }}
+
+
+The roles of this node are:
+{% for group_name in group_names %}
+    - {{ group_name }}
+{% endfor %}

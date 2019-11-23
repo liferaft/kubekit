@@ -1,0 +1,32 @@
+---
+# allows forcing the usage of IPs instead of DNS entries if needed
+address_inventory_field: "{% if cloud_provider == 'aws' %}private_ip{% else %}private_dns{% endif %}"
+
+# Default virtual ip is the IP of the first (and only) master.
+kube_virtual_ip_api: "{{ hostvars[groups['master'][0]]['private_ip'] }}"
+
+is_ha_cluster: "{{ groups['master'] | length > 1 and (not disable_master_ha | bool) }}"
+
+haproxy_client_timeout: "30m"
+haproxy_server_timeout: "30m"
+haproxy_num_cpus: 2
+haproxy_log_level: "warning"
+haproxy_ssl_bind_options: "no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets"  # tls v1.2+  (would have to add tls 1.3 ciphers)
+haproxy_ssl_bind_ciphers: "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:AES128-GCM-SHA256:AES128-SHA256:AES128-SHA:AES256-GCM-SHA384:AES256-SHA256:AES256-SHA:DHE-DSS-AES128-SHA:DES-CBC3-SHA"
+# tls 1.3 ciphers:  TLS13-AES-256-GCM-SHA384:TLS13-AES-128-GCM-SHA256:TLS13-CHACHA20-POLY1305-SHA256:EECDH+AESGCM:EECDH+CHACHA20
+
+cert_dir: /etc/pki
+root_ca_crt_filename: root_ca.crt
+node_cert_and_key_filename: node.pem
+
+certs:
+  node:
+    crt: node.crt
+    key: node.key
+
+registry_port: 5000
+registry_lb_port: 5005
+
+enable_etcd_local_proxy: no
+etcd_starting_proxy_advertise_port: 8888
+etcd_starting_proxy_initial_advertise_port: 9888

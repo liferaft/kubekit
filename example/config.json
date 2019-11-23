@@ -1,0 +1,7 @@
+{
+  "verbose": true,
+  "debug": true,
+  "log_color": true,
+  "log": "./kubekit.log",
+  "clusters_path": "./clusters"
+}

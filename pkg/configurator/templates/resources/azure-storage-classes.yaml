@@ -1,0 +1,128 @@
+---
+# -------------------
+# AZURE BLOCK STORAGE
+# -------------------
+apiVersion: v1
+kind: List
+items:
+
+  # Persistent volume claims are specified in GiB but Azure managed disks are
+  # billed by SKU for a specific size. These SKUs range from 32GiB for S4 or 
+  # P4 disks to 32TiB for S80 or P80 disks. 
+  #
+  # The throughput and IOPS performance of a Premium managed disk depends on the
+  # both the SKU and the instance size of the nodes in the AKS cluster. 
+  #
+  # For more information, see Pricing and Performance of Managed Disks 
+  # (https://azure.microsoft.com/pricing/details/managed-disks/)
+
+  # DETAILS https://docs.microsoft.com/en-us/azure/aks/azure-disks-dynamic-pv
+
+  # ------------------------------
+  # The default storage class provisions a standard Azure disk.
+  # Standard storage is backed by HDDs, and delivers cost-effective
+  # storage while still being performant. Standard disks are ideal for 
+  # a cost effective dev and test workload.
+
+  - kind: StorageClass
+    apiVersion: storage.k8s.io/v1
+    metadata:
+      name: azure-standard-block-delete
+    provisioner: kubernetes.io/azure-disk
+    parameters:
+      cachingmode: ReadOnly
+      kind: Managed
+      storageaccounttype: Standard_LRS
+    reclaimPolicy: Delete
+    # volumeBindingMode: Immediate / WaitForFirstConsumer
+
+  - kind: StorageClass
+    apiVersion: storage.k8s.io/v1
+    metadata:
+      name: azure-standard-block-retain
+    provisioner: kubernetes.io/azure-disk
+    parameters:
+      cachingmode: ReadOnly
+      kind: Managed
+      storageaccounttype: Standard_LRS
+    reclaimPolicy: Retain
+    # volumeBindingMode: Immediate / WaitForFirstConsumer
+
+  # ------------------------------
+  # The managed-premium storage class provisions a premium Azure disk.
+  # Premium disks are backed by SSD-based high-performance, low-latency disk. 
+  # Perfect for VMs running production workload. If the AKS nodes in your
+  # cluster use premium storage, select the managed-premium class.
+
+  - kind: StorageClass
+    apiVersion: storage.k8s.io/v1
+    metadata:
+      name: azure-premium-block-delete
+    provisioner: kubernetes.io/azure-disk
+    parameters:
+      cachingmode: ReadOnly
+      kind: Managed
+      storageaccounttype: Premium_LRS
+    reclaimPolicy: Delete
+    # volumeBindingMode: Immediate / WaitForFirstConsumer
+
+  - kind: StorageClass
+    apiVersion: storage.k8s.io/v1
+    metadata:
+      name: azure-premium-block-retain
+    provisioner: kubernetes.io/azure-disk
+    parameters:
+      cachingmode: ReadOnly
+      kind: Managed
+      storageaccounttype: Premium_LRS
+    reclaimPolicy: Retain
+    # volumeBindingMode: Immediate / WaitForFirstConsumer
+
+
+---
+# ------------------
+# AZURE FILE STORAGE
+# ------------------
+apiVersion: v1
+kind: List
+items:
+
+  # Azure Files currently only work with Standard storage. 
+  # If you use Premium storage, the volume fails to provision.
+
+  - kind: StorageClass
+    apiVersion: storage.k8s.io/v1
+    metadata:
+      name: azure-standard-file
+    provisioner: kubernetes.io/azure-file
+    mountOptions:
+      - dir_mode=0777
+      - file_mode=0777
+      - uid=1000
+      - gid=1000
+    parameters:
+      skuName: Standard_LRS
+
+  # RBAC Roles requied for Azure File Store Operation
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: system:azure-cloud-provider
+    rules:
+      - apiGroups: ['']
+        resources: ['secrets']
+        verbs:     ['get','create']
+
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: system:azure-cloud-provider
+    roleRef:
+      kind: ClusterRole
+      apiGroup: rbac.authorization.k8s.io
+      name: system:azure-cloud-provider
+    subjects:
+      - kind: ServiceAccount
+        name: persistent-volume-binder
+        namespace: kube-system

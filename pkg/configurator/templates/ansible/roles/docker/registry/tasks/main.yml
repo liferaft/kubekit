@@ -1,0 +1,128 @@
+- name: <docker/registry>
+  debug:
+    msg: Print tag <docker/registry> for KubeKit Configurator parser
+
+- name: Check all hosts are still available
+  include_role:
+    name: precheck
+    tasks_from: all_hosts_alive
+
+- set_fact:
+    docker_registry_host_list_item: 
+      - "{{ hostvars[item]['ansible_host']|default('localhost') }}"
+      - "{{ hostvars[item]['public_ip']|default('127.0.0.1') }}"
+      - "{{ hostvars[item]['private_ip']|default('127.0.0.1') }}" 
+      - "{{ hostvars[item]['private_dns']|default('localhost') }}" 
+      - "{{ hostvars[item]['public_dns']|default('localhost') }}"
+  with_items: "{{ groups.master }}"
+  register: docker_registry_host_list_result
+
+- set_fact: 
+    docker_registry_host_list: "{{ docker_registry_host_list_result.results | map(attribute='ansible_facts.docker_registry_host_list_item') | list }}"
+    
+- include_tasks: certs.yml
+  vars:
+    docker_registry_host: "{{ item.0 }}:{{ item.1 }}"
+  with_nested: 
+    - "{{ [ 'localhost', docker_registry_host_list ] | flatten | unique }}"
+    - ["{{ registry_port }}", "{{ platform_registry_port }}"]
+
+- include_tasks: certs.yml
+  vars:
+    docker_registry_host: "{{ kube_virtual_ip_api }}:{{ item }}"
+  with_items:
+    - "{{ registry_port }}"
+    - "{{ registry_lb_port }}"
+    - "{{ platform_registry_port }}"
+  when:
+    - is_ha_cluster
+    - kube_virtual_ip_api is defined
+    - kube_virtual_ip_api != ''
+
+- block:
+
+#  - name: load registry image
+#    shell: >
+#      docker_load=$(docker load -i {{ registry_archive_path }})
+#      && (loaded=$(echo "$docker_load" | awk '{print $NF}')
+#      && [[ "$loaded" != "lrk/"* ]]
+#      && ([ $(echo "$loaded" | awk -F':' '{print $1}' | awk -F'/' '{print $1}' | grep '\.') ] && docker tag "$loaded" "lrk/$loaded" || docker tag "$loaded" "lrk/docker.io/$loaded")
+#      || echo "{{ registry_archive_path }} already loaded")
+
+  - include_tasks: registry_image.yml
+
+  - name: assert {{ docker_registry_path }} exists
+    file:
+      path: "{{ docker_registry_path }}"
+      state: directory
+      mode: 0700
+
+  - name: render template to /usr/lib/systemd/system/registry.service
+    template:
+      src: usr/lib/systemd/system/registry.service.j2
+      dest: /usr/lib/systemd/system/registry.service
+      mode: 0644
+    register: registry_unit
+    notify: reload and restart registry
+
+  - name: ensure '{{ cert_dir }}' exists
+    file:
+      path: "/etc/systemd/system/{{ item }}.service.d/"
+      state: directory
+      owner: root
+      group: root
+      mode: 0755
+    with_items:
+      - "docker"
+      - "registry"
+
+  - name: add docker systemd unit override
+    template:
+      src: etc/systemd/system/docker.service.d/docker.conf.j2
+      dest: /etc/systemd/system/docker.service.d/docker.conf
+      mode: 0644
+    notify: reload and restart docker
+
+  - name: add registry systemd unit override
+    copy:
+      src: etc/systemd/system/registry.service.d/registry.conf
+      dest: /etc/systemd/system/registry.service.d/registry.conf
+      mode: 0644
+    notify: reload and restart registry
+
+  - meta: flush_handlers
+    when: registry_unit.changed
+
+  - name: enforce registry running
+    systemd:
+      name: registry
+      state: restarted # need to find a better way to handle cert changes
+      enabled: yes
+
+  - name: Wait up to 2 minutes for docker to stabilize
+    wait_for:
+      port: "{{ registry_port }}"
+      delay: 10
+      timeout: 120
+
+  - name: Check for existing local images
+    uri:
+      url: https://localhost:5000/v2/_catalog
+      return_content: yes
+      validate_certs: no
+      client_cert: "{{ cert_dir }}/{{ cert_crt_filename }}"
+      client_key: "{{ cert_dir }}/{{ cert_key_filename }}"
+    register: repo
+    retries: 2
+    delay: 10
+
+  # repo loading could be done in one step with the ansible docker image
+  # module, but the module depends on pydocker on the remote nodes
+
+  - include_tasks: images.yml
+
+  when: "'master' in group_names"
+
+- name: </docker/registry>
+  debug:
+    msg: Print tag </docker/registry> for KubeKit Configurator parser

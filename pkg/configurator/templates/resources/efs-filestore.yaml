@@ -1,0 +1,150 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: kube-system
+  name: efs-provisioner
+
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: efs-provisioner-runner
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "update", "patch"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: run-efs-provisioner
+subjects:
+  - kind: ServiceAccount
+    name: efs-provisioner
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: efs-provisioner-runner
+  apiGroup: rbac.authorization.k8s.io
+
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: leader-locking-efs-provisioner
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: leader-locking-efs-provisioner
+  namespace: kube-system
+subjects:
+  - kind: ServiceAccount
+    name: efs-provisioner
+    namespace: kube-system
+roleRef:
+  kind: Role
+  name: leader-locking-efs-provisioner
+  apiGroup: rbac.authorization.k8s.io
+
+{{- range $share := unmarshallEFS $.elasticFileshares }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "efs-provisioner-{{ $share.Name }}"
+  namespace: kube-system
+data:
+  file.system.id: "{{ $share.ID }}"
+  aws.region: "{{ $share.Region }}"
+  provisioner.name: "kubekit.org/{{ $share.Name }}"
+  dns.name: "{{ $share.DNS }}"
+
+---
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: "efs-provisioner-{{ $share.Name }}"
+  namespace: kube-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: "efs-provisioner-{{ $share.Name }}"
+    spec:
+      serviceAccount: efs-provisioner
+      containers:
+        - name: efs-provisioner
+          image: quay.io/external_storage/efs-provisioner:v2.2.0-k8s1.12
+          env:
+            - name: FILE_SYSTEM_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: "efs-provisioner-{{ $share.Name }}"
+                  key: file.system.id
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: "efs-provisioner-{{ $share.Name }}"
+                  key: aws.region
+            - name: DNS_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: "efs-provisioner-{{ $share.Name }}"
+                  key: dns.name
+                  optional: true
+            - name: PROVISIONER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: "efs-provisioner-{{ $share.Name }}"
+                  key: provisioner.name
+          volumeMounts:
+            - name: pv-volume
+              mountPath: /persistentvolumes
+      volumes:
+        - name: pv-volume
+          nfs:
+            server: "{{ $share.ID }}.efs.{{ $share.Region }}.amazonaws.com"
+            path: /
+---
+
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: "efs-{{ $share.Name }}"
+provisioner: kubekit.org/{{ $share.ID }}
+---
+
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: "efs-{{ $share.Name }}"
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "efs-{{ $share.Name }}"
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Mi
+{{- end }}

@@ -1,0 +1,434 @@
+- name: <kubernetes/control-plane>
+  debug:
+    msg: Print tag <kubernetes/control-plane> for KubeKit Configurator parser
+
+- name: create logrotate for kube*
+  copy:
+    src: etc/logrotate.d/kubernetes
+    dest: /etc/logrotate.d/kubernetes
+    owner: root
+    group: root
+    mode: 0644
+
+- name: copy new kubernetes rsyslog entry
+  copy:
+    src: etc/rsyslog.d/30-kubernetes.conf
+    dest: /etc/rsyslog.d/30-kubernetes.conf
+    mode: 0644
+  notify: reload and restart rsyslog
+
+- name: Ensure group "kube" exists
+  group:
+    name: kube
+    state: present
+
+- name: Ensure user "kube" exists
+  user:
+    name: kube
+    state: present
+
+- name: assert /etc/kubernetes exists
+  file:
+    path: "/etc/kubernetes"
+    state: directory
+    owner: root
+    group: kube
+    mode: 0654
+
+- name: assert /etc/kubernetes/configs exists
+  file:
+    path: "/etc/kubernetes/configs"
+    state: directory
+    owner: root
+    group: root
+    mode: 0644
+
+- name: assert /etc/kubernetes/bin exists
+  file:
+    path: "/etc/kubernetes/bin"
+    state: directory
+    owner: root
+    group: kube
+    mode: 0654
+
+- block:
+
+  - ec2_metadata_facts:
+
+  - name: assert /etc/aws/ exists
+    file:
+      path: "/etc/aws/"
+      state: directory
+      owner: root
+      group: kube
+      mode: 0770
+
+  - name: update AWS cloud configuration with kubernetes cluster tag
+    template:
+      src: etc/aws/aws.conf.j2
+      dest: /etc/aws/aws.conf
+      owner: root
+      group: kube
+      mode: 0640
+
+  when: cloud_provider_enabled and cloud_provider == 'aws'
+
+- block:
+  # This was supposed to not be necessary as per this K8 PR
+  # https://github.com/kubernetes/kubernetes/pull/58230
+  # HOWEVER!!!! It was only pushed into MASTER and not 1.10 or 1.11
+  # SSSSSSSOOOOOOOOOOOOOOOOOOOO
+  # This piece of code must stay until this is gone : 	vs.vmUUID, err = GetVMUUID()
+  # From here: https://github.com/kubernetes/kubernetes/blob/release-1.11/pkg/cloudprovider/providers/vsphere/vsphere.go#L270
+
+  # OLD COMMENTS
+  # in 1.9.4 vphere vm name and uuid are no longer parsed from config file,
+  # uuid is always looked up via /sys/class/dmi/id/product_serial
+  # which must be readable by api server, controller manages, possibly kubelet
+
+  # required workaround for 1.9.x, obsolete in 1??? (still in as of 1.11)
+  # For information, looking at upcoming Kubernetes release ??? (still in as of 1.11),
+  # the vsphere cloud provider will no longer access /sys/class/dmi/id/product_serial
+  # or require those parameters (vm-uuid, vm-name) to be provided
+  # https://github.com/kubernetes/kubernetes/commit/a698bc73eb0661d879832da388feba49ff88740a
+  # It will get them from the NodeInfo object
+  # https://github.com/kubernetes/kubernetes/blob/master/pkg/cloudprovider/providers/vsphere/nodemanager.go#L261
+  # which in turn gets populated from
+  # https://github.com/kubernetes/kubernetes/blob/master/pkg/cloudprovider/providers/vsphere/nodemanager.go#L79 and
+  # https://github.com/kubernetes/kubernetes/blob/master/pkg/cloudprovider/providers/vsphere/vsphere_util.go#L542
+  - name: copy '/etc/tmpfiles.d/systemd-serial.conf'
+    template:
+      src: etc/tmpfiles.d/systemd-serial.conf.j2
+      dest: /etc/tmpfiles.d/systemd-serial.conf
+      mode: 0600
+      owner: root
+      group: root
+    notify:
+      - create and remove systemd-tmpfiles
+
+  # required workaround for 1.9.x, obsolete in ??? (still in as of 1.11)
+  # For information, looking at upcoming Kubernetes release ??? (still in as of 1.11),
+  # the vsphere cloud provider will no longer access /sys/class/dmi/id/product_serial
+  # or require those parameters (vm-uuid, vm-name) to be provided
+  # https://github.com/kubernetes/kubernetes/commit/a698bc73eb0661d879832da388feba49ff88740a
+  # It will get them from the NodeInfo object
+  # https://github.com/kubernetes/kubernetes/blob/master/pkg/cloudprovider/providers/vsphere/nodemanager.go#L261
+  # which in turn gets populated from
+  # https://github.com/kubernetes/kubernetes/blob/master/pkg/cloudprovider/providers/vsphere/nodemanager.go#L79 and
+  # https://github.com/kubernetes/kubernetes/blob/master/pkg/cloudprovider/providers/vsphere/vsphere_util.go#L542
+  - name: copy '/etc/tmpfiles.d/systemd-uuid.conf'
+    template:
+      src: etc/tmpfiles.d/systemd-uuid.conf.j2
+      dest: /etc/tmpfiles.d/systemd-uuid.conf
+      mode: 0600
+      owner: root
+      group: root
+    notify:
+      - create and remove systemd-tmpfiles
+
+  - name: copy '/etc/kubernetes/configs/vsphere.conf'
+    template:
+      src: etc/kubernetes/configs/vsphere.conf.j2
+      dest: /etc/kubernetes/configs/vsphere.conf
+      mode: 0644
+      owner: root
+      group: root
+
+  when: cloud_provider_enabled and cloud_provider == 'vsphere'
+
+- name: assert manifest directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - /srv/kubernetes
+    - /srv/kubernetes/manifests
+    - /srv/kubernetes/manifests/audit
+    - /srv/kubernetes/manifests/priority-class
+    - /srv/kubernetes/manifests/resource-quota
+
+- name: setup unique encryption password
+  shell: uuidgen | tr -d '-' | head -c 32 | base64
+  register: encryption_password
+
+- name: copy policy files to /srv/kubernetes/manifests/audit
+  copy:
+    src: "srv/kubernetes/manifests/audit/{{ item }}.yaml"
+    dest: "/srv/kubernetes/manifests/audit/{{ item }}.yaml"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - audit-policy
+
+- name: assert /var/log/audit exists
+  file:
+    path: /var/log/audit
+    state: directory
+    owner: kube
+    group: kube
+    mode: 0700
+
+- name: assert /var/lib/kubelet exists
+  file:
+    path: /var/lib/kubelet
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: copy '{{ kube_config_filename }}'
+  template:
+    src: var/lib/kubelet/kubeconfig.j2
+    dest: "{{ kube_config_filename }}"
+    mode: 0640
+    owner: root
+    group: root
+
+- name: "Read {{ cert_dir }}/{{ root_ca_crt_filename }}"
+  shell: "cat {{ cert_dir }}/{{ root_ca_crt_filename }} | base64"
+  register: certificate_authority_data
+  # action has no previous state to compare. should be pass fail.
+  changed_when: no
+
+- name: "Read {{ cert_dir }}/{{ certs.admin.key }}"
+  shell: "cat {{ cert_dir }}/{{ certs.admin.key }} | base64"
+  register: admin_key_data
+  # action has no previous state to compare. should be pass fail.
+  changed_when: no
+
+- name: "Read {{ cert_dir }}/{{ certs.admin.crt }}"
+  shell: "cat {{ cert_dir }}/{{ certs.admin.crt }} | base64"
+  register: admin_cert_data
+  # action has no previous state to compare. should be pass fail.
+  changed_when: no
+
+- name: Assert ~/.kube directory exist
+  file:
+    path: "~/.kube"
+    state: directory
+    mode: 0700
+  become_user: "{{ item }}"
+  with_items:
+    - root
+    - "{{ ansible_user }}"
+
+- name: Link default kubeconfig
+  file:
+    src: /var/lib/kubelet/kubeconfig
+    dest: "~/.kube/config"
+    state: link
+    mode: 0400
+  become_user: "{{ item }}"
+  with_items:
+    - root
+    - "{{ ansible_user }}"
+
+- name: Save config
+  template:
+    src: var/lib/kubelet/remote-kubeconfig.j2
+    dest: /var/lib/kubelet/remote-kubeconfig
+    owner: root
+    group: kube
+    force: yes
+    mode: 0640
+
+- name: assert kubeconfig permissions
+  file:
+    path: /var/lib/kubelet/kubeconfig
+    state: file
+    owner: root
+    group: kube
+    mode: 0640
+
+- name: assert kube-audit.log permissions
+  file:
+    path: /var/log/audit/kube-audit.log
+    state: touch
+    owner: root
+    group: kube
+    mode: 0660
+  when: "'master' in group_names"
+
+- name: copy kubernetes config files
+  template:
+    src: "etc/kubernetes/configs/{{ item }}.j2"
+    dest: "/etc/kubernetes/configs/{{ item }}"
+    mode: 0644
+    owner: root
+    group: root
+  with_items:
+  - "kubelet.conf"
+  - "scheduler.conf"
+  - "admissioncontrol.cfg"
+  - "encryption-config.yaml"
+  - "eventratelimit.yaml"
+  register: kube_configs
+  notify: reload and restart kubelet
+
+- name: copy kubelet service
+  template:
+    src: "usr/lib/systemd/system/kubelet.service.j2"
+    dest: "/usr/lib/systemd/system/kubelet.service"
+    mode: 0644
+  register: kubelet_unit
+  notify: reload and restart kubelet
+
+- block:
+  - name: assert /etc/systemd/system/kubelet.service.d/ systemd folder exists
+    file:
+      path: "/etc/systemd/system/kubelet.service.d/"
+      state: directory
+
+  - name: copy kubelet systemd override file
+    template:
+      src: "etc/systemd/system/kubelet.service.d/override.conf.j2"
+      dest: "/etc/systemd/system/kubelet.service.d/kubelet.conf"
+    register: kubelet_override
+    notify: reload and restart kubelet
+
+  when: cluster_iface.device is match("byn.*")
+
+- meta: flush_handlers
+  when: kubelet_unit.changed or kubelet_override.changed or kube_configs.changed
+
+- name: assert /etc/kubernetes/manifests exists
+  file:
+    path: "/etc/kubernetes/manifests"
+    state: directory
+    mode: 0644
+    owner: root
+    group: root
+
+- block:
+
+  # no need to deploy the pods since kubelet should be looking
+  # for changes in the manifests folder
+  - name: copy '/etc/kubernetes/manifests/{{ item }}'
+    template:
+      src: "etc/kubernetes/manifests/{{ item }}.yaml.j2"
+      dest: "/etc/kubernetes/manifests/{{ item }}.yaml"
+      mode: 0644
+      owner: root
+      group: root
+    with_items:
+      - etcd
+      - kube-apiserver
+      - kube-controller-manager
+      - kube-scheduler
+
+  # since the kubelet periodically checks for static pods on intervals,
+  # and loads them in a random sequence but serially, it takes some time for them to come up
+  - name: wait for kubernetes control plane containers to come up
+    shell: "docker ps | awk '$NF ~ /^k8s_(etcd|kube-apiserver|kube-controller-manager|kube-scheduler)_.*/ {print $NF}' | awk -F'_' '{print $2}' | sort | uniq | tr '\n' ','"
+    register: k8s_docker_ps
+    until: "'etcd,kube-apiserver,kube-controller-manager,kube-scheduler,' in k8s_docker_ps.stdout"
+    retries: 30  # usually need to wait about 3 minutes
+    delay: 10
+
+  - name: wait until kube apiserver is available
+    uri:
+      url: "{{ kube_api_server_local }}/healthz"
+      status_code: 200
+      client_cert: "{{ cert_dir }}/{{ certs.admin.crt }}"
+      client_key: "{{ cert_dir }}/{{ certs.admin.key }}"
+    retries: 60  # kubelet will take some time to load the static pod manifests
+    delay: 10
+    register: apiserver_availability
+    until: ('status' in apiserver_availability) and (apiserver_availability.status == 200)
+    # action has no previous state to compare. should be pass fail.
+    changed_when: no
+
+  - name: assert /srv/kubernetes/manifests/control-plane exists
+    file:
+      path: "/srv/kubernetes/manifests/control-plane"
+      state: directory
+
+  - name: render non-static control plane manifests
+    template:
+      src: "srv/kubernetes/manifests/control-plane/{{ item.name }}.yaml.j2"
+      dest: "/srv/kubernetes/manifests/control-plane/{{ item.name }}.yaml"
+    with_items: "{{ control_plane_manifests }}"
+    when: item.enabled
+
+  - name: apply non-static control plane manifest
+    shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply -f /srv/kubernetes/manifests/control-plane/"
+    when: inventory_hostname == 'master000'
+
+  when: "'master' in group_names"
+
+- name: test validity of kubeconfig
+  shell: docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig get nodes
+  when: inventory_hostname == 'master000'
+  retries: 6
+  delay: 10
+
+- name: "copy kubectl script to /usr/local/bin"
+  copy:
+    src: usr/local/bin/kubectl
+    dest: /usr/local/bin/kubectl
+    owner: root
+    group: kube
+    mode: 0750
+
+- name: "copy etcdctl script to /usr/local/bin"
+  copy:
+    src: usr/local/bin/etcdctl
+    dest: /usr/local/bin/etcdctl
+    owner: root
+    group: kube
+    mode: 0750
+  when: "'master' in group_names"
+
+- name: set bash aliases
+  lineinfile:
+    path: "/root/.bashrc"
+    line: 'alias {{ item.key }}="{{ item.value }}"'
+    create: yes
+    owner: root
+    group: root
+  with_dict:
+    k: "kubectl"
+    kgp: "kubectl get pods --all-namespaces"
+    kgs: "kubectl get svc --all-namespaces"
+    kk: "kubectl -n=kube-system"
+    iptables-nat: "iptables -t nat -nL"
+
+- block:
+
+  - set_fact:
+      etcd_endpoints: "{% for host in groups['master'] -%}https://{% if is_ha_cluster and enable_etcd_local_proxy %}127.0.0.1:{{ etcd_starting_proxy_advertise_port|int + loop.index0 }}{% elif cloud_provider == 'aws' %}{{ hostvars[host]['private_ip'] }}:2379{% else %}{{ hostvars[host][address_inventory_field] }}:2379{% endif %}{% if not loop.last %},{% endif %}{%- endfor %}"
+
+  - name: 'set alias etcdctl-endpoints for root'
+    lineinfile:
+      path: "/root/.bashrc"
+      line: 'alias etcdctl-endpoints="ETCDCTL_API=3 /etc/kubernetes/bin/etcdctl --endpoints={{ etcd_endpoints }} --cert=\"{{ cert_dir }}/{{ certs.etcd.crt }}\" --key=\"{{ cert_dir }}/{{ certs.etcd.key }}\""'
+      create: yes
+      owner: root
+      group: root
+
+  - name: 'set alias etcdctl-local for root'
+    lineinfile:
+      path: "/root/.bashrc"
+      line: 'alias etcdctl-local="ETCDCTL_API=3 /etc/kubernetes/bin/etcdctl --endpoints=127.0.0.1:2379 --cert=\"{{ cert_dir }}/{{ certs.etcd.crt }}\" --key=\"{{ cert_dir }}/{{ certs.etcd.key }}\""'
+      insertafter: '^alias etcdctl-endpoints'
+
+  - lineinfile:
+      insertbefore: '^alias etcdctl-endpoints'
+      line: '# if endpoints change, then make sure to update the endpoints in the etcdctl-endpoints alias'
+      path: "/root/.bashrc"
+
+  when: "'master' in group_names"
+
+- include_tasks: taint-and-label.yml
+  loop: "{{ groups['all'] }}"
+  loop_control:
+    loop_var: label_host
+  when: inventory_hostname == 'master000'
+
+- name: </kubernetes/control-plane>
+  debug:
+    msg: Print tag </kubernetes/control-plane> for KubeKit Configurator parser

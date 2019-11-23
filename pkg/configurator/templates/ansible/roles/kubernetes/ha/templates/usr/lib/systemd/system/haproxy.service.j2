@@ -1,0 +1,29 @@
+[Unit]
+Description=HAProxy Load Balancer
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=on-failure
+RestartSec=5
+ExecStartPre=-/usr/bin/docker kill haproxy
+ExecStartPre=-/usr/bin/docker rm haproxy
+ExecStartPre=/bin/sh -c '/usr/bin/systemctl set-environment HAPROXY_USER_ID=$(/usr/bin/id -u haproxy)'
+ExecStartPre=/bin/sh -c '/usr/bin/systemctl set-environment HAPROXY_GROUP_ID=$(/usr/bin/id -g haproxy)'
+
+ExecStart=/usr/bin/docker run --rm --network=host \
+    -e HAPROXY_USER_ID=${HAPROXY_USER_ID} \
+    -e HAPROXY_GROUP_ID=${HAPROXY_GROUP_ID} \
+    -v /etc/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg \
+    -v {{ cert_dir }}/{{ root_ca_crt_filename }}:/usr/local/etc/haproxy/{{ root_ca_crt_filename }} \
+    -v {{ cert_dir }}/{{ certs.node.crt }}:/usr/local/etc/haproxy/node.crt \
+    -v {{ cert_dir }}/{{ certs.node.key }}:/usr/local/etc/haproxy/node.key \
+    --name haproxy \
+    lrk/{{ current_manifest['dependencies']['control-plane']['haproxy']['src'] }}
+
+ExecStop=/usr/bin/docker stop -t 2 haproxy
+RestartForceExitStatus=SIGPIPE
+
+[Install]
+WantedBy=multi-user.target

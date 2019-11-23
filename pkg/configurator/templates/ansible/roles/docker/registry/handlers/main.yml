@@ -1,0 +1,13 @@
+- name: reload and restart registry
+  systemd:
+    name: registry
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+
+- name: reload and restart docker
+  systemd:
+    name: docker
+    state: restarted
+    enabled: yes
+    daemon_reload: yes

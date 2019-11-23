@@ -1,0 +1,18 @@
+{
+  "files": [
+      {
+      "aql" : {
+          "items.find" : {
+          "repo": "${repo}",
+          "name" : {
+              "$match" : "kubekit-${version}-*.rpm"
+              },
+          "@build.parentName" :{ "${matchType}" : "${parent}"}
+          }
+      },
+      "flat": "true",
+      "regexp": "true",
+      "target": "./"
+      }
+  ]
+}

@@ -1,0 +1,84 @@
+- block:
+
+  - name: Ensure haproxy groups exist
+    group:
+      name: "{{ item }}"
+      state: present
+    with_items:
+    - haproxy
+    - kube
+
+  - name: add user 'haproxy' to 'kube' group
+    user:
+      name: haproxy
+      groups: haproxy, kube
+      append: yes
+
+  - name: set HAProxy systemd unit
+    template:
+      src: usr/lib/systemd/system/haproxy.service.j2
+      dest: "/usr/lib/systemd/system/haproxy.service"
+      mode: 0644
+      owner: root
+      group: root
+
+  - name: allow HAProxy to bind to a non-local/non-existent IP
+    sysctl:
+      name: net.ipv4.ip_nonlocal_bind
+      value: 1
+      sysctl_set: yes
+    register: haproxy_netconf
+    notify:
+      - reload and restart haproxy
+
+#  - name: "copy '/etc/rsyslog.d/remote.conf'"
+#    copy:
+#      src: etc/rsyslog.d/remote.conf
+#      dest: "/etc/rsyslog.d/remote.conf"
+#      mode: 0644
+#      owner: root
+#      group: root
+#
+#  - name: generate node cert chain and key pem
+#    shell: "cat {{ cert_dir }}/{{ certs.node.crt }} {{ cert_dir }}/{{ root_ca_crt_filename }} {{ cert_dir }}/{{ certs.node.key }} > {{ cert_dir }}/{{ node_cert_and_key_filename }}"
+#
+#  - name: enforce permissions on node cert chain and key pem
+#    file:
+#      path: "{{ cert_dir }}/{{ node_cert_and_key_filename }}"
+#      state: file
+#      owner: root
+#      group: root
+#      mode: 0640
+
+  - name: "copy '/etc/haproxy/haproxy.cfg'"
+    template:
+      src: etc/haproxy/haproxy.cfg.j2
+      dest: "/etc/haproxy/haproxy.cfg"
+      mode: 0644
+      owner: root
+      group: haproxy
+      #validate: /usr/bin/docker exec haproxy -- /usr/sbin/haproxy -c -f %s
+    register: haproxy_conf
+    notify:
+      - reload and restart haproxy
+
+#  - name: "copy '/etc/rsyslog.d/30-haproxy.conf'"
+#    copy:
+#      src: etc/rsyslog.d/30-haproxy.conf
+#      dest: "/etc/rsyslog.d/30-haproxy.conf"
+#      mode: 0644
+#      owner: root
+#      group: root
+#    notify:
+#      - reload and restart rsyslog
+
+  - meta: flush_handlers
+    when: haproxy_conf.changed or haproxy_netconf.changed
+
+  - name: enforce haproxy running
+    systemd:
+      name: haproxy
+      state: started
+      enabled: yes
+
+  when: "'master' in group_names"

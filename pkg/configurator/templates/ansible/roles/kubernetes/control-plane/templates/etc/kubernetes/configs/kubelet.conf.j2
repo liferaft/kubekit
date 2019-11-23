@@ -1,0 +1,43 @@
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+authentication:
+  x509:
+    clientCAFile: "{{ cert_dir }}/{{ root_ca_crt_filename }}"
+  webhook:
+    enabled: true
+    cacheTTL: 2m0s
+  anonymous:
+    enabled: false
+authorization:
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 5m0s
+    cacheUnauthorizedTTL: 30s
+clusterDNS:
+ - {{ kube_cluster_dns }}
+clusterDomain: cluster.local
+eventRecordQPS: 0
+containerLogMaxFiles: {{ container_log_max_files }}
+containerLogMaxSize: {{ container_log_max_size }}
+featureGates:
+{{ feature_gates | to_nice_yaml | indent(2, true) }}
+maxPods: {{ kubelet_max_pods }}
+makeIPTablesUtilChains: true
+readOnlyPort: 0
+rotateCertificates: false
+streamingConnectionIdleTimeout: "5m0s"
+staticPodPath: "/etc/kubernetes/manifests"
+tlsCertFile: "{{ cert_dir }}/{{ certs.kubelet.crt }}"
+tlsPrivateKeyFile: "{{ cert_dir }}/{{ certs.kubelet.key }}"
+systemReserved:
+  cpu: "{{ kubelet_system_reserved.cpu }}"
+  memory: "{{ kubelet_system_reserved.memory }}"
+  ephemeral-storage: "{{ kubelet_system_reserved.ephemeral_storage }}"
+kubeReserved:
+  cpu: "{{ kubelet_kube_reserved.cpu }}"
+  memory: "{{ kubelet_kube_reserved.memory }}"
+  ephemeral-storage: "{{ kubelet_kube_reserved.ephemeral_storage }}"
+evictionHard:
+  memory.available: "{{ kubelet_eviction_hard.memory_available }}"
+  nodefs.available: "{{ kubelet_eviction_hard.nodefs_available }}"
+serializeImagePulls: {{ kubelet_serialize_image_pulls | default("false") | bool }}

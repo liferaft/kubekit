@@ -1,0 +1,63 @@
+- name: <etcd>
+  debug:
+    msg: Print tag <etcd> for KubeKit Configurator parser
+
+- name: Check all hosts are still available
+  include_role:
+    name: precheck
+    tasks_from: all_hosts_alive
+
+- block:
+
+  - name: copy new etcd rsyslog entry
+    copy:
+      src: etc/rsyslog.d/30-etcd.conf
+      dest: /etc/rsyslog.d/30-etcd.conf
+      mode: 0644
+    notify: reload and restart rsyslog
+
+  - name: Ensure group "etcd" exists
+    group:
+      name: etcd
+      state: present
+
+  - name: create '/var/lib/etcd'
+    file:
+      path: /var/lib/etcd
+      state: directory
+      mode: 700
+      owner: root
+      group: etcd
+
+  - name: Create etcd snapshots directory
+    file:
+      path: "{{ etcd_snapshots_directory }}"
+      state: directory
+      mode: 0640
+
+  - name: Add crontab for etcd backups
+    cron:
+      name: "Backup etcd"
+      # Interval formula is (60/n) * i , where 'n' is number of master nodes and 'i' is node index
+      # On 3 master node cluster (n=3), first master node (i=0) will be 60/3 * 0 = 0, second master node (i=1) will be 60/3 * 1 = 20, third master node (i=2) will be 60/3 * 2 = 40
+      minute: "{{ (60 / groups['master'] | length | int * groups.master.index(inventory_hostname)) | round | int if groups['master'] | length | int > 2 else etcd_logs_crontab_minute }}"
+      # Default is "*", i.e. every hour
+      hour: "{{ etcd_logs_crontab_hour }}"
+      job: 'ETCDCTL_API=3 /etc/kubernetes/bin/etcdctl --endpoints=https://127.0.0.1:2379 --cert="{{ cert_dir }}/{{ certs.etcd.crt }}" --key="{{ cert_dir }}/{{ certs.etcd.key }}" snapshot save /var/opt/kubekit/etcd-snapshots/snapshot-$(/usr/bin/date -u +"\%Y-\%m-\%dT\%H-\%M-\%SZ").db > /dev/null 2>&1 && find /var/opt/kubekit/etcd-snapshots -mtime {{ etcd_logs_days_to_keep }} -delete'
+
+  - name: Add crontab for etcd defrags
+    cron:
+      name: "Defrag etcd"
+      # Interval formula is (60.0/n) * i + (60.0/n/2) , where 'n' is number of master nodes and 'i' is node index
+      # On 3 master node cluster (n=3), first master node (i=0) will be 60.0/3 * 0 + 60.0/3/2 = 10, second master node (i=1) will be 60.0/3 * 1 + 60.0/3/2= 30, third master node (i=2) will be 60.0/3 * 2 + 60.0/3/2= 50
+      minute: "{{ (60.0 / groups['master'] | length | int * groups.master.index(inventory_hostname)) | round | int + (60.0 / groups['master'] | length | int / 2) | round(1, 'floor') | int }}"
+      # Default is "1", i.e. 1 AM every day
+      hour: "{{ etcd_defrag_crontab_hour }}"
+      job: 'ETCDCTL_API=3 /etc/kubernetes/bin/etcdctl --endpoints=https://127.0.0.1:2379 --cert="{{ cert_dir }}/{{ certs.etcd.crt }}" --key="{{ cert_dir }}/{{ certs.etcd.key }}" defrag'
+
+  # end block
+  when: "'master' in group_names"
+
+- name: </etcd>
+  debug:
+    msg: Print tag </etcd> for KubeKit Configurator parser

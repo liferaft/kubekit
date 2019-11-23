@@ -1,0 +1,1 @@
+{{ docker_daemon_config | combine(docker_args) | combine( {'mtu': docker_mtu|int, 'max-concurrent-downloads': docker_max_concurrent_downloads|default(10,true)|int, 'max-concurrent-uploads': docker_max_concurrent_uploads|default(10,true)|int} ) | to_nice_json }}

@@ -1,0 +1,181 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kube-apiserver
+  namespace: kube-system
+  annotations:
+    scheduler.alpha.kubernetes.io/critical-pod: ""
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "{{ kube_api_ssl_port }}"
+  labels:
+    component: kube-apiserver
+    tier: control-plane
+spec:
+  hostNetwork: true
+  priorityClassName: system-cluster-critical
+  containers:
+  - name: kube-apiserver
+    image: {{ core_repo_root }}{{ current_manifest['dependencies']['control-plane']['kube-apiserver']['src'] }}
+    imagePullPolicy: IfNotPresent
+    env:
+{% if groups['master']|length == 1 %}
+    - name: ETCD_SERVERS
+      value: "https://localhost:2379"
+{% elif cloud_provider != 'aws' %}
+    - name: ETCD_SERVERS
+      value: "{% for host in groups['master'] -%}https://{{ hostvars[host][address_inventory_field] }}:2379{% if not loop.last %},{% endif %}{%- endfor %}"
+{% else %}
+    - name: ETCD_SERVERS
+      value: "{% for host in groups['master'] -%}https://{{ hostvars[host]['private_ip'] }}:2379{% if not loop.last %},{% endif %}{%- endfor %}"
+{% endif %}
+    - name: HOST_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.hostIP
+    command:
+{% if current_manifest['dependencies']['control-plane']['kube-apiserver']['src'].split('/')[-1].startswith('hyperkube') %}
+    - /hyperkube
+{% endif %}
+    - kube-apiserver
+    - --bind-address={{ kube_api_secure_bind_address }}
+    - --secure-port={{ kube_api_ssl_port }}
+    - --etcd-servers=$(ETCD_SERVERS)
+    - --service-cluster-ip-range={{ kube_services_cidr }}
+{% if cloud_provider_enabled and cloud_provider == "aws" %}
+    - --cloud-provider=aws
+    - --cloud-config=/etc/aws/aws.conf
+{% elif cloud_provider_enabled and cloud_provider == "vsphere" %}
+    - --cloud-provider=vsphere
+    - --cloud-config=/etc/kubernetes/configs/vsphere.conf
+{% else %}
+    - --cloud-provider=
+{% endif %}
+    - --enable-admission-plugins={{ kube_apiserver_admission_control | join(',') }}
+{% for item in kube_apiserver_args %}
+    - {{ item }}
+{% endfor %}
+{% for key, val in feature_gates.items() | list %}
+    - --feature-gates={{ key }}={{ val }}
+{% endfor %}
+    ports:
+    - containerPort: {{ kube_api_ssl_port }}
+      hostPort: {{ kube_api_ssl_port }}
+    livenessProbe:
+      failureThreshold: 8
+      #httpGet:
+      #  host: 127.0.0.1
+      #  path: /healthz
+      #  port: {{ kube_api_ssl_port }}
+      #  scheme: HTTPS
+      # NOTE: we use the tcp check since the http check requires us to enable
+      #       anonymous auth or to enable the insecure port
+      tcpSocket:
+        port: {{ kube_api_ssl_port }}
+      initialDelaySeconds: 15
+      timeoutSeconds: 15
+    resources:
+      requests:
+        cpu: {{ kube_apiserver_requests_cpu }}
+        memory: {{ kube_apiserver_requests_memory }}
+{% if kube_apiserver_limits_cpu or kube_apiserver_limits_memory %}
+      limits:
+{% if kube_apiserver_limits_cpu %}
+        cpu: {{ kube_apiserver_limits_cpu }}
+{% endif %}
+{% if kube_apiserver_limits_memory %}
+        memory: {{ kube_apiserver_limits_memory }}
+{% endif %}
+{% endif %}
+    volumeMounts:
+{% if controlplane_timezone != "" %}
+    - name: tz-config
+      mountPath: /etc/localtime
+{% endif %}
+    - mountPath: {{ cert_dir }}
+      name: certs
+      readOnly: true
+    - mountPath: {{ kube_audit_policy_file }}
+      name: audit-policy
+      readOnly: true
+    - mountPath: {{ kube_audit_log_folder }}
+      name: audit-logs
+    - mountPath: {{ kube_folder }}
+      name: etc-kubernetes
+      readOnly: true
+{% if cloud_provider_enabled and cloud_provider == "aws" %}
+    - mountPath: /etc/aws/aws.conf
+      name: cloud-provider-conf
+      readOnly: true
+{% elif cloud_provider_enabled and cloud_provider == "vsphere" %}
+    - mountPath: /etc/kubernetes/configs/vsphere.conf
+      name: cloud-provider-conf
+      readOnly: true
+{% endif %}
+    - mountPath: /etc/ssl/certs
+      name: ca-certs
+      readOnly: true
+    - mountPath: /usr/local/share/ca-certificates
+      name: usr-local-share-ca-certificates
+      readOnly: true
+    - mountPath: /etc/ca-certificates
+      name: etc-ca-certificates
+      readOnly: true
+    - mountPath: /usr/share/ca-certificates
+      name: usr-share-ca-certificates
+      readOnly: true
+    - mountPath: {{ kube_config_filename }}
+      name: kubeconfig
+      readOnly: true
+  volumes:
+  - hostPath:
+      path: {{ cert_dir }}
+      type: Directory
+    name: certs
+  - hostPath:
+      path: {{ kube_audit_policy_file }}
+      type: File
+    name: audit-policy
+  - hostPath:
+      path: {{ kube_audit_log_folder }}
+      type: Directory
+    name: audit-logs
+  - hostPath:
+      path: {{ kube_folder }}
+      type: Directory
+    name: etc-kubernetes
+{% if cloud_provider_enabled and cloud_provider == "aws" %}
+  - hostPath:
+      path: /etc/aws/aws.conf
+      type: File
+    name: cloud-provider-conf
+{% elif cloud_provider_enabled and cloud_provider == "vsphere" %}
+  - hostPath:
+      path: /etc/kubernetes/configs/vsphere.conf
+      type: File
+    name: cloud-provider-conf
+{% endif %}
+  - hostPath:
+      path: /etc/ssl/certs
+      type: DirectoryOrCreate
+    name: ca-certs
+  - hostPath:
+      path: /usr/share/ca-certificates
+      type: DirectoryOrCreate
+    name: usr-share-ca-certificates
+  - hostPath:
+      path: /usr/local/share/ca-certificates
+      type: DirectoryOrCreate
+    name: usr-local-share-ca-certificates
+  - hostPath:
+      path: /etc/ca-certificates
+      type: DirectoryOrCreate
+    name: etc-ca-certificates
+  - hostPath:
+      path: {{ kube_config_filename }}
+      type: File
+    name: kubeconfig
+{% if controlplane_timezone != "" %}
+  - hostPath:
+      path: "/usr/share/zoneinfo/{{ controlplane_timezone }}"
+    name: tz-config
+{% endif %}

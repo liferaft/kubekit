@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package kubekit.v1;
+
+option go_package = "v1";
+
+enum PlatformName {
+	UNKNOWN = 0;
+	AWS = 1;
+	EKS = 2;
+	AZURE = 3;
+	AKS = 4;
+	OPENSTACK = 5;
+	VSPHERE = 6;
+	VRA = 7;
+	STACKI = 8;
+	RAW = 9;
+}
+
+enum Status {
+  UNKNOWN_STATUS = 0;
+  ABSENT = 1;
+  CREATING = 2;
+  PROVISIONED = 3;
+  FAILED_PROVISIONING = 4;
+  FAILED_CONFIGURATION = 5;
+  CREATED = 6;
+  FAILED_CREATION = 7;
+  RUNNING = 8;
+  STOPPED = 9;
+  TERMINATING = 10;
+  TERMINATED = 11;
+  FAILED_TERMINATION = 12;
+}
+
+message Cluster {
+	string name = 1;
+	PlatformName platform = 4;
+	int32 nodes = 5;
+	Status status = 6;
+}

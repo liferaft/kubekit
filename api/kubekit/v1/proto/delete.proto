@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package kubekit.v1;
+
+option go_package = "v1";
+
+enum DeleteClusterConfigStatus {
+	DELETED = 0;
+	NOT_FOUND = 1;
+}
+
+message DeleteRequest {
+	string api = 1;
+	string cluster_name = 2;
+	bool destroy_all = 3;
+}
+
+message DeleteResponse {
+	string api = 1;
+	string status = 2;
+}
+
+message DeleteClusterConfigRequest {
+	string api = 1;
+	string cluster_name = 2;
+}
+
+message DeleteClusterConfigResponse {
+	string api = 1;
+	string cluster_name = 2;
+	DeleteClusterConfigStatus status = 3;
+}

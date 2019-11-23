@@ -1,0 +1,78 @@
+prechecks_enabled: yes
+
+shell_editing_mode: ""
+
+disable_master_ha: "{{ groups['master'] | length < 2 }}"
+
+# have to set master_time_check 30 sec behind as we were failing for 1 second time difference
+master_time_check: "{{ hostvars[groups['master']|first].ansible_date_time.epoch|int - 30 }}"
+
+sysctl_settings: "{{ sysctl_defaults }}"
+
+sysctl_defaults:
+  "vm.max_map_count": "262144"  # fixes bug where elasticsearch crashses due to mem restriction
+  "net.ipv4.ip_forward": "1"
+  "net.bridge.bridge-nf-call-iptables": "1"
+  # ----- settings from pre 2.0.7
+  "net.ipv4.ip_local_port_range": "32768 60999"
+  "net.ipv4.tcp_tw_reuse": "0"
+  "net.ipv4.tcp_fin_timeout": "60"
+  "net.core.somaxconn": "128"
+  "net.core.netdev_max_backlog": "1000"
+  "net.core.rmem_max": "8388608"
+  "net.core.wmem_max": "8388608"
+  "net.ipv4.tcp_max_syn_backlog": "256"
+  "net.ipv4.tcp_max_tw_buckets": "32768"
+  "net.ipv4.tcp_no_metrics_save": "0"
+  "net.ipv4.tcp_rmem": "4096 873800 8388608"
+  "net.ipv4.tcp_syn_retries": "6"
+  "net.ipv4.tcp_synack_retries": "5"
+  "net.ipv4.tcp_wmem": "4096 163840 8388608"
+  "net.netfilter.nf_conntrack_max": "262144"
+  "net.netfilter.nf_conntrack_generic_timeout": "600"
+  "net.netfilter.nf_conntrack_tcp_timeout_established": "432000"
+  "net.ipv4.neigh.default.gc_thresh1": "80000"
+  "net.ipv4.neigh.default.gc_thresh2": "90000"
+  "net.ipv4.neigh.default.gc_thresh3": "100000"
+  # ----- rook/ceph related
+  "vm.min_free_kbytes": "{% if ansible_memory_mb.real.total >= 262144 %}3145728{% elif 131072 > ansible_memory_mb.real.total >= 65537 %}2097152{% else %}1048576{% endif %}"
+  "kernel.pid_max": "4194303"
+  # ----- workaround for rook/kubelet traversing plugins issue: https://github.com/kubernetes/kubernetes/issues/74669
+  "fs.inotify.max_user_instances": "8192"
+  "fs.inotify.max_user_watches": "524288"
+  # ----- https://kubernetes.io/blog/2019/03/29/kube-proxy-subtleties-debugging-an-intermittent-connection-reset/
+  "net.netfilter.nf_conntrack_tcp_be_liberal": "1"
+
+sysctl_tuned:
+  "vm.max_map_count": "262144"  # fixes bug where elasticsearch crashses due to mem restriction
+  "net.ipv4.ip_forward": "1"
+  "net.bridge.bridge-nf-call-iptables": "1"
+  # ----- recommendations for the following come from: https://blog.codeship.com/running-1000-containers-in-docker-swarm/
+  "net.ipv4.ip_local_port_range": "32768 65000"  # updated to exclude anything below node port range
+  "net.ipv4.tcp_tw_reuse": "1"
+  "net.ipv4.tcp_fin_timeout": "15"
+  "net.core.somaxconn": "4096"
+  "net.core.netdev_max_backlog": "4096"
+  "net.core.rmem_max": "16777216"
+  "net.core.wmem_max": "16777216"
+  "net.ipv4.tcp_max_syn_backlog": "20480"
+  "net.ipv4.tcp_max_tw_buckets": "400000"
+  "net.ipv4.tcp_no_metrics_save": "1"
+  "net.ipv4.tcp_rmem": "4096 87380 16777216"
+  "net.ipv4.tcp_syn_retries": "2"
+  "net.ipv4.tcp_synack_retries": "2"
+  "net.ipv4.tcp_wmem": "4096 65536 16777216"
+  "net.netfilter.nf_conntrack_max": "262144"
+  "net.netfilter.nf_conntrack_generic_timeout": "120"
+  "net.netfilter.nf_conntrack_tcp_timeout_established": "86400"
+  "net.ipv4.neigh.default.gc_thresh1": "8096"
+  "net.ipv4.neigh.default.gc_thresh2": "12288"
+  "net.ipv4.neigh.default.gc_thresh3": "16384"
+  # ----- rook/ceph related
+  "vm.min_free_kbytes": "{% if ansible_memory_mb.real.total >= 262144 %}3145728{% elif 131072 > ansible_memory_mb.real.total >= 65537 %}2097152{% else %}1048576{% endif %}"
+  "kernel.pid_max": "4194303"
+  # ----- workaround for rook/kubelet traversing plugins issue: https://github.com/kubernetes/kubernetes/issues/74669
+  "fs.inotify.max_user_instances": "8192"
+  "fs.inotify.max_user_watches": "524288"
+  # ----- https://kubernetes.io/blog/2019/03/29/kube-proxy-subtleties-debugging-an-intermittent-connection-reset/
+  "net.netfilter.nf_conntrack_tcp_be_liberal": "1"

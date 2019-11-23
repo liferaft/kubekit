@@ -1,0 +1,24 @@
+[Global]
+secret-name = "vcconf"
+secret-namespace = "kube-system"
+port = "443"
+insecure-flag = "1"
+server = "{{ vsphere_server }}"
+datacenter = "{{ vsphere_datacenter }}"
+datastore = "{{ vsphere_datastore }}"
+working-dir = "/{{ vsphere_datacenter }}/vm/{{ vsphere_folder }}"
+
+# [Workspace "{{ vsphere_server }}" ]
+# server = vsphere.sample.com 
+# datacenter = "{{ vsphere_datacenter }}"
+# default-datastore = "{{ vsphere_datastore }}"
+# folder = "/{{ vsphere_datacenter }}/vm/{{ vsphere_folder }}"
+# {% if vsphere_resource_pool is defined %}
+# resourcepool-path = "{{ vsphere_resource_pool }}"
+# {% endif %}
+
+[Disk]
+scsicontrollertype = pvscsi
+
+[Network]
+public-network = "{{ vsphere_net }}"

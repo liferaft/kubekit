@@ -1,0 +1,70 @@
+---
+apiVersion: v1
+kind: List
+items:
+
+  # - apiVersion: v1
+  #   kind: Secret
+  #   metadata:
+  #    name: rook-s3-object-store-pem
+  #    namespace: rook-ceph
+  #  type: Opaque
+  #  data: 
+  #    cert: "{{ s3_b64_tls_cert.stdout }}"
+
+  # - apiVersion: v1
+  #   kind: Secret
+  #   metadata:
+  #     name: rook-s3-object-store-ca
+  #     namespace: rook-ceph
+  #   type: Opaque
+  #   data: 
+  #     cert: "{{ s3_b64_tls_ca_cert.stdout }}"
+
+  - apiVersion: ceph.rook.io/v1
+    kind: CephObjectStore
+    metadata:
+      name: rook-s3-object-store
+      namespace: rook-ceph
+    spec:
+      # The pool spec used to create the metadata pools
+      metadataPool:
+        failureDomain: host
+        replicated:
+          # Increase the replication size if you have more than one osd
+          size: {{ rook_ceph_object_store_meta_pool_replication_count }}
+      # The pool spec used to create the data pool
+      dataPool:
+        failureDomain: host
+        replicated:
+          size: {{ rook_ceph_object_store_data_pool_replication_count }}
+        # If you have at least three osds, erasure coding can be specified
+        # erasureCoded:
+        #   dataChunks: 2
+        #   codingChunks: 1
+      # The gaeteway service configuration
+      gateway:
+        # type of the gateway (s3)
+        type: {{ rook_ceph_object_store_gateway_type }}
+        # A reference to the secret in the rook namespace where the ssl certificate is stored
+        sslCertificateRef: # rook-s3-object-store-pem
+        # The port that RGW pods will listen on (http)
+        # disable tls until thanos can handle it
+        port: 80
+        # The port that RGW pods will listen on (https). An ssl certificate is required.
+        # disable tls until thanos can handle it ( 443 )
+        securePort: 
+        # The number of pods in the rgw deployment (ignored if allNodes=true)
+        instances: {{ rook_ceph_object_store_instance_count }}
+        # Whether the rgw pods should be deployed on all nodes as a daemonset
+        allNodes: {{ rook_ceph_object_store_all_nodes }}
+        # The affinity rules to apply to the rgw deployment or daemonset.
+        placement: {{ rook_ceph_object_store_placement }}
+        resources:
+          limits:
+            cpu: "{{ rook_ceph_object_store_resource_limits_cpu }}"
+            memory: "{{ rook_ceph_object_store_resource_limits_mem }}"
+          requests:
+            cpu: "{{ rook_ceph_object_store_resource_requests_cpu }}"
+            memory: "{{ rook_ceph_object_store_resource_requests_mem }}"
+
