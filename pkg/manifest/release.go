@@ -1,7 +1,7 @@
 package manifest
 
 var release = Release{
-	PreviousVersion:   "2.0.16",
+	PreviousVersion:   "0.0.0",
 	KubernetesVersion: "1.15.5",
 	DockerVersion:     "19.03.1",
 	EtcdVersion:       "v3.4.1",
