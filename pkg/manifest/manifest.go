@@ -22,7 +22,7 @@ type Manifest struct {
 // the Releases in it
 var KubeManifest = Manifest{
 	Releases: map[string]Release{
-		"2.1.0": release,
+		"0.1.0": release,
 	},
 }
 
