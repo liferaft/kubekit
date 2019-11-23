@@ -52,9 +52,9 @@ KubeKit is a tool for setting up a Kubernetes-powered cluster.
 
 Below are the available downloads for the latest version of KubeKit (**0.1.0**). Download the proper KubeKit binary for your operative system and architecture.
 
-- **Mac OS X**: ( [64-bit](https://github.com/liferaft/kubekit/releases/download/0.1.0/kubekit_0.1.0_darwin_amd64) )
-- **Linux**: ( [64-bit](https://github.com/liferaft/kubekit/releases/download/0.1.0/kubekit_0.1.0_linux_amd64) | [32-bit](https://github.com/liferaft/kubekit/releases/download/0.1.0/kubekit_0.1.0_linux_386) )
-- **Windows**: ( [64-bit](https://github.com/liferaft/kubekit/releases/download/0.1.0/kubekit_0.1.0_windows_amd64) )
+- **Mac OS X**: ( [64-bit](https://github.com/liferaft/kubekit/releases/download/v0.1.0/kubekit_0.1.0_darwin_amd64) )
+- **Linux**: ( [64-bit](https://github.com/liferaft/kubekit/releases/download/v0.1.0/kubekit_0.1.0_linux_amd64) | [32-bit](https://github.com/liferaft/kubekit/releases/download/v0.1.0/kubekit_0.1.0_linux_386) )
+- **Windows**: ( [64-bit](https://github.com/liferaft/kubekit/releases/download/v0.1.0/kubekit_0.1.0_windows_amd64) )
 
 <!-- The [MD5 and SHA1 checksums](https://jfrog.com/artifactory/dependencies-snapshot-sd/uda/liferaft/kubekit/) are available online for every OS and architecture. -->
 
