@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
 	"github.com/liferaft/kubekit/cli"
+	"github.com/spf13/cobra"
 )
 
 // deleteCmd represents the `delete` command

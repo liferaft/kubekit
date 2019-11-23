@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/liferaft/kubekit/pkg/crypto"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestValidKey(t *testing.T) {

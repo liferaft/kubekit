@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	homedir "github.com/mitchellh/go-homedir"
-	"github.com/spf13/cobra"
 	"github.com/liferaft/kubekit/pkg/server"
 	"github.com/liferaft/kubekit/pkg/service"
+	homedir "github.com/mitchellh/go-homedir"
+	"github.com/spf13/cobra"
 )
 
 // startCmd represents the start command

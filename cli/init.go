@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/liferaft/kubekit/pkg/kluster"
+	"github.com/spf13/cobra"
 )
 
 // InitOpts encapsulate all the CLI parameters received from the `init` command

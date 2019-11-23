@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/liferaft/kubekit/cli"
 	"github.com/liferaft/kubekit/pkg/crypto/tls"
 	"github.com/liferaft/kubekit/pkg/kluster"
+	"github.com/spf13/cobra"
 )
 
 const defPackageFormat = "rpm"

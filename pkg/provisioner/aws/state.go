@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/states"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/kraken/terraformer"
 	"github.com/liferaft/kubekit/pkg/provisioner/state"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 // State returns the current Terraform state of the cluster

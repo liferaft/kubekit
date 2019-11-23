@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/johandry/log"
-	"github.com/stretchr/testify/assert"
 	"github.com/kraken/ui"
 	"github.com/liferaft/kubekit/pkg/provisioner/config"
+	"github.com/stretchr/testify/assert"
 	yaml "gopkg.in/yaml.v2"
 )
 

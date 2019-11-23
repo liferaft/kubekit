@@ -6,10 +6,10 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/terraform-providers/terraform-provider-aws/aws"
 	"github.com/kraken/terraformer"
 	"github.com/liferaft/kubekit/pkg/crypto"
 	"github.com/liferaft/kubekit/pkg/provisioner/utils"
+	"github.com/terraform-providers/terraform-provider-aws/aws"
 )
 
 // ResourceTemplates maps resource names to content of resources

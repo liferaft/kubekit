@@ -3,8 +3,8 @@ package cli
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"github.com/liferaft/kubekit/pkg/kluster"
+	"github.com/spf13/cobra"
 )
 
 // GetFilters returns the cluster filters to from commands such as `get clusters`.

@@ -7,9 +7,9 @@ import (
 	"os"
 	"text/tabwriter"
 
+	"github.com/liferaft/kubekit/pkg/configurator"
 	toml "github.com/pelletier/go-toml"
 	"github.com/spf13/cobra"
-	"github.com/liferaft/kubekit/pkg/configurator"
 	yaml "gopkg.in/yaml.v2"
 )
 

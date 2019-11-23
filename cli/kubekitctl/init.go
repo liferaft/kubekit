@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"github.com/liferaft/kubekit/cli"
+	"github.com/spf13/cobra"
 )
 
 // initCmd represents the init command

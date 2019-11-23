@@ -13,12 +13,12 @@ import (
 
 	"github.com/liferaft/kubekit/pkg/configurator/resources"
 
-	"github.com/nightlyone/lockfile"
-	"github.com/pelletier/go-toml"
 	"github.com/kraken/ui"
 	"github.com/liferaft/kubekit/pkg/configurator"
 	"github.com/liferaft/kubekit/pkg/crypto/tls"
 	"github.com/liferaft/kubekit/pkg/provisioner"
+	"github.com/nightlyone/lockfile"
+	"github.com/pelletier/go-toml"
 	"gopkg.in/yaml.v2"
 )
 

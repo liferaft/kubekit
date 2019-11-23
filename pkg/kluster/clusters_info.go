@@ -12,8 +12,8 @@ import (
 	"text/tabwriter"
 	"text/template"
 
-	toml "github.com/pelletier/go-toml"
 	"github.com/liferaft/kubekit/version"
+	toml "github.com/pelletier/go-toml"
 	yaml "gopkg.in/yaml.v2"
 )
 

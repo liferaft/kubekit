@@ -1,8 +1,8 @@
 package kubekit
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/liferaft/kubekit/version"
+	"github.com/spf13/cobra"
 )
 
 var versionCmd = &cobra.Command{

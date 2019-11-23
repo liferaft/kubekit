@@ -15,8 +15,8 @@ import (
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/zclconf/go-cty/cty"
 	"github.com/kraken/ui"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Won't compile if UIHook can't be realized by a Hook

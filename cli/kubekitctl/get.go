@@ -11,9 +11,9 @@ import (
 
 	"github.com/liferaft/kubekit/pkg/configurator"
 
+	"github.com/liferaft/kubekit/cli"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"github.com/liferaft/kubekit/cli"
 )
 
 // getCmd represents the `get` command

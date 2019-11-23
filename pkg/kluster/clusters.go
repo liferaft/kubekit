@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	uuid "github.com/nu7hatch/gouuid"
 	"github.com/kraken/ui"
+	uuid "github.com/nu7hatch/gouuid"
 )
 
 // List returns a list of Klusters existing in the given directory

@@ -3,8 +3,8 @@ package utils_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/liferaft/kubekit/pkg/provisioner/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 type V struct {

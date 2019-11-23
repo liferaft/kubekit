@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/liferaft/kubekit/cli"
+	"github.com/spf13/cobra"
 )
 
 // applyCmd represents the apply command

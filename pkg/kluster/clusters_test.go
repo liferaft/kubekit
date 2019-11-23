@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/johandry/log"
-	"github.com/sirupsen/logrus"
 	"github.com/kraken/ui"
+	"github.com/sirupsen/logrus"
 )
 
 var (

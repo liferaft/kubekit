@@ -6,10 +6,10 @@ import (
 	"strings"
 	"text/template"
 
-	vtemplate "github.com/terraform-providers/terraform-provider-template/template"
-	"github.com/terraform-providers/terraform-provider-vsphere/vsphere"
 	"github.com/kraken/terraformer"
 	"github.com/liferaft/kubekit/pkg/provisioner/utils"
+	vtemplate "github.com/terraform-providers/terraform-provider-template/template"
+	"github.com/terraform-providers/terraform-provider-vsphere/vsphere"
 )
 
 // ResourceTemplates maps resource names to content of resources
