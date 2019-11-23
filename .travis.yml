@@ -4,6 +4,7 @@ go:
   - 1.13.x
 
 script:
+  - make fmt test
   - make build build-ctl
   - make docker-build-kubekit docker-build-kubekitctl
 
