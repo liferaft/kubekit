@@ -25,8 +25,8 @@ defaults
   # balance leastconn
   log     global
   mode    http
-  #option  log-health-checks
-  #option  log-separate-errors
+  option  log-health-checks
+  option  log-separate-errors
   option  dontlog-normal
   option  dontlognull
   option  httplog
@@ -39,7 +39,11 @@ defaults
   timeout server     {{ haproxy_server_timeout | default(haproxy_client_timeout, true) | default('30m', true) }}
 
 frontend apiserver
+  # reqadd X-Forwarded-Proto:\ https
   bind {{ kube_virtual_ip_api }}:{{ kube_vip_api_ssl_port }}
+{% if public_virtual_ip and public_virtual_ip_ssl_port %}
+  bind {{ public_virtual_ip }}:{{ public_virtual_ip_ssl_port }}
+{% endif %}
   bind 127.0.0.1:{{ kube_vip_api_ssl_port }}
   mode tcp
   option tcplog
@@ -47,24 +51,33 @@ frontend apiserver
 
 frontend registry
   bind {{ kube_virtual_ip_api }}:{{ registry_lb_port }} ssl crt /usr/local/etc/haproxy/node.pem
+{% if public_virtual_ip %}
+  bind {{ public_virtual_ip }}:{{ registry_lb_port }} ssl crt /usr/local/etc/haproxy/node.pem
+{% endif %}
   bind 127.0.0.1:{{ registry_lb_port }} ssl crt /usr/local/etc/haproxy/node.pem
   mode http
   option forwardfor
   acl docker_writes method POST PUT DELETE PATCH
-  http-request deny if docker_writes
   http-request set-header X-Forwarded-Proto https if { ssl_fc }
+  http-request deny if docker_writes
   redirect scheme https if !{ ssl_fc }
   default_backend registry
 
 backend apiserver
   mode tcp
-  #option tcplog
+  option tcplog
   option httpchk GET /healthz
   http-check expect string ok
-  balance static-rr
+  balance roundrobin
+  http-response set-header X-Server %s
   default-server inter 10s downinter 5s rise 2 fall 2 slowstart 60s maxconn 250 maxqueue 256 weight 100
   {% for host in groups['master'] -%}
-  server apiserver{{ loop.index }} {{ hostvars[host][address_inventory_field] }}:{{ kube_api_ssl_port }} ca-file /usr/local/etc/haproxy/{{root_ca_crt_filename }} check-ssl verify none
+  {% if inventory_hostname == host %}
+  {% set backend_weight = 1 %}
+  {% else %}
+  {% set backend_weight = (groups['master']|length) %}
+  {% endif %}
+  server apiserver{{ loop.index }} {{ hostvars[host][address_inventory_field] }}:{{ kube_api_ssl_port }} weight {{ backend_weight }} ca-file /usr/local/etc/haproxy/{{root_ca_crt_filename }} check-ssl verify none
   {% endfor %}
 
 backend registry
@@ -73,11 +86,16 @@ backend registry
   option forwardfor
   option redispatch
   option httpchk GET /v2/
-  balance static-rr
+  balance roundrobin
   http-response set-header X-Server %s
   default-server inter 10s downinter 5s rise 2 fall 2 slowstart 60s maxconn 250 maxqueue 256 weight 100
   {% for host in groups['master'] -%}
-  server registry{{ loop.index }} {{ hostvars[host][address_inventory_field] }}:{{ registry_port }} ssl verify none check
+  {% if inventory_hostname == host %}
+  {% set backend_weight = 1 %}
+  {% else %}
+  {% set backend_weight = (groups['master']|length) %}
+  {% endif %}
+  server registry{{ loop.index }} {{ hostvars[host][address_inventory_field] }}:{{ registry_port }} weight {{ backend_weight }} ssl verify none check
   {% endfor %}
 
 {% if enable_etcd_local_proxy %}

@@ -18,19 +18,20 @@ spec:
     image: {{ core_repo_root }}{{ current_manifest['dependencies']['control-plane']['etcd']['src'] }}
     imagePullPolicy: IfNotPresent
     env:
+    - name: GOMAXPROCS
+      valueFrom:
+        resourceFieldRef:
+          resource: limits.cpu
     - name: ETCDCTL_API
       value: "3"
 {% if groups['master']|length == 1 %}
     - name: NODE_HOST
       value: "localhost"
-{% elif cloud_provider == "aws" %}
+{% else %}
     - name: NODE_HOST
       valueFrom:
         fieldRef:
           fieldPath: status.hostIP
-{% else %}
-    - name: NODE_HOST
-      value: {{ hostvars[inventory_hostname][address_inventory_field] }}
 {% endif %}
 {% if is_ha_cluster and enable_etcd_local_proxy %}
     - name: ADVERTISE_PORT
@@ -45,17 +46,15 @@ spec:
 {% endif %}
     - name: CLUSTER_PEERS
 {% if groups['master']|length == 1 %}
-      value: "etcd-{% if cloud_provider == "aws" %}{{ groups['master'][0] | replace('master', '') }}{% else %}{{ hostvars[groups['master'][0]]['hostname'] | lower }}{% endif %}=https://localhost:2380"
+      value: "etcd-{% if cloud_provider == "ec2" %}{{ groups['master'][0] | replace('master', '') }}{% else %}{{ hostvars[groups['master'][0]]['hostname'] | lower }}{% endif %}=https://localhost:2380"
 {% elif is_ha_cluster and enable_etcd_local_proxy %}
       # Etcd binds DNS names to an IP only at startup which causes issues with TLS when IPs change
       # Etcd expects the IP SANs in the certificate to match the binding
       # this means that we have to update the Etcd certificate
       # ...using the Etcd local proxy gets around this issue
       value: "{% for host in groups['master'] -%}etcd-{{ hostvars[host]['hostname'] | lower }}=https://127.0.0.1:{{ etcd_starting_proxy_initial_advertise_port|int + loop.index0 }}{% if not loop.last %},{% endif %}{%- endfor %}"
-{% elif cloud_provider == "aws" %}
+{% elif cloud_provider == "ec2" %}
       value: "{% for host in groups['master'] -%}etcd-{{ host | replace('master', '') }}=https://{{ hostvars[host]['private_ip'] }}:2380{% if not loop.last %},{% endif %}{%- endfor %}"
-{% elif groups['master']|length == 1 %}
-      value: "etcd-{{ hostvars[groups['master'][0]]['hostname'] | lower }}=https://localhost:2380"
 {% else %}
       value: "{% for host in groups['master'] -%}etcd-{{ hostvars[host]['hostname'] | lower }}=https://{{ hostvars[host][address_inventory_field] }}:2380{% if not loop.last %},{% endif %}{%- endfor %}"
 {% endif %}
@@ -71,16 +70,21 @@ spec:
         echo "$etcdctl_version" > /etc/kubernetes/bin/.etcdctl.version;
       fi;
       /usr/local/bin/etcd
-{% if cloud_provider == "aws" %}
+{% if cloud_provider == "ec2" %}
        --name=etcd-{{ inventory_hostname | replace('master', '') }}
 {% else %}
-       --name=etcd-{{ hostvars[inventory_hostname]['hostname'] | lower }}
+       --name=etcd-$(echo "${HOSTNAME}" | tr '[:upper:]' '[:lower:]')
 {% endif %}
        --data-dir={{ etcd_data_dir }}
        --election-timeout={{ etcd_election_timeout }}
        --heartbeat-interval={{ etcd_heartbeat_interval }}
        --max-wals={{ etcd_max_wals }}
        --snapshot-count={{ etcd_snapshot_count }}
+       --auto-compaction-mode=periodic
+       --auto-compaction-retention={{ etcd_compaction_retention }}
+{% if etcd_quota_backend_bytes > 0 %}
+       --quota-backend-bytes={{ etcd_quota_backend_bytes }}
+{% endif %}
        --listen-client-urls=https://0.0.0.0:$(ADVERTISE_PORT)
        --listen-peer-urls=https://0.0.0.0:$(INITIAL_ADVERTISE_PORT)
 {% if is_ha_cluster and enable_etcd_local_proxy %}

@@ -1,9 +1,11 @@
 is_ha_cluster: "{{ groups['master'] | length > 1 and (not disable_master_ha | bool) }}"
 
 registry_archive_path: "{{ current_manifest['dependencies']['core']['registry']['prebake-path'] }}"
+registry_image: "tdc/{{ current_manifest['dependencies']['core']['registry']['src'] }}"
+registry_manifest: "{{ current_manifest['dependencies']['core']['registry'] }}"
 
 registry_port: 5000
-platform_registry_port: 32010
+alternative_registry_port: 32010
 
 cert_dir: /etc/pki
 root_ca_crt_filename: root_ca.crt

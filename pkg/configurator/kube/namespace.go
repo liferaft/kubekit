@@ -1,17 +1,21 @@
 package kube
 
 import (
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // CreateNamespace creates a namespace with the given name
 func (c *Client) CreateNamespace(namespace string) error {
-	err := c.ClientSet()
-	if err != nil {
-		return err
+	if c.clientset == nil {
+		clientset, err := c.Config.KubernetesClientSet()
+		if err != nil {
+			return err
+		}
+		c.clientset = clientset
 	}
+
 	ns := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
@@ -20,14 +24,21 @@ func (c *Client) CreateNamespace(namespace string) error {
 			},
 		},
 	}
-	_, err = c.clientset.CoreV1().Namespaces().Create(ns)
+	_, err := c.clientset.CoreV1().Namespaces().Create(ns)
 	return err
 }
 
 // Namespace returns the namespace with the given name. If not found returns a
 // IsNotFound error
 func (c *Client) Namespace(namespace string) (*v1.Namespace, error) {
-	c.ClientSet()
+	if c.clientset == nil {
+		clientset, err := c.Config.KubernetesClientSet()
+		if err != nil {
+			return nil, err
+		}
+		c.clientset = clientset
+	}
+
 	return c.clientset.CoreV1().Namespaces().Get(namespace, metav1.GetOptions{})
 }
 

@@ -16,7 +16,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/hashicorp/terraform/states"
 
-	"github.com/kubekit/azure"
+	"github.com/liferaft/azure"
 	"github.com/liferaft/kubekit/pkg/configurator/ssh"
 	"github.com/liferaft/kubekit/pkg/provisioner/state"
 )

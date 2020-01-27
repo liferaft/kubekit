@@ -13,7 +13,7 @@
   when: rook_enabled | bool
 
 - include_tasks: ebs.yaml
-  when: cloud_provider == "aws"
+  when: cloud_provider == "ec2"
 
 - include_tasks: azure.yaml
   when: cloud_provider == "azure"

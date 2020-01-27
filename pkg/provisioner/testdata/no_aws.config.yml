@@ -21,8 +21,8 @@ default_node_pool:
   connection_timeout: 5m
   aws_ami: ami-0b8485a3553c5d032
   aws_instance_type: m4.2xlarge
-  root_vol_size: 200
-  root_vol_type: gp2
+  root_volume_size: 200
+  root_volume_type: gp2
   security_groups:
   - '# Required value. Example: sg-502d9a37'
   subnets:

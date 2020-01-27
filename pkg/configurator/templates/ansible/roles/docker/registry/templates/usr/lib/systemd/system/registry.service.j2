@@ -7,6 +7,15 @@ Requires=docker.service
 TimeoutStartSec=0
 Restart=on-failure
 RestartSec=5
+ExecStartPre=/bin/sh -c "\
+  if [ -z $(/usr/bin/docker images -q {{ registry_image }}) ]; then \
+    docker_load=$(/usr/bin/docker load -i {{ registry_archive_path }}) \
+      && (loaded=$(/usr/bin/echo $docker_load | /usr/bin/awk '{print $NF}') \
+      && [[ $loaded != 'tdc/'* ]] \
+      && ([ $(/usr/bin/echo $loaded | /usr/bin/awk -F':' '{print $1}' | /usr/bin/awk -F'/' '{print $1}' | grep '\.') ] && /usr/bin/docker tag $loaded tdc/$loaded || /usr/bin/docker tag $loaded tdc/docker.io/$loaded) \
+      || /usr/bin/echo '{{ registry_archive_path }} already loaded') \
+  fi; \
+"
 ExecStartPre=-/usr/bin/docker kill registry
 ExecStartPre=-/usr/bin/docker rm registry
 ExecStart=/usr/bin/docker run --rm \
@@ -21,7 +30,7 @@ ExecStart=/usr/bin/docker run --rm \
     -v {{ docker_registry_path }}:{{ docker_registry_path }}:rw \
     -p 0.0.0.0:{{ registry_port }}:5000 \
     --name registry \
-    lrk/{{ current_manifest['dependencies']['core']['registry']['src'] }}
+    {{ registry_image }}
 ExecStop=/usr/bin/docker stop -t 2 registry
 RestartForceExitStatus=SIGPIPE
 

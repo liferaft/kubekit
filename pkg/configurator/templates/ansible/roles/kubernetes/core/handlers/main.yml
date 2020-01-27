@@ -1,0 +1,6 @@
+- name: reload and restart rook-umount
+  systemd:
+    name: rook-umount
+    state: restarted
+    enabled: yes
+    daemon_reload: yes

@@ -89,8 +89,13 @@ items:
         spec:
           containers:
             - name: kubernetes-dashboard
-              # temp fix waiting for KubekitOS with new dashboard image
+              # temp fix waiting for kubeOS with new dashboard image
               image: "{{ core_repo_root }}{{ current_manifest['dependencies']['core']['kubernetes-dashboard']['src'] }}"
+              env:
+              - name: GOMAXPROCS
+                valueFrom:
+                  resourceFieldRef:
+                    resource: limits.cpu
               resources:
                 requests:
                   cpu: {{ kubernetes_dashboard_requests_cpu }}

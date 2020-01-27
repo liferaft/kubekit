@@ -2,7 +2,7 @@ SHELL  			:= /bin/bash
 
 VERSION 		= $(shell grep 'const Version ' version.go | cut -f2 -d= | tr -d ' ' | tr -d '"')
 VER_SION 		= $(shell echo $(VERSION) | tr '.' '_')
-GOLANG_VER 		= 1.12.7
+GOLANG_VER 		= 1.13.6
 
 LASTEST_RELEASE 	?= release$(VER_SION)
 
@@ -12,8 +12,6 @@ NEW_RELEASE 		= $(shell echo $(NR) | tr '.' '_')
 .PHONY: release
 release:
 	@if [[ -z '$(NEW_RELEASE)' ]]; then echo "ERROR: Missing the new release number, the variable NR is required. Example: make NR=1.1.2"; exit 1; fi
-	@sed 's/$(VER_SION)/$(NEW_RELEASE)/g' $(LASTEST_RELEASE).go > release$(NEW_RELEASE).go
-	@sed -i.bkp -e '/Releases: map\[string\]Release{/a\'$$'\n''		"$(NR)": release$(NEW_RELEASE),' manifest.go
 	@sed -i.bkp 's/const Version = ".*"/const Version = "$(NR)"/' version.go
 	@$(RM) *.bkp
 	@[[ -z $$(command -v go) ]] || go fmt .
@@ -40,14 +38,6 @@ $(GOPATH)/bin/gocov-xml:
 test: $(GOPATH)/bin/gocov $(GOPATH)/bin/gocov-xml
 	$${GOPATH}/bin/gocov test ./... | $${GOPATH}/bin/gocov-xml > cobertura.xml
 
-.PHONY: test-in-docker
-test-in-docker:
-	docker run --rm \
-	        --net=host --dns 153.64.180.100 --dns 153.64.251.200 --dns-opt attempts:5 --dns-opt timeout:15 \
-		-v $(CURDIR):/go/src/github.com/kubekit/manifest \
-		-w /go/src/github.com/kubekit/manifest \
-		golang:$(GOLANG_VER) make vendor-mod test
-
 .PHONY: vendor
 vendor:
 	go get gopkg.in/yaml.v2
@@ -62,11 +52,6 @@ vendor-mod: go.mod
 .PHONY: install
 install: vendor
 	go install `go list ./... | grep -v vendor`
-
-# configure git credentials for use in CI
-.PHONY: gitconfig
-gitconfig:
-	git config --global url."https://$(GIT_USERNAME):$(GIT_PASSWORD)@github.com".insteadOf "https://github.com"
 
 .PHONY: all
 all: fmt install test

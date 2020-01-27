@@ -1,7 +1,7 @@
 
 C 		?= kkdemo
 CLUSTER 	?= $(C)
-P		?= aws vsphere eks
+P		?= ec2 vsphere eks
 PLATFORMS  	?= $(P)
 LOG_FILE   	?= $(BIN)/$(BIN_NAME)_$(CLUSTER).log
 ARGS       	?=

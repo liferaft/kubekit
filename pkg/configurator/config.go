@@ -32,15 +32,20 @@ type Config struct { //  aws
 	HAProxyServerTimeout                    string      `json:"haproxy_server_timeout,omitempty" yaml:"haproxy_server_timeout,omitempty" mapstructure:"haproxy_server_timeout"`
 	DNSAAAADelayEnabled                     *bool       `json:"dns_aaaa_delay_enabled,omitempty" yaml:"dns_aaaa_delay_enabled,omitempty" mapstructure:"dns_aaaa_delay_enabled"`
 	DNSArgs                                 string      `json:"dns_args" yaml:"dns_args" mapstructure:"dns_args"`
+	EtcdDataDirectory                       string      `json:"etcd_data_directory,omitempty" yaml:"etcd_data_directory,omitempty" mapstructure:"etcd_data_directory"`
 	EtcdDefragCrontabHour                   string      `json:"etcd_defrag_crontab_hour,omitempty" yaml:"etcd_defrag_crontab_hour,omitempty" mapstructure:"etcd_defrag_crontab_hour"`
 	EtcdLogsCrontabHour                     string      `json:"etcd_logs_crontab_hour" yaml:"etcd_logs_crontab_hour" mapstructure:"etcd_logs_crontab_hour"`
 	EtcdLogsCrontabMinute                   string      `json:"etcd_logs_crontab_minute" yaml:"etcd_logs_crontab_minute" mapstructure:"etcd_logs_crontab_minute"`
 	EtcdLogsDaysToKeep                      int         `json:"etcd_logs_days_to_keep" yaml:"etcd_logs_days_to_keep" mapstructure:"etcd_logs_days_to_keep"`
 	EtcdSnapshotsDirectory                  string      `json:"etcd_snapshots_directory,omitempty" yaml:"etcd_snapshots_directory,omitempty" mapstructure:"etcd_snapshots_directory"`
+	EtcdQuotaBackendBytes                   int         `json:"etcd_quota_backend_bytes,omitempty" yaml:"etcd_quota_backend_bytes,omitempty" mapstructure:"etcd_quota_backend_bytes"`
 	UseLocalImages                          bool        `json:"use_local_images" yaml:"use_local_images" mapstructure:"use_local_images"`
 	ClusterIfaceName                        string      `json:"cluster_iface_name" yaml:"cluster_iface_name" mapstructure:"cluster_iface_name"`
 	ClusterIface                            string      `json:"cluster_iface" yaml:"cluster_iface" mapstructure:"cluster_iface"`
 	CniIface                                string      `json:"cni_iface" yaml:"cni_iface" mapstructure:"cni_iface"`
+	CniIPEncapsulation                      string      `json:"cni_ip_encapsulation" yaml:"cni_ip_encapsulation" mapstructure:"cni_ip_encapsulation"`
+	PublicVipIfaceName                      string      `json:"public_vip_iface_name" yaml:"public_vip_iface_name" mapstructure:"public_vip_iface_name"`
+	PublicVipIface                          string      `json:"public_vip_iface" yaml:"public_vip_iface" mapstructure:"public_vip_iface"`
 	KubeAuditLogMaxAge                      int         `json:"kube_audit_log_max_age" yaml:"kube_audit_log_max_age" mapstructure:"kube_audit_log_max_age"`
 	KubeAuditLogMaxBackup                   int         `json:"kube_audit_log_max_backup" yaml:"kube_audit_log_max_backup" mapstructure:"kube_audit_log_max_backup"`
 	KubeAuditLogMaxSize                     int         `json:"kube_audit_log_max_size" yaml:"kube_audit_log_max_size" mapstructure:"kube_audit_log_max_size"`

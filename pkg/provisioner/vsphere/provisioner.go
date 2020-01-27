@@ -26,6 +26,9 @@ func (p *Platform) BeProvisioner(state *terraformer.State) error {
 	variables := p.Variables()
 	rendered := p.Code()
 
+	// DEBUG
+	//fmt.Println(string(rendered))
+
 	t, err := utils.NewTerraformer(rendered, variables, state, p.config.ClusterName, "vSphere", p.ui)
 	if err != nil {
 		return err
@@ -95,6 +98,21 @@ func (p *Platform) Code() []byte {
 			return fmt.Sprintf(`"%s"`, strings.Join(s, `","`))
 		},
 		"Trim": strings.TrimSpace,
+		// we convert to a index map instead of a list because the lookup function in terraform allows for a default
+		"ExtractAddressPoolToTFIndexMap": func(pool []Address, key string) string {
+			tfMap := make([]string, len(pool))
+			var val string
+			for i, a := range pool {
+				switch key {
+				case "hostname":
+					val = a.Hostname
+				case "ip":
+					val = a.IP
+				}
+				tfMap = append(tfMap, fmt.Sprintf(`%d = "%s",`, i, val))
+			}
+			return "{" + strings.Join(tfMap, ",") + "}"
+		},
 		"MasterPool": func(pools map[string]NodePool) NodePool {
 
 			// master lookup by label

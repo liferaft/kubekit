@@ -1,6 +1,7 @@
 package kluster
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,8 +27,13 @@ func invalidTestKluster(t *testing.T) *Kluster {
 
 func invalidTestKlusterCreds(t *testing.T) *AwsCredentials {
 	cluster := invalidTestKluster(t)
+	fmt.Printf("IVT 1 platform '%s'\n", cluster.Platform())
+
 	path := filepath.Join(filepath.Dir(cluster.Path()), CredentialsFileName)
 	creds := NewCredentials(cluster.Name, cluster.Platform(), path)
+
+	fmt.Printf("IVT 2 platform '%s'\n", creds.platform())
+
 	awsCreds, ok := creds.(*AwsCredentials)
 	if !ok {
 		t.Fatalf("failed to assert testing cluster credentials as AWS")
@@ -64,8 +70,13 @@ func TestKluster_GetCredentialsAsMap(t *testing.T) {
 func TestAwsCredentials_Getenv(t *testing.T) {
 	creds := invalidTestKlusterCreds(t)
 
+	fmt.Printf("platform '%s'\n", creds.platform())
+
 	accessKey := os.Getenv("AWS_ACCESS_KEY_ID")
 	secretKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
+
+	fmt.Printf("accessKey '%s'\n", accessKey)
+	fmt.Printf("secretKey '%s'\n", secretKey)
 
 	if err := os.Setenv("AWS_ACCESS_KEY_ID", "new_access_key"); err != nil {
 		t.Fatalf("failed to set environment variable")
@@ -75,12 +86,21 @@ func TestAwsCredentials_Getenv(t *testing.T) {
 		t.Fatalf("failed to set environment variable")
 	}
 
+	fmt.Printf("AWS_ACCESS_KEY_ID '%s'\n", os.Getenv("AWS_ACCESS_KEY_ID"))
+	fmt.Printf("AWS_SECRET_ACCESS_KEY '%s'\n", os.Getenv("AWS_SECRET_ACCESS_KEY"))
+
 	defer os.Setenv("AWS_ACCESS_KEY_ID", accessKey)
 	defer os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey)
+
+	fmt.Printf("AWS_ACCESS_KEY_ID '%s'\n", os.Getenv("AWS_ACCESS_KEY_ID"))
+	fmt.Printf("AWS_SECRET_ACCESS_KEY '%s'\n", os.Getenv("AWS_SECRET_ACCESS_KEY"))
 
 	if err := creds.Getenv(true); err != nil {
 		t.Fatalf("failed to get test cluster creds from env")
 	}
+
+	fmt.Printf("CREDS - AWS_ACCESS_KEY_ID '%s'\n", creds.AccessKey)
+	fmt.Printf("CREDS - AWS_SECRET_ACCESS_KEY '%s'\n", creds.SecretKey)
 
 	if creds.AccessKey == "test_access_key" {
 		t.Errorf("failed to fetch credential access key from environment variables")

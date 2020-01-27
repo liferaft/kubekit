@@ -6,7 +6,7 @@ option go_package = "v1";
 
 enum PlatformName {
 	UNKNOWN = 0;
-	AWS = 1;
+	EC2 = 1;
 	EKS = 2;
 	AZURE = 3;
 	AKS = 4;

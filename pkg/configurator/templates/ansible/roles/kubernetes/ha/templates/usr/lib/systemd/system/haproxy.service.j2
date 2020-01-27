@@ -20,7 +20,7 @@ ExecStart=/usr/bin/docker run --rm --network=host \
     -v {{ cert_dir }}/{{ certs.node.crt }}:/usr/local/etc/haproxy/node.crt \
     -v {{ cert_dir }}/{{ certs.node.key }}:/usr/local/etc/haproxy/node.key \
     --name haproxy \
-    lrk/{{ current_manifest['dependencies']['control-plane']['haproxy']['src'] }}
+    tdc/{{ current_manifest['dependencies']['control-plane']['haproxy']['src'] }}
 
 ExecStop=/usr/bin/docker stop -t 2 haproxy
 RestartForceExitStatus=SIGPIPE

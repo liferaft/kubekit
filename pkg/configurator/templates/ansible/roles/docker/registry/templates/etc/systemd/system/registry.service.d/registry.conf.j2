@@ -1,0 +1,18 @@
+[Unit]
+After=docker.service
+Wants=docker.service
+PartOf=docker.service
+
+[Install]
+WantedBy=docker.service
+
+[Service]
+ExecStartPre=/bin/sh -c "\
+  if [ -z $(/usr/bin/docker images -q {{ registry_image }}) ]; then \
+    docker_load=$(/usr/bin/docker load -i {{ registry_archive_path }}) \
+      && (loaded=$(/usr/bin/echo $docker_load | /usr/bin/awk '{print $NF}') \
+      && [[ $loaded != 'tdc/'* ]] \
+      && ([ $(/usr/bin/echo $loaded | /usr/bin/awk -F':' '{print $1}' | /usr/bin/awk -F'/' '{print $1}' | grep '\.') ] && /usr/bin/docker tag $loaded tdc/$loaded || /usr/bin/docker tag $loaded tdc/docker.io/$loaded) \
+      || /usr/bin/echo '{{ registry_archive_path }} already loaded') \
+  fi; \
+"

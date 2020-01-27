@@ -53,7 +53,7 @@ func addLoginCmd() {
 	loginCmd.Flags().String("server", "", "Provisioner Server IP or DNS. Also retrived from $KUBEKIT_<PLATFORM>_SERVER or $<PLATFORM>_SERVER, like $VSPHERE_SERVER")
 	loginCmd.Flags().String("username", "", "Provisioner Username. Also retrived from $KUBEKIT_<PLATFORM>_USERNAME or $<PLATFORM>_USERNAME, like $VSPHERE_USERNAME")
 	loginCmd.Flags().String("password", "", "Provisioner Password. Also retrived from $KUBEKIT_<PLATFORM>_PASSWORD or $<PLATFORM>_PASSWORD, like $VSPHERE_PASSWORD")
-	// ... [AWS/EKS credentials]
+	// ... [AWS/EC2/EKS credentials]
 	loginCmd.Flags().String("access_key", "", "AWS Access Key Id. Also retrived from $KUBEKIT_AWS_ACCESS_KEY_ID or $AWS_ACCESS_KEY_ID")
 	loginCmd.Flags().String("secret_key", "", "AWS Secret Access Key. Also retrived from $KUBEKIT_AWS_SECRET_ACCESS_KEY or $AWS_SECRET_ACCESS_KEY")
 	loginCmd.Flags().String("session_token", "", "AWS Secret Session Token. Also retrived from $KUBEKIT_AWS_SESSION_TOKEN or $AWS_SESSION_TOKEN")
@@ -71,7 +71,7 @@ func addLoginCmd() {
 	loginClusterCmd.Flags().String("server", "", "Provisioner Server IP or DNS. Also retrived from $KUBEKIT_<PLATFORM>_SERVER or $<PLATFORM>_SERVER, like $VSPHERE_SERVER")
 	loginClusterCmd.Flags().String("username", "", "Provisioner Username. Also retrived from $KUBEKIT_<PLATFORM>_USERNAME or $<PLATFORM>_USERNAME, like $VSPHERE_USERNAME")
 	loginClusterCmd.Flags().String("password", "", "Provisioner Password. Also retrived from $KUBEKIT_<PLATFORM>_PASSWORD or $<PLATFORM>_PASSWORD, like $VSPHERE_PASSWORD")
-	// ... [AWS/EKS credentials]
+	// ... [AWS/EC2/EKS credentials]
 	loginClusterCmd.Flags().String("access_key", "", "AWS Access Key Id. Also retrived from $KUBEKIT_AWS_ACCESS_KEY_ID or $AWS_ACCESS_KEY_ID")
 	loginClusterCmd.Flags().String("secret_key", "", "AWS Secret Access Key. Also retrived from $KUBEKIT_AWS_SECRET_ACCESS_KEY or $AWS_SECRET_ACCESS_KEY")
 	loginClusterCmd.Flags().String("session_token", "", "AWS Secret Session Token. Also retrived from $KUBEKIT_AWS_SESSION_TOKEN or $AWS_SESSION_TOKEN")
@@ -150,7 +150,7 @@ func loginClusterRun(cmd *cobra.Command, args []string) error {
 
 	// 2nd: read the parameters from the AWS configuration, if this is AWS
 	switch platform {
-	case "aws", "eks":
+	case "ec2", "eks":
 		getAWSCredVariables(credentials.(*kluster.AwsCredentials), creds)
 		if credentials.Complete() {
 			return credentials.Write()

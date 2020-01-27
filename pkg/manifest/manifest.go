@@ -18,11 +18,11 @@ type Manifest struct {
 	Releases map[string]Release `json:"releases" yaml:"releases" mapstructure:"releases"`
 }
 
-// KubeManifest is a global variable that defines the KubekitOS Manifest and all
+// KubeManifest is a global variable that defines the KubeOS Manifest and all
 // the Releases in it
 var KubeManifest = Manifest{
 	Releases: map[string]Release{
-		"0.1.0": release,
+		Version: release,
 	},
 }
 
@@ -41,7 +41,7 @@ type Dependencies struct {
 	Core         map[string]Dependency `json:"core,omitempty" yaml:"core,omitempty" mapstructure:"core"`
 }
 
-// Dependency defines a software, package or application required on KubekitOS
+// Dependency defines a software, package or application required on KubeOS
 type Dependency struct {
 	Version      string       `json:"version" yaml:"version" mapstructure:"version"`
 	Name         string       `json:"name" yaml:"name" mapstructure:"name"`

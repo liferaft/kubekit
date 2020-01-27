@@ -4,11 +4,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/liferaft/kubekit/pkg/manifest"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"text/template"
 
-	"github.com/liferaft/kubekit/pkg/provisioner/eks"
+	"github.com/liferaft/kubekit/pkg/provisioner/config"
 )
 
 var tmplFuncMap template.FuncMap
@@ -22,6 +24,9 @@ func init() {
 		"getPEM":        getPEM,
 		"base64Encode":  base64Encode,
 		"unmarshallEFS": unmarshallEFS,
+		"manifestImg":   manifestImg,
+		"join":          strings.Join,
+		"trim":          strings.TrimSpace,
 	}
 }
 
@@ -80,8 +85,19 @@ func cert(certsPath, platform, certName string) (string, error) {
 
 // unmarshallEFS returns a list of eks.ElasticFileshareData from a given
 // json representation.
-func unmarshallEFS(marshalled string) []eks.ElasticFileshareData {
-	shares := []eks.ElasticFileshareData{}
+func unmarshallEFS(marshalled string) []config.ElasticFileshareData {
+	shares := []config.ElasticFileshareData{}
 	json.Unmarshal([]byte(marshalled), &shares)
 	return shares
+}
+
+// manifestImg looks up an image source in the release manifest
+func manifestImg(dependencyType, name string) string {
+	switch strings.ToLower(dependencyType) {
+	case "controlplane", "control_plane":
+		return manifest.KubeManifest.Releases[manifest.Version].Dependencies.ControlPlane[name].Src
+	case "core":
+		return manifest.KubeManifest.Releases[manifest.Version].Dependencies.Core[name].Src
+	}
+	return ""
 }

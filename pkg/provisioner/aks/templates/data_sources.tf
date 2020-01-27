@@ -11,8 +11,8 @@ data "azurerm_virtual_network" "aks" {
   name                = "{{ .VnetName }}"
   resource_group_name = "{{ .VnetResourceGroupName }}"
   {{- else -}}
-  name                = "${azurerm_virtual_network.aks.name}"
-  resource_group_name = "${azurerm_resource_group.aks.name}"
+  name                = azurerm_virtual_network.aks.name
+  resource_group_name = azurerm_resource_group.aks.name
   {{- end }}
 }
 

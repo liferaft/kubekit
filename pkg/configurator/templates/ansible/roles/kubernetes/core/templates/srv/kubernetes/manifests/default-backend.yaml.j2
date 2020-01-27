@@ -27,6 +27,11 @@ items:
           terminationGracePeriodSeconds: 60
           containers:
           - name: default-http-backend
+            env:
+            - name: GOMAXPROCS
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.cpu
             # Any image is permissable as long as:
             # 1. It serves a 404 page at /
             # 2. It serves 200 on a /healthz endpoint

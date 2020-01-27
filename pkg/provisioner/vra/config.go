@@ -9,7 +9,7 @@ import (
 // DefaultConfig is the default configuration for a vrealize platform
 var defaultConfig = Config{
 	Username:          "root",
-	Password:          "TCAMPass123",
+	Password:          "$up3r5ecret",
 	PrivateKeyFile:    requiredValue + "/home/username/.ssh/id_rsa",
 	PublicKeyFile:     requiredValue + "/home/username/.ssh/id_rsa.pub",
 	APIAddress:        requiredValue + "39.80.0.50",

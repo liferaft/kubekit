@@ -42,6 +42,12 @@ resources : {{- end }}
 resources : {{ if ne .PrivateDNSZoneName "" }}
 resources : {{ .PrivateDNSZoneName }}
 resources : {{ end }}
+resources : {{ if and (.EnableOMSAgent) (eq .LogAnalyticsWorkspaceID "") (ne .LogAnalyticsWorkspaceSKU "") }}
+resources : {{ .ClusterName }}
+resources : {{ .ResourceGroupLocation }}
+resources : {{ .LogAnalyticsWorkspaceSKU }}
+resources : {{ DefaultInt .LogAnalyticsRetentionDays 30 }}
+resources : {{ end }}
 resources : {{ if ne .PrivateDNSZoneName "" -}}
 resources : {{- end }}
 resources : {{ .ClusterName }}
@@ -59,6 +65,15 @@ resources : {{ BoolToString .EnablePodSecurityPolicy }}
 resources : {{- end }}
 resources : {{ DefaultString .AdminUsername "kubekit" }}
 resources : {{ Trim .PublicKey }}
+resources : {{ BoolToString .EnableKubernetesDashboard }}
+resources : {{ BoolToString .EnableAzurePolicy }}
+resources : {{ if .EnableOMSAgent }}
+resources : {{ BoolToString .EnableOMSAgent }}
+resources : {{ if and (.EnableOMSAgent) (eq .LogAnalyticsWorkspaceID "") (ne .LogAnalyticsWorkspaceSKU "") }}
+resources : {{ else }}
+resources : {{ .LogAnalyticsWorkspaceID }}
+resources : {{ end }}
+resources : {{ end }}
 resources : {{ if ne .DNSServiceIP "" -}}
 resources : {{ .DNSServiceIP }}
 resources : {{- else -}}
@@ -67,6 +82,7 @@ resources : {{- end }}
 resources : {{ DefaultString .DockerBridgeCIDR "172.17.0.1/16" }}
 resources : {{ DefaultString .ServiceCIDR "172.21.0.0/16" }}
 resources : {{ DefaultString .NetworkPolicy "calico" }}
+resources : {{ DefaultString .LoadBalancerSKU "basic" }}
 resources : {{ range $k, $v := .NodePools }}
 resources : {{ Lower ( Alphanumeric $v.Name ) }}
 resources : {{ $v.Count }}
@@ -157,8 +173,8 @@ data "azurerm_virtual_network" "aks" {
   name                = "{{ .VnetName }}"
   resource_group_name = "{{ .VnetResourceGroupName }}"
   {{- else -}}
-  name                = "${azurerm_virtual_network.aks.name}"
-  resource_group_name = "${azurerm_resource_group.aks.name}"
+  name                = azurerm_virtual_network.aks.name
+  resource_group_name = azurerm_resource_group.aks.name
   {{- end }}
 }
 
@@ -168,78 +184,78 @@ data "azurerm_kubernetes_service_versions" "aks" {
 `
 
 const outputTpl = `output "kubernetes_version" {
-  value = "${azurerm_kubernetes_cluster.aks.kubernetes_version}"
+  value = azurerm_kubernetes_cluster.aks.kubernetes_version
 }
 
 output "vnet" {
-  value = "${data.azurerm_virtual_network.aks.name}"
+  value = data.azurerm_virtual_network.aks.name
 }
 
 output "node_resource_group" {
-  value = "${azurerm_kubernetes_cluster.aks.node_resource_group}"
+  value = azurerm_kubernetes_cluster.aks.node_resource_group
 }
 
 output "kubeconfig" {
-  value = "${azurerm_kubernetes_cluster.aks.kube_config_raw}"
+  value = azurerm_kubernetes_cluster.aks.kube_config_raw
 }
 
 output "fqdn" {
-  value = "${azurerm_kubernetes_cluster.aks.fqdn}"
+  value = azurerm_kubernetes_cluster.aks.fqdn
 }
 
 output "host" {
-  value = "${azurerm_kubernetes_cluster.aks.kube_config.0.host}"
+  value = azurerm_kubernetes_cluster.aks.kube_config.0.host
 }
 
 output "client_key" {
-  value = "${azurerm_kubernetes_cluster.aks.kube_config.0.client_key}"
+  value = azurerm_kubernetes_cluster.aks.kube_config.0.client_key
 }
 
 output "client_cert" {
-  value = "${azurerm_kubernetes_cluster.aks.kube_config.0.client_certificate}"
+  value = azurerm_kubernetes_cluster.aks.kube_config.0.client_certificate
 }
 
 output "ca_cert" {
-  value = "${azurerm_kubernetes_cluster.aks.kube_config.0.cluster_ca_certificate}"
+  value = azurerm_kubernetes_cluster.aks.kube_config.0.cluster_ca_certificate
 }
 
 {{ if and ( .ContainerRegistrySku ) ( ne .ContainerRegistrySku "" ) }}
 // a registry can have geospatial replication, which means multiple servers/users
 // but we will disable geospatial replication to only allow for 1 server and user for now
 output "container_registry_server" {
-  value = "${azurerm_container_registry.aks.login_server}"
+  value = azurerm_container_registry.aks.login_server
 }
 
 output "container_registry_admin_enabled" {
-  value = "${azurerm_container_registry.aks.admin_enabled}"
+  value = azurerm_container_registry.aks.admin_enabled
 }
 
 output "container_registry_admin_users" {
-  value = "${azurerm_container_registry.aks.admin_username}"
+  value = azurerm_container_registry.aks.admin_username
 }
 
 output "container_registry_admin_passwords" {
-  value = "${azurerm_container_registry.aks.admin_password}"
+  value = azurerm_container_registry.aks.admin_password
 }
 {{ end }}
 
 {{ if .Jumpbox }}
 output "jumpbox" {
-  value = "${azurerm_network_interface.jumpbox.private_ip_address}"
+  value = azurerm_network_interface.jumpbox.private_ip_address
 }
 {{ end }}
 `
 
 const providerTpl = `provider "azurerm" {
-  subscription_id = "${var.subscription_id}"
-  tenant_id       = "${var.tenant_id}"
+  subscription_id = var.subscription_id
+  tenant_id       = var.tenant_id
   environment     = "{{ .Environment }}"
-  client_id       = "${var.client_id}"
-  client_secret   = "${var.client_secret}"
-  client_certificate_password = "${var.client_certificate_password}"
-  client_certificate_path     = "${var.client_certificate_path}"
-  msi_endpoint    = "${var.msi_endpoint}"
-  use_msi         = "${var.use_msi}"
+  client_id       = var.client_id
+  client_secret   = var.client_secret
+  client_certificate_password = var.client_certificate_password
+  client_certificate_path     = var.client_certificate_path
+  msi_endpoint    = var.msi_endpoint
+  use_msi         = var.use_msi
 }
 
 terraform {
@@ -260,8 +276,8 @@ const resourcesTpl = `resource "azurerm_resource_group" "aks" {
 resource "azurerm_virtual_network" "aks" {
   name                = "{{ .ClusterName }}"
   address_space       = ["{{ DefaultString .VnetAddressSpace "10.240.0.0/16" }}"]  // even though its a list, it takes a single value
-  location            = "${azurerm_resource_group.aks.location}"
-  resource_group_name = "${azurerm_resource_group.aks.name}"
+  location            = azurerm_resource_group.aks.location
+  resource_group_name = azurerm_resource_group.aks.name
 }
 {{ end }}
 
@@ -275,15 +291,25 @@ resource "azurerm_subnet" "aks" {
   virtual_network_name = "{{ .VnetName }}"
   {{- else -}}
   // provisioned vnet
-  resource_group_name  = "${azurerm_resource_group.aks.name}"
-  virtual_network_name = "${azurerm_virtual_network.aks.name}"
+  resource_group_name  = azurerm_resource_group.aks.name
+  virtual_network_name = azurerm_virtual_network.aks.name
   {{- end }}
 }
 
 {{ if ne .PrivateDNSZoneName "" }}
 resource "azurerm_private_dns_zone" "aks" {
   name                = "{{ .PrivateDNSZoneName }}"
-  resource_group_name = "${azurerm_resource_group.aks.name}"
+  resource_group_name = azurerm_resource_group.aks.name
+}
+{{ end }}
+
+{{ if and (.EnableOMSAgent) (eq .LogAnalyticsWorkspaceID "") (ne .LogAnalyticsWorkspaceSKU "") }}
+resource "azurerm_log_analytics_workspace" "aks" {
+  name     = "{{ .ClusterName }}"
+  location = "{{ .ResourceGroupLocation }}"
+  resource_group_name = azurerm_resource_group.aks.name
+  sku = "{{ .LogAnalyticsWorkspaceSKU }}"
+  retention_in_days = "{{ DefaultInt .LogAnalyticsRetentionDays 30 }}"
 }
 {{ end }}
 
@@ -297,8 +323,8 @@ resource "azurerm_kubernetes_cluster" "aks" {
   ]
 
   name                = "{{ .ClusterName }}"
-  location            = "${azurerm_resource_group.aks.location}"
-  resource_group_name = "${azurerm_resource_group.aks.name}"
+  location            = azurerm_resource_group.aks.location
+  resource_group_name = azurerm_resource_group.aks.name
 
   {{ if ne .DNSPrefix "" -}}
   dns_prefix          = "{{ .DNSPrefix }}"
@@ -309,7 +335,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
   {{ if ne .KubernetesVersion "" -}}
   kubernetes_version  = "{{ .KubernetesVersion }}"
   {{- else -}}
-  kubernetes_version  = "${data.azurerm_kubernetes_service_versions.aks.latest_version}"
+  kubernetes_version  = data.azurerm_kubernetes_service_versions.aks.latest_version
   {{- end }}
 
 //  kubernetes_version  = "${var.kubernetes_version == "" ? data.azurerm_kubernetes_service_versions.aks.latest_version}"
@@ -331,18 +357,38 @@ resource "azurerm_kubernetes_cluster" "aks" {
     }
   }
 
+  addon_profile {
+    kube_dashboard {
+      enabled = {{ BoolToString .EnableKubernetesDashboard }}
+    }
+//    azure_policy {
+//      enabled = {{ BoolToString .EnableAzurePolicy }}
+//    }
+    {{ if .EnableOMSAgent }}
+    oms_agent {
+      enabled = {{ BoolToString .EnableOMSAgent }}
+      {{ if and (.EnableOMSAgent) (eq .LogAnalyticsWorkspaceID "") (ne .LogAnalyticsWorkspaceSKU "") }}
+      log_analytics_workspace_id = azurerm_log_analytics_workspace.aks.id
+      {{ else }}
+      log_analytics_workspace_id = "{{ .LogAnalyticsWorkspaceID }}"
+      {{ end }}
+    }
+    {{ end }}
+  }
+
   network_profile {
     network_plugin     = "azure"
 
     {{ if ne .DNSServiceIP "" -}}
     dns_service_ip     = "{{ .DNSServiceIP }}"
     {{- else -}}
-    dns_service_ip     = "${cidrhost("{{ DefaultString .ServiceCIDR "172.21.0.0/16" }}", 10)}"
+    dns_service_ip     = cidrhost("{{ DefaultString .ServiceCIDR "172.21.0.0/16" }}", 10)
     {{- end }}
 
     docker_bridge_cidr = "{{ DefaultString .DockerBridgeCIDR "172.17.0.1/16" }}"
     service_cidr       = "{{ DefaultString .ServiceCIDR "172.21.0.0/16" }}"
     network_policy     = "{{ DefaultString .NetworkPolicy "calico" }}"
+    load_balancer_sku  = "{{ DefaultString .LoadBalancerSKU "basic" }}"
   }
 
   {{ range $k, $v := .NodePools }}
@@ -399,8 +445,8 @@ resource "azurerm_kubernetes_cluster" "aks" {
 // currently setup without georeplication
 resource "azurerm_container_registry" "aks" {
   name                     = "{{ AlphanumericHyphen ( Dash ( Lower .ClusterName ) ) }}"
-  location                 = "${azurerm_resource_group.aks.location}"
-  resource_group_name      = "${azurerm_resource_group.aks.name}"
+  location                 = azurerm_resource_group.aks.location
+  resource_group_name      = azurerm_resource_group.aks.name
   sku                      = "{{ .ContainerRegistrySku }}"
   admin_enabled            = {{ .ContainerRegistryAdminEnabled }}
   //georeplication_locations = "${var.container_registry_georeplication_locations}"
@@ -419,8 +465,8 @@ resource "azurerm_public_ip" "jumpbox" {
   ]
 
   name                = "jumpbox"
-  location            = "${azurerm_resource_group.aks.location}"
-  resource_group_name = "${azurerm_resource_group.aks.name}"
+  location            = azurerm_resource_group.aks.location
+  resource_group_name = azurerm_resource_group.aks.name
   allocation_method   = "Dynamic"
 }
 
@@ -434,14 +480,14 @@ resource "azurerm_network_interface" "jumpbox" {
   ]
 
   name                = "jumpbox"
-  location            = "${azurerm_resource_group.aks.location}"
-  resource_group_name = "${azurerm_resource_group.aks.name}"
+  location            = azurerm_resource_group.aks.location
+  resource_group_name = azurerm_resource_group.aks.name
 
   ip_configuration {
     name                          = "jumpbox"
-    subnet_id                     = "${azurerm_subnet.aks.id}"
+    subnet_id                     = azurerm_subnet.aks.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = "${azurerm_public_ip.jumpbox.id}"
+    public_ip_address_id          = azurerm_public_ip.jumpbox.id
   }
 }
 {{ end }}
@@ -456,9 +502,9 @@ resource "azurerm_virtual_machine" "jumpbox" {
   ]
 
   name                  = "{{ .ClusterName }}-jumpbox"
-  location              = "${azurerm_resource_group.aks.location}"
-  resource_group_name   = "${azurerm_resource_group.aks.name}"
-  network_interface_ids = ["${azurerm_network_interface.jumpbox.id}"]
+  location              = azurerm_resource_group.aks.location
+  resource_group_name   = azurerm_resource_group.aks.name
+  network_interface_ids = [ azurerm_network_interface.jumpbox.id ]
   vm_size               = "{{ DefaultString .Jumpbox.VMSize "Standard_B1s" }}"
 
   storage_image_reference {
@@ -503,8 +549,8 @@ depends_on = [
 ]
 
 name                = "{{ .ClusterName }}-jumpbox"
-location            = "${azurerm_resource_group.aks.location}"
-resource_group_name = "${azurerm_resource_group.aks.name}"
+location            = azurerm_resource_group.aks.location
+resource_group_name = azurerm_resource_group.aks.name
 }
 
 {{ range $i, $rule := .Jumpbox.NSGRules }}
@@ -518,8 +564,8 @@ resource "azurerm_network_security_rule" "jumpbox-{{ DefaultString $rule.Name ( 
     "azurerm_kubernetes_cluster.aks",
   ]
 
-  resource_group_name         = "${azurerm_resource_group.aks.name}"
-  network_security_group_name = "${azurerm_network_security_group.jumpbox.name}"
+  resource_group_name         = azurerm_resource_group.aks.name
+  network_security_group_name = azurerm_network_security_group.jumpbox.name
 
   name                        = "{{ DefaultString $rule.Name ( print "rule-priority" $rule_priority ) }}"
   priority                    = "{{ $rule_priority }}"

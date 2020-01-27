@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/kraken/ui"
-
 	"github.com/kraken/terraformer"
+	"github.com/kraken/ui"
 	"github.com/liferaft/kubekit/pkg/provisioner/aks"
-	"github.com/liferaft/kubekit/pkg/provisioner/aws"
+	"github.com/liferaft/kubekit/pkg/provisioner/ec2"
 	"github.com/liferaft/kubekit/pkg/provisioner/eks"
 	"github.com/liferaft/kubekit/pkg/provisioner/openstack"
 	"github.com/liferaft/kubekit/pkg/provisioner/raw"
@@ -35,6 +34,7 @@ type Provisioner interface {
 	Code() []byte
 	State() *terraformer.State
 	LoadState(*bytes.Buffer) error
+	PersistStateToFile(string) error
 	Address() string
 	Port() int
 	Output(string) string
@@ -45,7 +45,7 @@ type Provisioner interface {
 
 var allPlatforms = []string{
 	"aks",
-	"aws",
+	"ec2",
 	"eks",
 	"vsphere",
 	"openstack",
@@ -71,7 +71,7 @@ func SupportedPlatforms(clusterName string, envConfig map[string]string, ui *ui.
 	return platforms
 
 	// return map[string]Provisioner{
-	// 	"aws":       aws.New(clusterName, envConfig, ui),
+	// 	"ec2":       ec2.New(clusterName, envConfig, ui),
 	// 	"eks":       eks.New(clusterName, envConfig, ui),
 	// 	"vsphere":   vsphere.New(clusterName, envConfig, ui),
 	// 	"raw":       raw.New(clusterName, envConfig, ui),
@@ -89,8 +89,8 @@ func New(clusterName, platformName string, envConfig map[string]string, ui *ui.U
 	switch platformName {
 	case "aks":
 		p, err = aks.New(clusterName, envConfig, ui, version)
-	case "aws":
-		p, err = aws.New(clusterName, envConfig, ui, version)
+	case "ec2":
+		p, err = ec2.New(clusterName, envConfig, ui, version)
 	case "eks":
 		p, err = eks.New(clusterName, envConfig, ui, version)
 	case "vsphere":
@@ -121,8 +121,8 @@ func NewPlatform(name, clusterName string, config interface{}, credentials []str
 	switch name {
 	case "aks":
 		return aks.CreateFrom(clusterName, c, credentials, ui, version), nil
-	case "aws":
-		return aws.CreateFrom(clusterName, c, credentials, ui, version), nil
+	case "ec2":
+		return ec2.CreateFrom(clusterName, c, credentials, ui, version), nil
 	case "eks":
 		return eks.CreateFrom(clusterName, c, credentials, ui, version), nil
 	case "vsphere":

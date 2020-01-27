@@ -6,15 +6,20 @@ items:
   - apiVersion: v1
     kind: ServiceAccount
     metadata:
+      labels:
+        app.kubernetes.io/name: kube-state-metrics
       name: kube-state-metrics
       namespace: kube-system
 
   - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
+      labels:
+        app.kubernetes.io/name: kube-state-metrics
       name: kube-state-metrics
     rules:
-      - apiGroups: [""]
+      - apiGroups:
+          - ""
         resources:
           - configmaps
           - secrets
@@ -28,37 +33,96 @@ items:
           - persistentvolumes
           - namespaces
           - endpoints
-        verbs: ["list", "watch"]
-      - apiGroups: ["extensions"]
+        verbs:
+          - list
+          - watch
+      - apiGroups:
+          - extensions
         resources:
           - daemonsets
           - deployments
           - replicasets
-        verbs: ["list", "watch"]
-      - apiGroups: ["apps"]
+          - ingresses
+        verbs:
+          - list
+          - watch
+      - apiGroups:
+          - apps
         resources:
           - statefulsets
-        verbs: ["list", "watch"]
-      - apiGroups: ["apps"]
-        resources:
-          - statefulsets
-        verbs: ["list", "watch"]
-      - apiGroups: ["batch"]
+          - daemonsets
+          - deployments
+          - replicasets
+        verbs:
+          - list
+          - watch
+      - apiGroups:
+          - batch
         resources:
           - cronjobs
           - jobs
-        verbs: ["list", "watch"]
-      - apiGroups: ["autoscaling"]
+        verbs:
+          - list
+          - watch
+      - apiGroups:
+          - autoscaling
         resources:
           - horizontalpodautoscalers
-        verbs: ["list", "watch"]
-      - apiGroups: ["policy"]
+        verbs:
+          - list
+          - watch
+      - apiGroups:
+          - authentication.k8s.io
+        resources:
+          - tokenreviews
+        verbs:
+          - create
+      - apiGroups:
+          - authorization.k8s.io
+        resources:
+          - subjectaccessreviews
+        verbs:
+          - create
+      - apiGroups:
+          - policy
         resources:
           - poddisruptionbudgets
-        verbs: ["list", "watch"]
+        verbs:
+          - list
+          - watch
+      - apiGroups:
+          - certificates.k8s.io
+        resources:
+          - certificatesigningrequests
+        verbs:
+          - list
+          - watch
+      - apiGroups:
+          - storage.k8s.io
+        resources:
+          - storageclasses
+          - volumeattachments
+        verbs:
+          - list
+          - watch
+      - apiGroups:
+          - admissionregistration.k8s.io
+        resources:
+          - mutatingwebhookconfigurations
+          - validatingwebhookconfigurations
+        verbs:
+          - list
+          - watch
+      - apiGroups:
+          - networking.k8s.io
+        resources:
+          - networkpolicies
+        verbs:
+          - list
+          - watch
 
   - apiVersion: rbac.authorization.k8s.io/v1
-    # kubernetes versions before 1.8.0 should use rbac.authorization.k8s.io/v1beta1
+    # kubernetes versions before 1.8.0 should use rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
       namespace: kube-system
@@ -91,6 +155,8 @@ items:
   - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
+      labels:
+        app.kubernetes.io/name: kube-state-metrics
       name: kube-state-metrics
     roleRef:
       apiGroup: rbac.authorization.k8s.io
@@ -107,40 +173,47 @@ items:
       name: kube-state-metrics
       namespace: kube-system
       labels:
+        app.kubernetes.io/name: kube-state-metrics
         app: kube-state-metrics
-        version: v1.4.0
         role: frontend
     spec:
       replicas: 1
       selector:
         matchLabels:
-          app: kube-state-metrics
+          app.kubernetes.io/name: kube-state-metrics
       template:
         metadata:
           labels:
+            app.kubernetes.io/name: kube-state-metrics
             app: kube-state-metrics
-            version: v1.4.0
-            kubernetes.io/cluster-service: "true"
             role: frontend
         spec:
           serviceAccountName: kube-state-metrics
+          nodeSelector:
+            kubernetes.io/os: linux
           containers:
             - name: kube-state-metrics
-              image: gcr.io/google_containers/kube-state-metrics:v1.4.0
-              command:
-                - /kube-state-metrics
-                - --port=8080
-                - --telemetry-port=8081
-                - --logtostderr
+              image: quay.io/coreos/kube-state-metrics:v1.8.0
+              env:
+              - name: GOMAXPROCS
+                valueFrom:
+                  resourceFieldRef:
+                    resource: limits.cpu
               ports:
                 - name: http-metrics
                   containerPort: 8080
                 - name: telemetry
                   containerPort: 8081
-              readinessProbe:
+              livenessProbe:
                 httpGet:
                   path: /healthz
                   port: 8080
+                initialDelaySeconds: 5
+                timeoutSeconds: 5
+              readinessProbe:
+                httpGet:
+                  path: /
+                  port: 8081
                 initialDelaySeconds: 5
                 timeoutSeconds: 5
               resources:
@@ -187,18 +260,15 @@ items:
       annotations:
         prometheus.io/scrape: "true"
       labels:
-        kubernetes.io/cluster-service: "true"
+        app.kubernetes.io/name: kube-state-metrics
         app: kube-state-metrics
     spec:
       ports:
-        - name: http-metrics
-          port: 8080
-          targetPort: http-metrics
-          protocol: TCP
-          targetPort: http-metrics
-        - name: telemetry
-          port: 8081
-          protocol: TCP
-          targetPort: telemetry
+      - name: http-metrics
+        port: 8080
+        targetPort: http-metrics
+      - name: telemetry
+        port: 8081
+        targetPort: telemetry
       selector:
-        app: kube-state-metrics
+        app.kubernetes.io/name: kube-state-metrics

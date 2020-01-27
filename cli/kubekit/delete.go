@@ -156,6 +156,10 @@ func deleteClusterRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if err := deletetfState(opts.ClusterName, cluster); err != nil {
+		return err
+	}
+
 	if opts.DestroyAll {
 		fmt.Printf("cluster %q was destroyed and certificates deleted\n", opts.ClusterName)
 		return deleteKluster(deleteForce, opts.ClusterName)
@@ -196,6 +200,16 @@ func deleteCerts(clusterName string, cluster *kluster.Kluster) (err error) {
 	}
 	certsDir := filepath.Join(cluster.Dir(), kluster.CertificatesDirname)
 	return os.RemoveAll(certsDir)
+}
+
+func deletetfState(clusterName string, cluster *kluster.Kluster) (err error) {
+	if cluster == nil {
+		if cluster, err = loadCluster(clusterName); err != nil {
+			return err
+		}
+	}
+	tfstateDir := filepath.Join(cluster.Dir(), ".tfstate")
+	return os.RemoveAll(tfstateDir)
 }
 
 func deleteKluster(force bool, clustersName ...string) error {

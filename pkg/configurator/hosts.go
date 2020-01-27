@@ -3,6 +3,7 @@ package configurator
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/liferaft/kubekit/pkg/configurator/ssh"
 )
@@ -16,6 +17,11 @@ type Host struct {
 	RoleName   string `json:"role" yaml:"role" mapstructure:"role"`
 	Pool       string `json:"pool" yaml:"pool" mapstructure:"pool"`
 	ssh        *ssh.Config
+}
+
+// GetSSHConfig returns the ssh config of the host
+func (h *Host) GetSSHConfig() *ssh.Config {
+	return h.ssh
 }
 
 // Config configures a host
@@ -71,6 +77,21 @@ func (hs Hosts) FilterByRole(roles ...string) Hosts {
 	for _, h := range hs {
 		for _, role := range roles {
 			if h.RoleName == role {
+				newHosts = append(newHosts, h)
+			}
+		}
+	}
+
+	return newHosts
+}
+
+// FilterByRolePrefix returns all the hosts with the given role prefix
+// this is to be used after Config() is ran since it reassigns the role name by appending an index
+func (hs Hosts) FilterByRolePrefix(rolePrefixes ...string) Hosts {
+	newHosts := Hosts{}
+	for _, h := range hs {
+		for _, rolePrefix := range rolePrefixes {
+			if strings.HasPrefix(h.RoleName, rolePrefix) {
 				newHosts = append(newHosts, h)
 			}
 		}

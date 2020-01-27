@@ -15,7 +15,7 @@
 kind: ServiceAccount
 apiVersion: v1
 metadata:
-  name: kube-dns-autoscaler
+  name: coredns-autoscaler
   namespace: kube-system
   labels:
     addonmanager.kubernetes.io/mode: Reconcile
@@ -23,7 +23,7 @@ metadata:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: system:kube-dns-autoscaler
+  name: system:coredns-autoscaler
   labels:
     addonmanager.kubernetes.io/mode: Reconcile
 rules:
@@ -45,41 +45,41 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: system:kube-dns-autoscaler
+  name: system:coredns-autoscaler
   labels:
     addonmanager.kubernetes.io/mode: Reconcile
 subjects:
   - kind: ServiceAccount
-    name: kube-dns-autoscaler
+    name: coredns-autoscaler
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: system:kube-dns-autoscaler
+  name: system:coredns-autoscaler
   apiGroup: rbac.authorization.k8s.io
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kube-dns-autoscaler
+  name: coredns-autoscaler
   namespace: kube-system
   labels:
-    app: kube-dns-autoscaler
+    app: coredns-autoscaler
     kubernetes.io/cluster-service: "true"
     addonmanager.kubernetes.io/mode: Reconcile
 spec:
   selector:
     matchLabels:
-      app: kube-dns-autoscaler
+      app: coredns-autoscaler
   template:
     metadata:
       labels:
-        app: kube-dns-autoscaler
+        app: coredns-autoscaler
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
         seccomp.security.alpha.kubernetes.io/pod: 'docker/default'
     spec:
-      serviceAccountName: kube-dns-autoscaler
+      serviceAccountName: coredns-autoscaler
       priorityClassName: system-cluster-critical
       tolerations:
       - key: "CriticalAddonsOnly"
@@ -87,25 +87,30 @@ spec:
       containers:
       - name: autoscaler
         image: {{ core_repo_root }}{{ current_manifest['dependencies']['core']['cluster-proportional-autoscaler']['src'] }}
+        env:
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
         resources:
           requests:
-            cpu: {{ kube_dns_autoscaler_requests_cpu }}
-            memory: {{ kube_dns_autoscaler_requests_memory }}
-{% if kube_dns_autoscaler_limits_cpu or kube_dns_autoscaler_limits_memory %}
+            cpu: {{ coredns_autoscaler_requests_cpu }}
+            memory: {{ coredns_autoscaler_requests_memory }}
+{% if coredns_autoscaler_limits_cpu or coredns_autoscaler_limits_memory %}
           limits:
-{% if kube_dns_autoscaler_limits_cpu %}
-            cpu: {{ kube_dns_autoscaler_limits_cpu }}
+{% if coredns_autoscaler_limits_cpu %}
+            cpu: {{ coredns_autoscaler_limits_cpu }}
 {% endif %}
-{% if kube_dns_autoscaler_limits_memory %}
-            memory: {{ kube_dns_autoscaler_limits_memory }}
+{% if coredns_autoscaler_limits_memory %}
+            memory: {{ coredns_autoscaler_limits_memory }}
 {% endif %}
 {% endif %}
         command:
           - /cluster-proportional-autoscaler
           - --namespace=kube-system
-          - --configmap=kube-dns-autoscaler
+          - --configmap=coredns-autoscaler
           # Should keep target in sync with cluster/addons/dns/kube-dns.yaml.base
-          - --target=deployment/kube-dns
+          - --target=deployment/coredns
           # When cluster is using large nodes(with more cores), "coresPerReplica" should dominate.
           # If using small nodes, "nodesPerReplica" should dominate.
           - --default-params={"linear":{"min":1,"coresPerReplica":256,"nodesPerReplica":16,"preventSinglePointFailure":true}}

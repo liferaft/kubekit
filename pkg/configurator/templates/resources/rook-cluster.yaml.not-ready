@@ -21,7 +21,7 @@ items:
       namespace: rook-ceph
 
   - kind: Role
-    apiVersion: rbac.authorization.k8s.io/v1beta1
+    apiVersion: rbac.authorization.k8s.io/v1
     metadata:
       name: rook-ceph-osd
       namespace: rook-ceph
@@ -32,7 +32,7 @@ items:
 
     # Aspects of ceph-mgr that require access to the system namespace
   - kind: Role
-    apiVersion: rbac.authorization.k8s.io/v1beta1
+    apiVersion: rbac.authorization.k8s.io/v1
     metadata:
       name: rook-ceph-mgr-system
       namespace: rook-ceph
@@ -48,7 +48,7 @@ items:
 
     # Aspects of ceph-mgr that operate within the cluster's namespace
   - kind: Role
-    apiVersion: rbac.authorization.k8s.io/v1beta1
+    apiVersion: rbac.authorization.k8s.io/v1
     metadata:
       name: rook-ceph-mgr
       namespace: rook-ceph
@@ -82,7 +82,7 @@ items:
     
     # Allow the operator to create resources in this cluster's namespace
   - kind: RoleBinding
-    apiVersion: rbac.authorization.k8s.io/v1beta1
+    apiVersion: rbac.authorization.k8s.io/v1
     metadata:
       name: rook-ceph-cluster-mgmt
       namespace: rook-ceph
@@ -97,7 +97,7 @@ items:
     
     # Allow the osd pods in this namespace to work with configmaps
   - kind: RoleBinding
-    apiVersion: rbac.authorization.k8s.io/v1beta1
+    apiVersion: rbac.authorization.k8s.io/v1
     metadata:
       name: rook-ceph-osd
       namespace: rook-ceph
@@ -112,7 +112,7 @@ items:
     
     # Allow the ceph mgr to access the cluster-specific resources necessary for the mgr modules
   - kind: RoleBinding
-    apiVersion: rbac.authorization.k8s.io/v1beta1
+    apiVersion: rbac.authorization.k8s.io/v1
     metadata:
       name: rook-ceph-mgr
       namespace: rook-ceph
@@ -127,7 +127,7 @@ items:
     
     # Allow the ceph mgr to access the rook system resources necessary for the mgr modules
   - kind: RoleBinding
-    apiVersion: rbac.authorization.k8s.io/v1beta1
+    apiVersion: rbac.authorization.k8s.io/v1
     metadata:
       name: rook-ceph-mgr-system
       namespace: rook-ceph-system
@@ -142,7 +142,7 @@ items:
   
     # Allow the ceph mgr to access cluster-wide resources necessary for the mgr modules
   - kind: RoleBinding
-    apiVersion: rbac.authorization.k8s.io/v1beta1
+    apiVersion: rbac.authorization.k8s.io/v1
     metadata:
       name: rook-ceph-mgr-cluster
       namespace: rook-ceph

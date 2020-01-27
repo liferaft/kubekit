@@ -21,14 +21,13 @@ func (k *Kluster) provision(destroy bool) error {
 
 	logPrefix = fmt.Sprintf("Provisioner [ %s@%s ]", k.Name, platformName)
 	k.ui.SetLogPrefix(logPrefix)
+
 	err := p.Apply(destroy)
-	k.ui.TerminateAllNotifications("")
+	defer k.SaveState()
+	defer k.ui.TerminateAllNotifications("")
 
 	logPrefix = fmt.Sprintf("KubeKit [ %s@%s ]", k.Name, platformName)
 	k.ui.SetLogPrefix(logPrefix)
-
-	// Save the state, no matter if failed or not
-	k.SaveState()
 
 	if err != nil {
 		if destroy {
@@ -76,8 +75,7 @@ func (k *Kluster) Plan(destroy bool) error {
 
 	stats := terraformer.NewStats(plan)
 	statStr := fmt.Sprintf("Actions: %d to add, %d to change, %d to destroy", stats.Add, stats.Change, stats.Destroy)
-	// k.ui.Log.Infof(statStr)
-	fmt.Println(statStr)
+	k.ui.Log.Infof(statStr)
 
 	logPrefix = fmt.Sprintf("KubeKit [ %s@%s ]", k.Name, platformName)
 	k.ui.SetLogPrefix(logPrefix)

@@ -66,6 +66,8 @@ type InventoryVariables struct {
 	VsphereFolder                           string      `json:"vsphere_folder,omitempty" yaml:"vsphere_folder" mapstructure:"vsphere_folder"`             // Just for vSphere. From provisioner
 	VsphereDatastore                        string      `json:"vsphere_datastore,omitempty" yaml:"vsphere_datastore" mapstructure:"vsphere_datastore"`    // Just for vSphere. From provisioner
 	VsphereNet                              string      `json:"vsphere_net" yaml:"vsphere_net" mapstructure:"vsphere_net"`                                // Just for vSphere. From provisioner
+	VsphereUsername                         string      `json:"vsphere_username,omitempty" yaml:"vsphere_username" mapstructure:"vsphere_username"`       // Just for vSphere. From environment
+	VspherePassword                         string      `json:"vsphere_password,omitempty" yaml:"vsphere_password" mapstructure:"vsphere_password"`       // Just for vSphere. From environment
 	VsphereServer                           string      `json:"vsphere_server,omitempty" yaml:"vsphere_server" mapstructure:"vsphere_server"`             // Just for vSphere. From environment
 	VsphereResourcePool                     string      `json:"vsphere_resource_pool,omitempty" yaml:"vsphere_resource_pool,omitempty" mapstructure:"vsphere_resource_pool"`
 	ClusterName                             string      `json:"cluster_name,omitempty" yaml:"cluster_name" mapstructure:"cluster_name"`                               // From top in config file.
@@ -76,6 +78,8 @@ type InventoryVariables struct {
 	DisableMasterHA                         bool        `json:"disable_master_ha,omitempty" yaml:"disable_master_ha" mapstructure:"disable_master_ha"`                // From provisioner
 	KubeVirtualIPApi                        string      `json:"kube_virtual_ip_api,omitempty" yaml:"kube_virtual_ip_api" mapstructure:"kube_virtual_ip_api"`          // From provisioner
 	KubeVipAPISslPort                       int         `json:"kube_vip_api_ssl_port,omitempty" yaml:"kube_vip_api_ssl_port" mapstructure:"kube_vip_api_ssl_port"`    // From provisioner
+	PublicVirtualIP                         string      `json:"public_virtual_ip,omitempty" yaml:"public_virtual_ip" mapstructure:"public_virtual_ip"`
+	PublicVirtualIPSslPort                  int         `json:"public_virtual_ip_ssl_port,omitempty" yaml:"public_virtual_ip_ssl_port" mapstructure:"public_virtual_ip_ssl_port"`
 	EtcdLocalProxyEnabled                   bool        `json:"enable_etcd_local_proxy" yaml:"enable_etcd_local_proxy" mapstructure:"enable_etcd_local_proxy"`
 	EtcdInitialClusterToken                 string      `json:"etcd_initial_cluster_token,omitempty" yaml:"etcd_initial_cluster_token" mapstructure:"etcd_initial_cluster_token"` // From configurator in config file. This and the following fields
 	KubeletMaxPods                          int         `json:"kubelet_max_pods,omitempty" yaml:"kubelet_max_pods" mapstructure:"kubelet_max_pods"`
@@ -99,15 +103,20 @@ type InventoryVariables struct {
 	DNSArgs                                 string      `json:"dns_args,omitempty" yaml:"dns_args" mapstructure:"dns_args"`
 	DNSServers                              []string    `json:"dns_servers,omitempty" yaml:"dns_servers" mapstructure:"dns_servers"`
 	DNSSearch                               []string    `json:"dns_search,omitempty" yaml:"dns_search" mapstructure:"dns_search"`
+	EtcdDataDirectory                       string      `json:"etcd_data_directory,omitempty" yaml:"etcd_data_directory,omitempty" mapstructure:"etcd_data_directory"`
 	EtcdDefragCrontabHour                   string      `json:"etcd_defrag_crontab_hour,omitempty" yaml:"etcd_defrag_crontab_hour,omitempty" mapstructure:"etcd_defrag_crontab_hour"`
 	EtcdLogsCrontabHour                     string      `json:"etcd_logs_crontab_hour,omitempty" yaml:"etcd_logs_crontab_hour" mapstructure:"etcd_logs_crontab_hour"`
 	EtcdLogsCrontabMinute                   string      `json:"etcd_logs_crontab_minute,omitempty" yaml:"etcd_logs_crontab_minute" mapstructure:"etcd_logs_crontab_minute"`
 	EtcdLogsDaysToKeep                      int         `json:"etcd_logs_days_to_keep,omitempty" yaml:"etcd_logs_days_to_keep" mapstructure:"etcd_logs_days_to_keep"`
 	EtcdSnapshotsDirectory                  string      `json:"etcd_snapshots_directory,omitempty" yaml:"etcd_snapshots_directory,omitempty" mapstructure:"etcd_snapshots_directory"`
+	EtcdQuotaBackendBytes                   int         `json:"etcd_quota_backend_bytes,omitempty" yaml:"etcd_quota_backend_bytes,omitempty" mapstructure:"etcd_quota_backend_bytes"`
 	UseLocalImages                          bool        `json:"use_local_images,omitempty" yaml:"use_local_images" mapstructure:"use_local_images"`
 	ClusterIfaceName                        string      `json:"cluster_iface_name,omitempty" yaml:"cluster_iface_name" mapstructure:"cluster_iface_name"`
 	ClusterIface                            string      `json:"cluster_iface,omitempty" yaml:"cluster_iface" mapstructure:"cluster_iface"`
 	CniIface                                string      `json:"cni_iface,omitempty" yaml:"cni_iface" mapstructure:"cni_iface"`
+	PublicVipIfaceName                      string      `json:"public_vip_iface_name,omitempty" yaml:"public_vip_iface_name" mapstructure:"public_vip_iface_name"`
+	PublicVipIface                          string      `json:"public_vip_iface,omitempty" yaml:"public_vip_iface" mapstructure:"public_vip_iface"`
+	CniIPEncapsulation                      string      `json:"cni_ip_encapsulation,omitempty" yaml:"cni_ip_encapsulation" mapstructure:"cni_ip_encapsulation"`
 	TimeServers                             []string    `json:"time_servers,omitempty" yaml:"time_servers" mapstructure:"time_servers"`
 	KubeAuditLogMaxAge                      int         `json:"kube_audit_log_max_age,omitempty" yaml:"kube_audit_log_max_age" mapstructure:"kube_audit_log_max_age"`
 	KubeAuditLogMaxBackup                   int         `json:"kube_audit_log_max_backup,omitempty" yaml:"kube_audit_log_max_backup" mapstructure:"kube_audit_log_max_backup"`
@@ -167,66 +176,61 @@ var validAddressInventoryFields = map[string]struct{}{
 }
 
 var defaultInventoryVariables = InventoryVariables{
-	ShellEditingMode:                        "",
-	AddressInventoryField:                   "private_ip",
-	EtcdLocalProxyEnabled:                   false,
-	EtcdInitialClusterToken:                 "0c3616cc-434e",
-	KubeletMaxPods:                          110,
-	KubeProxyMode:                           "iptables",
-	KubeletSerializeImagePulls:              false,
-	KubeClusterCidr:                         "172.24.0.0/16",
-	KubeServicesCidr:                        "172.21.0.0/16",
-	KubeServiceIP:                           "172.21.0.1",
-	KubeAdvertiseAddress:                    "{{ ansible_eth0.ipv4.address }}",
-	DisableMasterHA:                         true,
-	KubeVirtualIPApi:                        "",
-	MasterSchedulableEnabled:                false,
-	DockerMaxConcurrentUploads:              10,
-	DockerMaxConcurrentDownloads:            10,
-	DockerLogMaxFiles:                       "3", // docker config takes it as a string
-	DockerLogMaxSize:                        "16m",
-	DockerRegistryPath:                      "/var/lib/docker/registry",
-	DownloadImagesIfMissing:                 false,
-	HAProxyClientTimeout:                    "30m", // 30 minutes
-	HAProxyServerTimeout:                    "30m", // 30 minutes
-	DNSAAAADelayEnabled:                     true,
-	EtcdLogsCrontabHour:                     "*",
-	EtcdLogsCrontabMinute:                   "0,30",
-	EtcdLogsDaysToKeep:                      30,
-	UseLocalImages:                          true,
-	ClusterIfaceName:                        "ansible_eth0",
-	ClusterIface:                            "{{ hostvars[inventory_hostname][cluster_iface_name] }}",
-	CniIface:                                "{{ cluster_iface.device }}",
-	KubeAuditLogMaxAge:                      30,
-	KubeAuditLogMaxBackup:                   10,
-	KubeAuditLogMaxSize:                     128,
-	NginxIngressEnabled:                     false,
-	NginxIngressControllerProxyBodySize:     "100m",
-	NginxIngressControllerErrorLogLevel:     "warn",
-	NginxIngressControllerSslProtocols:      "TLSv1.2",
-	NginxIngressControllerProxyReadTimeout:  "3600",
-	NginxIngressControllerProxySendTimeout:  "3600",
-	NginxIngressControllerTLSCertLocalPath:  "",
-	NginxIngressControllerTLSKeyLocalPath:   "",
-	NginxIngressControllerBasicAuthUsername: "admin",
-	NginxIngressControllerBasicAuthPassword: "kubekit",
-	DefaultIngressHost:                      "",
-	RookCephStorageDeviceDirectories:        []string{"/data/rook/storage/0"},
-	DockerRegistryPort:                      5000,
-	RookEnabled:                             true,
-	RookDashboardEnabled:                    true,
-	RookDashboardExternalEnabled:            true,
-	RookDashboardPort:                       7665,
-	RookObjectStoreEnabled:                  true,
-	RookObjectStoreRadosGatewayEnabled:      true,
-	RookFileStoreEnabled:                    true,
-	RookCephStorageDeviceFilter:             "",
-	DefaultStorageclass:                     "rook-ceph-block-delete",
-	PodEvictionTimeout:                      "2m",
-	TerminatedPodGCThreshold:                100,
-	AdditionalRSharedMountPoints:            []string{},
-	CloudProviderEnabled:                    false,
-	SysctlSettings:                          "{{ sysctl_defaults }}",
+	ShellEditingMode:                   "",
+	AddressInventoryField:              "private_ip",
+	EtcdLocalProxyEnabled:              false,
+	EtcdInitialClusterToken:            "0c3616cc-434e",
+	KubeletMaxPods:                     110,
+	KubeProxyMode:                      "iptables",
+	KubeletSerializeImagePulls:         false,
+	KubeClusterCidr:                    "172.24.0.0/16",
+	KubeServicesCidr:                   "172.21.0.0/16",
+	KubeServiceIP:                      "172.21.0.1",
+	KubeAdvertiseAddress:               "{{ ansible_eth0.ipv4.address }}",
+	DisableMasterHA:                    true,
+	KubeVirtualIPApi:                   "",
+	PublicVirtualIP:                    "",
+	MasterSchedulableEnabled:           false,
+	DockerMaxConcurrentUploads:         10,
+	DockerMaxConcurrentDownloads:       10,
+	DockerLogMaxFiles:                  "5", // docker config takes it as a string
+	DockerLogMaxSize:                   "16m",
+	DockerRegistryPath:                 "/var/lib/docker/registry",
+	DownloadImagesIfMissing:            false,
+	HAProxyClientTimeout:               "30m", // 30 minutes
+	HAProxyServerTimeout:               "30m", // 30 minutes
+	DNSAAAADelayEnabled:                true,
+	EtcdDataDirectory:                  "/var/lib/etcd",
+	EtcdDefragCrontabHour:              "1",
+	EtcdLogsCrontabHour:                "*",
+	EtcdLogsCrontabMinute:              "0,30",
+	EtcdLogsDaysToKeep:                 30,
+	UseLocalImages:                     true,
+	ClusterIfaceName:                   "ansible_eth0",
+	PublicVipIfaceName:                 "ansible_eth0",
+	ClusterIface:                       "{{ hostvars[inventory_hostname][cluster_iface_name] }}",
+	PublicVipIface:                     "{{ hostvars[inventory_hostname][public_vip_iface_name] }}",
+	CniIface:                           "{{ cluster_iface.device }}",
+	CniIPEncapsulation:                 "Always",
+	KubeAuditLogMaxAge:                 30,
+	KubeAuditLogMaxBackup:              10,
+	KubeAuditLogMaxSize:                128,
+	RookCephStorageDeviceDirectories:   []string{"/data/rook/storage/0"},
+	DockerRegistryPort:                 5000,
+	RookEnabled:                        true,
+	RookDashboardEnabled:               true,
+	RookDashboardExternalEnabled:       true,
+	RookDashboardPort:                  7665,
+	RookObjectStoreEnabled:             true,
+	RookObjectStoreRadosGatewayEnabled: true,
+	RookFileStoreEnabled:               true,
+	RookCephStorageDeviceFilter:        "",
+	DefaultStorageclass:                "rook-ceph-block-delete",
+	PodEvictionTimeout:                 "2m",
+	TerminatedPodGCThreshold:           100,
+	AdditionalRSharedMountPoints:       []string{},
+	CloudProviderEnabled:               false,
+	SysctlSettings:                     "{{ sysctl_defaults }}",
 }
 
 // LoadNilDefault will load assigned defaults when the current value is nil
@@ -263,7 +267,7 @@ func (c *Configurator) Inventory() (*Inventory, error) {
 
 	hostsRoles := map[string]InventoryHosts{}
 
-	for _, host := range c.hosts {
+	for _, host := range c.Hosts {
 
 		roleNameGroup := strings.NewReplacer("-", "_", ".", "_", " ", "_").Replace(strings.ToLower(host.RoleName[:len(host.RoleName)-ZeroPadLen]))
 
@@ -342,7 +346,7 @@ func (c *Configurator) Inventory() (*Inventory, error) {
 
 	if _, ok := ValidAddressInventoryFields[vars.AddressInventoryField]; !ok {
 		vars.AddressInventoryField = "private_dns"
-	} else if c.platform == "aws" {
+	} else if c.platform == "ec2" {
 		// force the use of the private_ip field for aws as the others have issues
 		// in particular with DNS, it takes a few seconds to resolve names so its not performant
 		vars.AddressInventoryField = "private_ip"
@@ -364,9 +368,15 @@ func (c *Configurator) Inventory() (*Inventory, error) {
 	if v, ok := c.platformConfig["kube_vip_api_ssl_port"]; ok {
 		vars.KubeVipAPISslPort = int(v.(float64))
 	}
+	if v, ok := c.platformConfig["public_virtual_ip"]; ok {
+		vars.PublicVirtualIP = v.(string)
+	}
+	if v, ok := c.platformConfig["public_virtual_ip_ssl_port"]; ok {
+		vars.PublicVirtualIPSslPort = int(v.(float64))
+	}
 
 	// Only required for AWS
-	if c.platform == "aws" {
+	if c.platform == "ec2" {
 		vars.AlbDNSName = c.address
 	}
 
@@ -389,6 +399,22 @@ func (c *Configurator) Inventory() (*Inventory, error) {
 		}
 		if v, ok := c.platformConfig["resource_pool"]; ok {
 			vars.VsphereResourcePool = v.(string)
+		}
+	}
+
+	if c.platform == "stacki" {
+		if vars.EtcdDataDirectory == "" {
+			vars.EtcdDataDirectory = "/data/etcd"
+		}
+		if vars.EtcdSnapshotsDirectory == "" {
+			vars.EtcdSnapshotsDirectory = "/data/etcd-snapshots"
+		}
+	} else {
+		if vars.EtcdDataDirectory == "" {
+			vars.EtcdDataDirectory = defaultInventoryVariables.EtcdDataDirectory
+		}
+		if vars.EtcdSnapshotsDirectory == "" {
+			vars.EtcdSnapshotsDirectory = defaultInventoryVariables.EtcdSnapshotsDirectory
 		}
 	}
 

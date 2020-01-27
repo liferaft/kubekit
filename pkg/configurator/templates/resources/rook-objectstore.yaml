@@ -35,6 +35,8 @@ spec:
     erasureCoded:
       dataChunks: 2
       codingChunks: 1
+  # Whether to preserve metadata and data pools on object store deletion
+  preservePoolsOnDelete: false
   # The gaeteway service configuration
   gateway:
     # type of the gateway (s3)
@@ -72,6 +74,7 @@ spec:
     #  requests:
     #    cpu: "500m"
     #    memory: "1024Mi"
+    priorityClassName: ceph-storage-critical
 ---
 apiVersion: ceph.rook.io/v1
 kind: CephObjectStoreUser

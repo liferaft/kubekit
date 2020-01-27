@@ -45,7 +45,7 @@ var defaultConfig = Config{
 		"compute_slow_ephemeral": ephemeralSlowNodePool,
 		"persistent_storage":     persistentNodePool,
 	},
-	ElasticFileshares: map[string]ElasticFileshare{},
+	ElasticFileshares: map[string]config.ElasticFileshare{},
 }
 
 // var defaultElasticFileshare = ElasticFileshare{
@@ -130,46 +130,30 @@ const requiredValue = "# Required value. Example: "
 
 // Config defines the AWS configuration parameters in the Cluster config file
 type Config struct {
-	ClusterName           string                      `json:"-" yaml:"-" mapstructure:"clustername"`
-	Username              string                      `json:"username" yaml:"username" mapstructure:"username"`
-	AwsAccessKey          string                      `json:"-" yaml:"-" mapstructure:"-"`
-	AwsSecretKey          string                      `json:"-" yaml:"-" mapstructure:"-"`
-	AwsSessionToken       string                      `json:"-" yaml:"-" mapstructure:"-"`
-	AwsRegion             string                      `json:"aws_region,omitempty" yaml:"aws_region,omitempty" mapstructure:"aws_region"`
-	AwsVpcID              string                      `json:"aws_vpc_id" yaml:"aws_vpc_id" mapstructure:"aws_vpc_id"`
-	IngressSubnets        []string                    `json:"ingress_subnets" yaml:"ingress_subnets,omitempty" mapstructure:"ingress_subnets"`
-	ClusterSecurityGroups []string                    `json:"cluster_security_groups" yaml:"cluster_security_groups" mapstructure:"cluster_security_groups"`
-	PrivateKey            string                      `json:"private_key,omitempty" yaml:"private_key,omitempty" mapstructure:"private_key"`
-	PrivateKeyFile        string                      `json:"private_key_file" yaml:"private_key_file" mapstructure:"private_key_file"`
-	PublicKey             string                      `json:"public_key,omitempty" yaml:"public_key,omitempty" mapstructure:"public_key"`
-	PublicKeyFile         string                      `json:"public_key_file" yaml:"public_key_file" mapstructure:"public_key_file"`
-	KubernetesVersion     string                      `json:"kubernetes_version" yaml:"kubernetes_version" mapstructure:"kubernetes_version"`
-	EndpointPublicAccess  bool                        `json:"endpoint_public_access" yaml:"endpoint_public_access" mapstructure:"endpoint_public_access"`
-	EndpointPrivateAccess bool                        `json:"endpoint_private_access" yaml:"endpoint_private_access" mapstructure:"endpoint_private_access"`
-	Route53Name           []string                    `json:"route_53_name" yaml:"route_53_name" mapstructure:"route_53_name"`
-	ClusterLogsTypes      []string                    `json:"cluster_logs_types" yaml:"cluster_logs_types" mapstructure:"cluster_logs_types"`
-	S3Buckets             []string                    `json:"s3_buckets" yaml:"s3_buckets" mapstructure:"s3_buckets"`
-	MaxPods               int                         `json:"max_pods,omitempty" yaml:"max_pods,omitempty" mapstructure:"max_pods"`
-	MaxMapCount           int                         `json:"max_map_count,omitempty" yaml:"max_map_count,omitempty" mapstructure:"max_map_count"`
-	DefaultNodePool       NodePool                    `json:"default_node_pool" yaml:"default_node_pool" mapstructure:"default_node_pool"`
-	NodePools             map[string]NodePool         `json:"node_pools" yaml:"node_pools" mapstructure:"node_pools"`
-	ElasticFileshares     map[string]ElasticFileshare `json:"elastic_fileshares,omitempty" yaml:"elastic_fileshares,omitempty" mapstructure:"elastic_fileshares"`
-}
-
-// ElasticFileshareData contains the attributes for an instantiated ElasticFileshare in AWS
-type ElasticFileshareData struct {
-	Name   string `json:"efs_name" mapstructure:"efs_name"`
-	ID     string `json:"efs_id" mapstructure:"efs_id"`
-	Region string `json:"efs_region" mapstructure:"efs_region"`
-	DNS    string `json:"efs_dns" mapstructure:"efs_dns"`
-}
-
-// ElasticFileshare defines the settings for an ElasticFileshare on AWS
-type ElasticFileshare struct {
-	name            string
-	PerformanceMode string `json:"performance_mode" yaml:"performance_mode" mapstructure:"performance_mode"`
-	ThroughputMode  string `json:"throughput_mode" yaml:"throughput_mode" mapstructure:"throughput_mode"`
-	Encrypted       bool   `json:"encrypted" yaml:"encrypted" mapstructure:"encrypted"`
+	ClusterName           string                             `json:"-" yaml:"-" mapstructure:"clustername"`
+	Username              string                             `json:"username" yaml:"username" mapstructure:"username"`
+	AwsAccessKey          string                             `json:"-" yaml:"-" mapstructure:"-"`
+	AwsSecretKey          string                             `json:"-" yaml:"-" mapstructure:"-"`
+	AwsSessionToken       string                             `json:"-" yaml:"-" mapstructure:"-"`
+	AwsRegion             string                             `json:"aws_region,omitempty" yaml:"aws_region,omitempty" mapstructure:"aws_region"`
+	AwsVpcID              string                             `json:"aws_vpc_id" yaml:"aws_vpc_id" mapstructure:"aws_vpc_id"`
+	IngressSubnets        []string                           `json:"ingress_subnets" yaml:"ingress_subnets,omitempty" mapstructure:"ingress_subnets"`
+	ClusterSecurityGroups []string                           `json:"cluster_security_groups" yaml:"cluster_security_groups" mapstructure:"cluster_security_groups"`
+	PrivateKey            string                             `json:"private_key,omitempty" yaml:"private_key,omitempty" mapstructure:"private_key"`
+	PrivateKeyFile        string                             `json:"private_key_file" yaml:"private_key_file" mapstructure:"private_key_file"`
+	PublicKey             string                             `json:"public_key,omitempty" yaml:"public_key,omitempty" mapstructure:"public_key"`
+	PublicKeyFile         string                             `json:"public_key_file" yaml:"public_key_file" mapstructure:"public_key_file"`
+	KubernetesVersion     string                             `json:"kubernetes_version" yaml:"kubernetes_version" mapstructure:"kubernetes_version"`
+	EndpointPublicAccess  bool                               `json:"endpoint_public_access" yaml:"endpoint_public_access" mapstructure:"endpoint_public_access"`
+	EndpointPrivateAccess bool                               `json:"endpoint_private_access" yaml:"endpoint_private_access" mapstructure:"endpoint_private_access"`
+	Route53Name           []string                           `json:"route_53_name" yaml:"route_53_name" mapstructure:"route_53_name"`
+	ClusterLogsTypes      []string                           `json:"cluster_logs_types" yaml:"cluster_logs_types" mapstructure:"cluster_logs_types"`
+	S3Buckets             []string                           `json:"s3_buckets" yaml:"s3_buckets" mapstructure:"s3_buckets"`
+	MaxPods               int                                `json:"max_pods,omitempty" yaml:"max_pods,omitempty" mapstructure:"max_pods"`
+	MaxMapCount           int                                `json:"max_map_count,omitempty" yaml:"max_map_count,omitempty" mapstructure:"max_map_count"`
+	DefaultNodePool       NodePool                           `json:"default_node_pool" yaml:"default_node_pool" mapstructure:"default_node_pool"`
+	NodePools             map[string]NodePool                `json:"node_pools" yaml:"node_pools" mapstructure:"node_pools"`
+	ElasticFileshares     map[string]config.ElasticFileshare `json:"elastic_fileshares,omitempty" yaml:"elastic_fileshares,omitempty" mapstructure:"elastic_fileshares"`
 }
 
 // NodePool defines the settings for group of instances on AWS
@@ -217,7 +201,7 @@ func (c *Config) MergeElasticFileshares(elasticFilesharesEnvConf map[string]stri
 		return
 	}
 	for elasticFileshare := range elasticFileshares {
-		n := ElasticFileshare{}
+		n := config.ElasticFileshare{}
 		elasticFileshareEnv := utils.TrimLeft(elasticFilesharesEnvConf, "elastic_fileshares__"+elasticFileshare+"__")
 		merger.Merge(&n, elasticFileshareEnv, c.ElasticFileshares[elasticFileshare])
 		c.ElasticFileshares[elasticFileshare] = n
@@ -269,7 +253,7 @@ func (c *Config) MergeWithMapConfig(m map[interface{}]interface{}) {
 			c.NodePools = getNodePools(m1)
 		case "elastic_fileshares":
 			m1 := v.(map[interface{}]interface{})
-			c.ElasticFileshares = getElasticFileshares(m1)
+			c.ElasticFileshares = config.GetElasticFileshares(m1)
 		case "s3_buckets":
 			c.S3Buckets = config.GetListFromInterface(v)
 		case "route_53_name":
@@ -314,24 +298,6 @@ func getNodePools(m map[interface{}]interface{}) map[string]NodePool {
 		nPools[k.(string)] = nPool
 	}
 	return nPools
-}
-
-func getElasticFileshare(m map[interface{}]interface{}) ElasticFileshare {
-	n := ElasticFileshare{}
-	for k, v := range m {
-		name := k.(string)
-		config.SetField(&n, name, v)
-	}
-	return n
-}
-
-func getElasticFileshares(m map[interface{}]interface{}) map[string]ElasticFileshare {
-	fileShares := make(map[string]ElasticFileshare, len(m))
-	for k, v := range m {
-		m1 := v.(map[interface{}]interface{})
-		fileShares[k.(string)] = getElasticFileshare(m1)
-	}
-	return fileShares
 }
 
 func (c *Config) copyWithDefaults() Config {

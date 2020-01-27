@@ -14,6 +14,7 @@
     path: "{{ item }}"
     state: directory
   with_items:
+    - /etc/kubernetes/rook-bin
     - /srv/kubernetes/manifests/rook/cluster
     - /srv/kubernetes/manifests/rook/storage
     - /srv/kubernetes/manifests/rook/toolbox
@@ -59,6 +60,21 @@
   - name: generate base64 encode TLS certificate for 3s api controller secret
     shell: "cat {{ cert_dir }}/{{ ingress_root_ca_crt_filename }} | base64 | tr '\r' '\n' | tr -d '\n'"
     register: s3_b64_tls_ca_cert
+
+  - name: copy rook umount script
+    copy:
+      src: "etc/kubernetes/rook-bin/umount.sh"
+      dest: "/etc/kubernetes/rook-bin/umount.sh"
+
+  - name: copy rook umount service unit file
+    copy:
+      src: "usr/lib/systemd/system/rook-umount.service"
+      dest: "/usr/lib/systemd/system/rook-umount.service"
+    register: rook_umount_service
+    notify: reload and restart rsyslog
+
+  - meta: flush_handlers
+    when: rook_umount_service.changed
 
   - name: render rook manifests
     template:

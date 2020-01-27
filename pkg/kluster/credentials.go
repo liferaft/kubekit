@@ -63,7 +63,7 @@ type CredentialHandler interface {
 // NewCredentials creates a new credentials [handler] based on the given platform
 func NewCredentials(clustername, platform, path string) CredentialHandler {
 	switch platform {
-	case "aws", "eks":
+	case "ec2", "eks":
 		return NewAWSCredentials(clustername, path)
 	case "aks":
 		return NewAzureCredentials(clustername, path)

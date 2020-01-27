@@ -6,11 +6,11 @@ kubelet_serialize_image_pulls: no
 additional_rshared_mount_points: []
 
 # allows forcing the usage of IPs instead of DNS entries if needed
-address_inventory_field: "{% if cloud_provider == 'aws' %}private_ip{% else %}private_dns{% endif %}"
+address_inventory_field: "{% if cloud_provider == 'ec2' %}private_ip{% else %}private_dns{% endif %}"
 
-etcd_version: 3.3.9
 etcd_initial_cluster_token: 0c3616cc-434e
 cluster_iface_name: "ansible_eth0"
+public_vip_iface:  # leave empty as default
 
 enable_etcd_local_proxy: no
 etcd_starting_proxy_advertise_port: 8888
@@ -23,10 +23,11 @@ etcd_logs_crontab_hour: "*"
 etcd_heartbeat_interval: 120
 etcd_election_timeout: 1000
 etcd_snapshot_count: 100000  # Number of committed transactions to trigger a automatic snapshot to disk
-
 etcd_max_wals: 20
+etcd_compaction_retention: 72h
+etcd_quota_backend_bytes: 0  # set to greater than 0 to enable
 
-etcd_data_dir: /var/lib/etcd
+etcd_data_dir: "{{ etcd_data_directory | default('/var/lib/etcd', true) }}"
 
 overwrite_kubelet_taints: false
 overwrite_kubelet_labels: false
@@ -65,7 +66,7 @@ kube_config_filename: "/var/lib/kubelet/kubeconfig"
 
 registry_port: 5000
 registry_lb_port: 5005
-local_repo_root: "{{ hostvars['master000'][cluster_iface_name]['ipv4']['address'] + ':' + registry_port|string + '/lrk/' }}"
+local_repo_root: "{{ hostvars['master000'][cluster_iface_name]['ipv4']['address'] + ':' + registry_port|string + '/tdc/' }}"
 
 kube_version: "{{ current_manifest['kubernetes-version'] }}"
 kube_cluster_cidr: "172.24.0.0/16"
@@ -75,10 +76,10 @@ kube_api_ssl_port: "6558"
 
 kubelet_max_pods: 110
 
-core_repo_root: "{{ kube_virtual_ip_api if is_ha_cluster else (hostvars['master000'][address_inventory_field] if cloud_provider != 'aws' else hostvars['master000']['private_ip']) }}:{{ registry_lb_port if is_ha_cluster else registry_port }}/lrk/"
+core_repo_root: "{{ kube_virtual_ip_api if is_ha_cluster else (hostvars['master000'][address_inventory_field] if cloud_provider != 'ec2' else hostvars['master000']['private_ip']) }}:{{ registry_lb_port if is_ha_cluster else registry_port }}/tdc/"
 
 # if this is enabled apiserver, control-manager get started with
-# --cloud-provider=[aws/vsphere] --cloud-config=[/tmp/vsphere.conf or /etc/aws/aws.conf]
+# --cloud-provider=[ec2/vsphere] --cloud-config=[/tmp/vsphere.conf or /etc/aws/aws.conf]
 # valid values to enable are aws or vsphere on resp environments
 # this variable is also defined in inventory file
 cloud_provider: ""
@@ -95,7 +96,7 @@ kube_api_server_local: "https://localhost:{{ kube_api_ssl_port }}"
 kube_vip_api_server: "https://{{ kube_virtual_ip_api }}:{{ kube_vip_api_ssl_port }}"
 # kube api server address when VIP is not required (just one master)
 
-default_master000: "{% if cloud_provider != 'aws' %}{{ hostvars['master000'][address_inventory_field] }}{% else %}{{ hostvars['master000']['private_ip'] }}{% endif %}"
+default_master000: "{% if cloud_provider != 'ec2' %}{{ hostvars['master000'][address_inventory_field] }}{% else %}{{ hostvars['master000']['private_ip'] }}{% endif %}"
 kube_api_server: "https://{{ private_apiserver_dns_name | default(public_apiserver_dns_name, true) | default(default_master000, true) }}:{{ kube_api_ssl_port }}"
 
 is_ha_cluster: "{{ groups['master'] | length > 1 and (not disable_master_ha | bool) }}"
@@ -123,18 +124,15 @@ kube_audit_log_max_size: 128
 
 terminated_pod_gc_threshold: 100
 pod_eviction_timeout: 2m
+
 rook_csi_enabled: no
 
-# enables local persistent volumes and gpu scheduling
+# feature gates that are enabled by default are not set here
 feature_gates:
-  RotateKubeletClientCertificate: true
-  RotateKubeletServerCertificate: true
+  ExpandCSIVolumes: true
+  ExpandInUsePersistentVolumes: true
   ResourceLimitsPriorityFunction: true
-  ResourceQuotaScopeSelectors: true
   TTLAfterFinished: true
-  CSIPersistentVolume: true
-  PersistentLocalVolumes: true
-  VolumeScheduling: true
 
 volume_plugins_dir: "/var/lib/kubelet/volumeplugins"
 
@@ -144,7 +142,6 @@ kube_kubelet_args:
   - "--keep-terminated-pod-volumes=false"
   - "--kubeconfig={{ kube_config_filename }}"
   - "--network-plugin=cni"
-  - "--node-labels=kubekit-version={{ kubekit_version }}"
   - "--pod-infra-container-image={{ core_repo_root }}{{ current_manifest['dependencies']['control-plane']['pause']['src'] }}"
   - "--register-node=true"
   - "--volume-plugin-dir={{ volume_plugins_dir }}"
@@ -155,7 +152,7 @@ kube_apiserver_admission_control:
   - "ServiceAccount"
   - "ResourceQuota"
   - "DefaultStorageClass"
-  - "DenyEscalatingExec"
+#  - "DenyEscalatingExec"
   - "PodSecurityPolicy"
   - "NodeRestriction"
   - "EventRateLimit"
@@ -165,12 +162,13 @@ kube_apiserver_admission_control:
 
 kube_apiserver_runtime_configs:
   - "rbac.authorization.k8s.io/v1=true"
-  - "extensions/v1beta1=true"
-  - "extensions/v1beta1/deployments=true"
-  - "extensions/v1beta1/daemonsets=true"
   - "extensions/v1beta1/podsecuritypolicy=true"
   - "extensions/v1beta1/customresourcedefinition=true"
-  - "batch/v2alpha1=true"
+#  - "eventratelimit.admission.k8s.io/v1alpha1=true"
+#  - "extensions/v1beta1=true"
+#  - "extensions/v1beta1/deployments=true"
+#  - "extensions/v1beta1/daemonsets=true"
+#  - "batch/v2alpha1=true"
 
 kube_apiserver_args:
   - "--allow-privileged=true"
@@ -208,6 +206,7 @@ kube_controller_manager_args:
   - "--allocate-node-cidrs=true"
   - "--cluster-name=kubernetes"
   - "--cluster-cidr={{ kube_cluster_cidr }}"
+  # Default 8760h0m0s = 1 year
   - "--experimental-cluster-signing-duration=8760h0m0s"
   - "--kubeconfig={{ kube_config_filename }}"
   - "--authentication-kubeconfig={{ kube_config_filename }}"
@@ -226,14 +225,9 @@ kube_controller_manager_args:
   - "--flex-volume-plugin-dir={{ volume_plugins_dir }}"
 
 kube_scheduler_args:
-  #- "--profiling=false"
-#  - "--kubeconfig={{ kube_config_filename }}"
-#  - "--leader-elect=true"
   - "--v=2"
 
 kube_proxy_args:
-#  - "--hostname-override={% if cloud_provider != 'aws' %}{{ hostvars[inventory_hostname]['hostname'] }}{% else %}{{ kube_advertise_address }}{% endif %}"
-#  - "--hostname-override=$(MY_HOST_IP)"
   - "--cluster-cidr={{kube_cluster_cidr}}"
   - "--kubeconfig={{ kube_config_filename }}"
   - "--proxy-mode={{ kube_proxy_mode | default('iptables', true) }}"

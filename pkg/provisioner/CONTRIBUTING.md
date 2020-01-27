@@ -5,7 +5,7 @@
 ### Integration Test
 You can run an integration test to validate all supported platforms are capable of provisioning and destroying resources. Run the following command:
 
-`GO111MODULE=on go test github.com/kubekit/provisioner -v -run TestProvisionerIntegration -tags integration`
+`GO111MODULE=on go test github.com/liferaft/provisioner -v -run TestProvisionerIntegration -tags integration`
 
 You can focus a specific platform by providing one of the following arguments in place of `-run TestProvisionerIntegration`:
 
@@ -18,7 +18,7 @@ export OPENSTACK_PASSWORD=<YOUR PASSWORD>
 export OPENSTACK_TENANT_NAME=<TENANT/PROJECT ID e.g. kubekit>
 ```
 
-`-run TestProvisionerIntegration/aws` - AWS provisioner test, depends on the following variables:
+`-run TestProvisionerIntegration/ec2` - EC2 provisioner test, depends on the following variables:
 
 ```
 

@@ -61,7 +61,7 @@ var re *regexp.Regexp
 func init() {
 	flag.StringVar(&dst, "dst", "code.go", "destination to store generated code")
 	flag.StringVar(&src, "src", "../templates/resources", "location of various template files")
-	flag.StringVar(&pkg, "pkg", "aws", "name of provisioner pkg")
+	flag.StringVar(&pkg, "pkg", "ec2", "name of provisioner pkg")
 	flag.StringVar(&exclude, "exclude", "", "file pattern to exclude from roles directory (e.g. *.bak)")
 	flag.BoolVar(&reverse, "reverse", false, "generates the templates from a code.go file. When set the '--dst' is the source and '--src' is the destination")
 	flag.BoolVar(&internal, "internal", false, "generates the code.go file to be used by the code generator. Used mostly before use '--reverse'")

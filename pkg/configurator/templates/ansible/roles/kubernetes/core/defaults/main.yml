@@ -1,4 +1,4 @@
-force_apply: no
+force_apply: yes
 force_apply_flag: "{% if force_apply|bool %}--force {% endif %}"
 
 kube_api_server_local: "https://localhost:{{ kube_api_ssl_port }}"
@@ -10,12 +10,12 @@ registry_lb_port: 5005
 docker_mtu: "{{ hostvars[inventory_hostname][cluster_iface_name]['mtu'] | default(1500) }}"
 kube_cluster_dns: "172.21.0.10"
 
-core_repo_root: "{{ kube_virtual_ip_api if is_ha_cluster else (hostvars['master000'][address_inventory_field] if cloud_provider != 'aws' else hostvars['master000']['private_ip']) }}:{{ registry_lb_port if is_ha_cluster else registry_port }}/lrk/"
+core_repo_root: "{{ kube_virtual_ip_api if is_ha_cluster else (hostvars['master000'][address_inventory_field] if cloud_provider != 'ec2' else hostvars['master000']['private_ip']) }}:{{ registry_lb_port if is_ha_cluster else registry_port }}/tdc/"
 
 cluster_iface_name: "ansible_eth0"
 cluster_iface: "{{ hostvars[inventory_hostname][cluster_iface_name] }}"
 cni_iface: "{{ cluster_iface.device }}"
-cni_ip_encapsulation: "always" # can be either ("off" or "always")
+cni_ip_encapsulation: "Always" # can be either ("Off" or "Always")
 kube_cluster_cidr: "172.24.0.0/16"
 
 nginx_ingress_enabled: no
@@ -34,44 +34,12 @@ core_manifests:
   - name: dns-aaaa-delay
     enabled: "{{ dns_aaaa_delay_enabled | bool }}"
     prerequisite: yes
-  - name: default-backend
-    enabled: "{{ nginx_ingress_enabled | bool }}"
-    prerequisite: no
-  - name: heapster
-    enabled: yes
-    prerequisite: no
-  - name: kubernetes-dashboard
-    enabled: yes 
-    prerequisite: no
   - name: kube-state-metrics
     enabled: yes
     prerequisite: no
-  - name: nginx-ingress
-    enabled: "{{ nginx_ingress_enabled | bool }}"
-    prerequisite: no
-  - name: kubedns-autoscaler
+  - name: coredns-autoscaler
     enabled: yes
     prerequisite: no
-
-heapster_metric_resolution: "60s"
-
-nginx_ingress_controller_proxy_body_size: "100m"
-nginx_ingress_controller_error_log_level: "warn"
-nginx_ingress_controller_ssl_protocols: "TLSv1.2"
-nginx_ingress_controller_proxy_read_timeout: "3600"
-nginx_ingress_controller_proxy_send_timeout: "3600"
-nginx_ingress_controller_enable_vts_status: "true"
-nginx_ingress_controller_server_name_hash_bucket_size: "128"
-nginx_ingress_controller_redirect_to_https: "true"
-
-nginx_ingress_controller_tls_cert_local_path: ""
-nginx_ingress_controller_tls_key_local_path: ""
-
-nginx_ingress_controller_basic_auth_username: "admin"
-nginx_ingress_controller_basic_auth_password: "kubekit"
-
-nginx_ingress_controller_tls_secret_name: "nginx-ingress-controller-tls-v1"
-nginx_ingress_controller_basic_auth_secret_name: "nginx-ingress-controller-basic-auth"
 
 
 cert_dir: /etc/pki
@@ -112,9 +80,10 @@ kubelet_max_pods: 110
 rook_enabled: yes
 rook_csi_enabled: no
 rook_monitoring_enabled: yes
+
 # enable ceph dashboard
 rook_dashboard_enabled: yes
-rook_dashboard_external_enabled: yes
+rook_dashboard_external_enabled: no
 rook_dashboard_port: 7665
 
 # enable s3 inerface 
@@ -201,9 +170,9 @@ rook_ceph_annotation_options_mgr: ""
 #rook_ceph_all_priority_class: ceph-critical
 
 rook_ceph_mgr_resource_limits_cpu: 1000m
-rook_ceph_mgr_resource_limits_mem: 2048Mi
+rook_ceph_mgr_resource_limits_mem: 4096Mi
 rook_ceph_mgr_resource_requests_cpu: 1000m
-rook_ceph_mgr_resource_requests_mem: 2048Mi
+rook_ceph_mgr_resource_requests_mem: 4096Mi
 #rook_ceph_mgr_priority_class: ceph-critical
 
 rook_ceph_mon_resource_limits_cpu: 500m
@@ -220,7 +189,7 @@ rook_ceph_osd_resource_requests_cpu: 1000m
 rook_ceph_osd_resource_requests_mem: 4096Mi
 
 rook_ceph_storage_use_all_nodes: yes
-rook_ceph_storage_use_all_devices: yes
+rook_ceph_storage_use_all_devices: no
 
 # storage devices to give to direclty to ceph,
 # for example "^nvme0n1" can be used on i3 type nodes in ec2
@@ -300,7 +269,7 @@ rook_ceph_object_store_annotations: ""
 
 rook_ceph_replica_pool_count: 3
 rook_ceph_replica_pool_annotations: ""
-rook_ceph_storage_class_replication_count: 1
+rook_ceph_storage_class_replication_count: 3
 
 # resource settings
 # -------------------------
@@ -350,7 +319,7 @@ nanny_heapster_extra_cpu_per_node: "5m"
 nanny_heapster_extra_memory_per_node: "4Mi"
 
 heapster_legacy_requests_cpu: "200m"
-heapster_legacy_requests_memory: "900Mi"
+heapster_legacy_requests_memory: "3Gi"
 heapster_legacy_limits_cpu: "{{ heapster_legacy_requests_cpu }}"
 heapster_legacy_limits_memory: "{{ heapster_legacy_requests_memory }}"
 
@@ -362,11 +331,11 @@ nanny_legacy_limits_memory: "{{ nanny_legacy_requests_memory }}"
 nanny_legacy_heapster_base_cpu: "{{ heapster_legacy_limits_cpu }}"
 nanny_legacy_heapster_base_memory: "{{ heapster_legacy_limits_memory }}"
 nanny_legacy_heapster_legacy_extra_cpu_per_node: "10m"
-nanny_legacy_heapster_legacy_extra_memory_per_node: "8Mi"
+nanny_legacy_heapster_legacy_extra_memory_per_node: "16Mi"
 
 # kube state metrics
-kube_state_metrics_requests_cpu: "100m"
-kube_state_metrics_requests_memory: "300Mi"
+kube_state_metrics_requests_cpu: "500m"  # the lower the cpu, the more likely things will get queued up which affects memory...also, gzip is enabled by default
+kube_state_metrics_requests_memory: "600Mi"
 kube_state_metrics_limits_cpu: "{{ kube_state_metrics_requests_cpu }}"
 kube_state_metrics_limits_memory: "{{ kube_state_metrics_requests_memory }}"
 
@@ -375,22 +344,23 @@ kube_state_metrics_resizer_requests_memory: "50Mi"
 kube_state_metrics_resizer_limits_cpu: "{{ kube_state_metrics_resizer_requests_cpu }}"
 kube_state_metrics_resizer_limits_memory: "{{ kube_state_metrics_resizer_requests_memory }}"
 
-kube_state_metrics_resizer_setting_cpu: "100m"
-kube_state_metrics_resizer_setting_extra_cpu: "1m"
-kube_state_metrics_resizer_setting_memory: "100Mi"
-kube_state_metrics_resizer_setting_extra_memory: "2Mi"
+kube_state_metrics_resizer_setting_cpu: "{{ kube_state_metrics_requests_cpu }}"
+kube_state_metrics_resizer_setting_extra_cpu: "10m"
+kube_state_metrics_resizer_setting_memory: "{{ kube_state_metrics_requests_memory }}"
+kube_state_metrics_resizer_setting_extra_memory: "20Mi"
 kube_state_metrics_resizer_setting_threshold: "5"
 
+# coredns
 coredns_requests_cpu: "100m"
 coredns_requests_memory: "200Mi"
 coredns_limits_cpu: "{{ coredns_requests_cpu }}"
 coredns_limits_memory: "{{ coredns_requests_memory }}"
 
-# kubedns autoscaler
-kube_dns_autoscaler_requests_cpu: "30m"
-kube_dns_autoscaler_requests_memory: "30Mi"
-kube_dns_autoscaler_limits_cpu: "{{ kube_dns_autoscaler_requests_cpu }}"
-kube_dns_autoscaler_limits_memory: "{{ kube_dns_autoscaler_requests_memory }}"
+# coredns autoscaler
+coredns_autoscaler_requests_cpu: "30m"
+coredns_autoscaler_requests_memory: "30Mi"
+coredns_autoscaler_limits_cpu: "{{ coredns_autoscaler_requests_cpu }}"
+coredns_autoscaler_limits_memory: "{{ coredns_autoscaler_requests_memory }}"
 
 # kubernetes dashboard
 kubernetes_dashboard_requests_cpu: "100m"
@@ -405,7 +375,7 @@ nginx_ingress_controller_limits_cpu: "{{ nginx_ingress_controller_requests_cpu }
 nginx_ingress_controller_limits_memory: "{{ nginx_ingress_controller_requests_memory }}"
 
 # rook operator
-rook_operator_requests_cpu: "100m"
-rook_operator_requests_memory: "128Mi"
+rook_operator_requests_cpu: "200m"
+rook_operator_requests_memory: "256Mi"
 rook_operator_limits_cpu: "{{ rook_operator_requests_cpu }}"
 rook_operator_limits_memory: "{{ rook_operator_requests_memory }}"

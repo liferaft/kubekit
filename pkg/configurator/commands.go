@@ -311,8 +311,7 @@ func (c *Command) Exec(command, script string, sudoExec bool) (*ssh.CommandResul
 		defer host.ssh.Close()
 
 		handleError := func(err error, msg string, a ...interface{}) {
-			errMsg = append(errMsg, fmt.Sprintf("%s (%s)", host.PublicIP, err))
-			fmt.Printf(msg+"\n", a...)
+			errMsg = append(errMsg, fmt.Sprintf("%s (%s) %s", host.PublicIP, err, msg))
 		}
 
 		if len(content) != 0 {
@@ -327,10 +326,9 @@ func (c *Command) Exec(command, script string, sudoExec bool) (*ssh.CommandResul
 			execCmd = sudoCmd + execCmd
 		}
 
-		outCmdMsg, errCmdMsg, exitStat, err := host.ssh.Exec(execCmd)
+		outCmdMsg, errCmdMsg, exitStat, err := host.ssh.ExecAndWait(execCmd)
 		if err != nil {
 			handleError(err, "failed to execute command %q at host %s", execCmd, host.PublicIP)
-			return
 		}
 
 		result.Hosts.Store(host.PublicIP, &ssh.HostCommandResult{

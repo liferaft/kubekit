@@ -110,33 +110,37 @@ func keepAlive(cl *ssh.Session) error {
 	}
 }
 
-// Start initiate the connection and runs command on remote host
+// // Start initiate the connection and runs command on remote host
+// func (c *Config) Start(cmd *Command) error {
+// 	err := c.setClient()
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	// Testing:
+// 	session, err := c.client.NewSession()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer session.Close()
+
+// 	//We send the keepalive every minute in case the server has
+// 	// a session timeout set.
+// 	go keepAlive(session)
+
+// 	session.Stdout = &cmd.Stdout
+// //	session.Stdin = &cmd.Stdin
+// 	session.Stderr = &cmd.Stderr
+// 	if err := session.Run(cmd.Command); err != nil {
+// 		return err
+// 	}
+
+// 	return nil
+// }
+
+// Start now calls StartAndWait for proper call handling
 func (c *Config) Start(cmd *Command) error {
-	err := c.setClient()
-	if err != nil {
-		return err
-	}
-
-	// Testing:
-	session, err := c.client.NewSession()
-	if err != nil {
-		return err
-	}
-	defer session.Close()
-
-	//We send the keepalive every minute in case the server has
-	// a session timeout set.
-	go keepAlive(session)
-
-	session.Stdout = &cmd.Stdout
-	// session.Stdin = cmd.Stdin
-	// session.Stderr = cmd.Stderr
-
-	if err := session.Run(cmd.Command); err != nil {
-		return err
-	}
-
-	return nil
+	return c.StartAndWait(cmd)
 }
 
 // StartAndWait initiates the connection, runs command on remote host and waits for output
@@ -152,6 +156,10 @@ func (c *Config) StartAndWait(cmd *Command) error {
 		return err
 	}
 	defer session.Close()
+
+	//We send the keepalive every minute in case the server has
+	// a session timeout set.
+	go keepAlive(session)
 
 	session.Stdout = &cmd.Stdout
 	session.Stderr = &cmd.Stderr
@@ -175,20 +183,7 @@ func (c *Config) StartAndWait(cmd *Command) error {
 
 // Exec executes a command in the remote host
 func (c *Config) Exec(command string) (stdOut string, stdErr string, exitStatus int, err error) {
-	cmd := &Command{
-		Command: command,
-	}
-	err = c.Start(cmd)
-	defer c.Close()
-	if err != nil {
-		return "", "", 0, err
-	}
-
-	stdOut = strings.TrimRight(cmd.Stdout.String(), "\n")
-	stdErr = strings.TrimRight(cmd.Stderr.String(), "\n")
-	exitStatus = cmd.ExitStatus
-
-	return
+	return c.ExecAndWait(command)
 }
 
 // ExecAndWait executes a command in the remote host and waits for it to exit
@@ -198,9 +193,6 @@ func (c *Config) ExecAndWait(command string) (stdOut string, stdErr string, exit
 	}
 	err = c.StartAndWait(cmd)
 	defer c.Close()
-	if err != nil {
-		return "", "", 0, err
-	}
 
 	stdOut = strings.TrimRight(cmd.Stdout.String(), "\n")
 	stdErr = strings.TrimRight(cmd.Stderr.String(), "\n")

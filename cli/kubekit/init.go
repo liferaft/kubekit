@@ -82,7 +82,7 @@ func addInitCmd() {
 	initCmd.Flags().String("server", "", "Provisioner Server IP or DNS. Also retrived from $KUBEKIT_<PLATFORM>_SERVER or $<PLATFORM>_SERVER, like $VSPHERE_SERVER")
 	initCmd.Flags().String("username", "", "Provisioner Username. Also retrived from $KUBEKIT_<PLATFORM>_USERNAME or $<PLATFORM>_USERNAME, like $VSPHERE_USERNAME")
 	initCmd.Flags().String("password", "", "Provisioner Password. Also retrived from $KUBEKIT_<PLATFORM>_PASSWORD or $<PLATFORM>_PASSWORD, like $VSPHERE_PASSWORD")
-	// ... [AWS/EKS credentials]
+	// ... [AWS/EC2/EKS credentials]
 	initCmd.Flags().String("access_key", "", "AWS Access Key Id. Also retrived from $KUBEKIT_AWS_ACCESS_KEY_ID or $AWS_ACCESS_KEY_ID")
 	initCmd.Flags().String("secret_key", "", "AWS Secret Access Key. Also retrived from $KUBEKIT_AWS_SECRET_ACCESS_KEY or $AWS_SECRET_ACCESS_KEY")
 	initCmd.Flags().String("session_token", "", "AWS Secret Session Token. Also retrived from $KUBEKIT_AWS_SESSION_TOKEN or $AWS_SESSION_TOKEN")
@@ -105,7 +105,7 @@ func addInitCmd() {
 	initClusterCmd.Flags().String("server", "", "Provisioner Server IP or DNS. Also retrived from $KUBEKIT_<PLATFORM>_SERVER or $<PLATFORM>_SERVER, like $VSPHERE_SERVER")
 	initClusterCmd.Flags().String("username", "", "Provisioner Username. Also retrived from $KUBEKIT_<PLATFORM>_USERNAME or $<PLATFORM>_USERNAME, like $VSPHERE_USERNAME")
 	initClusterCmd.Flags().String("password", "", "Provisioner Password. Also retrived from $KUBEKIT_<PLATFORM>_PASSWORD or $<PLATFORM>_PASSWORD, like $VSPHERE_PASSWORD")
-	// ... [AWS/EKS credentials]
+	// ... [AWS/EC2/EKS credentials]
 	initClusterCmd.Flags().String("access_key", "", "AWS Access Key Id. Also retrived from $KUBEKIT_AWS_ACCESS_KEY_ID or $AWS_ACCESS_KEY_ID")
 	initClusterCmd.Flags().String("secret_key", "", "AWS Secret Access Key. Also retrived from $KUBEKIT_AWS_SECRET_ACCESS_KEY or $AWS_SECRET_ACCESS_KEY")
 	initClusterCmd.Flags().String("session_token", "", "AWS Secret Session Token. Also retrived from $KUBEKIT_AWS_SESSION_TOKEN or $AWS_SESSION_TOKEN")
@@ -198,6 +198,11 @@ func initClusterRun(cmd *cobra.Command, args []string) error {
 	switch opts.Platform {
 	case "vra", "raw", "stacki":
 		return createClusterConfig()
+
+	case "aws":
+		// Special case, "aws" is no longer a concrete platform, instead use ec2
+		// Alternate option would be to accept aws but silently remap it to ec2
+		return fmt.Errorf("'aws' is no longer a supported platform name, use 'ec2' instead")
 	}
 
 	config.UI.Log.Debugf("initializing cluster %q credentials", opts.ClusterName)
@@ -213,7 +218,7 @@ func initClusterRun(cmd *cobra.Command, args []string) error {
 	if !credentials.Complete() {
 		// 2nd: if this is AWS, read from the parameters in the AWS configuration
 		switch opts.Platform {
-		case "aws", "eks":
+		case "ec2", "eks":
 			getAWSCredVariables(credentials.(*kluster.AwsCredentials), opts.Variables)
 		}
 	}
@@ -289,7 +294,10 @@ func initCertificatesRun(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return initCertificates(clusterName, nil, true, userCACertsFiles)
+
+	forceGenerateCA := false
+	//forceGenerateCA := cmd.Flags().Lookup("generate-ca-certs").Value.String() == "true"
+	return initCertificates(clusterName, nil, forceGenerateCA, userCACertsFiles)
 }
 
 func initPackageRun(cmd *cobra.Command, args []string) error {
@@ -385,14 +393,14 @@ func initTemplate(templateName string, platforms []string, path, format string, 
 	return template, nil
 }
 
-func initCertificates(clusterName string, cluster *kluster.Kluster, force bool, userCACertsFiles tls.KeyPairs) (err error) {
+func initCertificates(clusterName string, cluster *kluster.Kluster, forceGenCA bool, userCACertsFiles tls.KeyPairs) (err error) {
 	if cluster == nil {
 		cluster, err = loadCluster(clusterName)
 		if err != nil {
 			return err
 		}
 	}
-	return cluster.GenerateCerts(userCACertsFiles, force)
+	return cluster.GenerateCerts(userCACertsFiles, forceGenCA)
 }
 
 func initPackage(filename, format string) error {

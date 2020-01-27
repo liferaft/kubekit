@@ -696,7 +696,7 @@ var Swagger = []byte(`
       "type": "string",
       "enum": [
         "UNKNOWN",
-        "AWS",
+        "EC2",
         "EKS",
         "AZURE",
         "AKS",

@@ -36,7 +36,7 @@ The configurator has a Config struct with all the required parameters to configu
 To execute the configurator, call the method `Configure()` to install Ansible on every node (if not already installed) and to send the certificates, manifest and Ansible roles to every Kubernetes node. Then it will execute the Ansible playbook to finally install, configure and start up Kubernetes in every node.
 
     import (
-      "github.com/kubekit/configurator"
+      "github.com/liferaft/configurator"
     )
 
     func Configure() error {

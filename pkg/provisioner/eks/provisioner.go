@@ -6,6 +6,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/hashicorp/terraform/builtin/provisioners/local-exec"
 	"github.com/kraken/terraformer"
 	"github.com/liferaft/kubekit/pkg/crypto"
 	"github.com/liferaft/kubekit/pkg/provisioner/utils"
@@ -26,12 +27,17 @@ func (p *Platform) BeProvisioner(state *terraformer.State) error {
 	variables := p.Variables()
 	rendered := p.Code()
 
+	// DEBUG
+	//fmt.Println(string(rendered))
+	//os.Exit(0)
+
 	t, err := utils.NewTerraformer(rendered, variables, state, p.config.ClusterName, "EKS", p.ui)
 	if err != nil {
 		return err
 	}
 
 	t.AddProvider("aws", aws.Provider())
+	t.AddProvisioner("local-exec", localexec.Provisioner())
 
 	p.t = t
 

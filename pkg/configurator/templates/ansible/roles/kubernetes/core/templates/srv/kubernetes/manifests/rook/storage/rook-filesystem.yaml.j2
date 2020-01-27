@@ -19,6 +19,8 @@ spec:
     - failureDomain: osd
       replicated:
         size: {{ rook_ceph_filesystem_data_pool_replication_count }}
+  # Whether to preserve metadata and data pools on filesystem deletion
+  preservePoolsOnDelete: true
   # The metadata service (mds) configuration
   metadataServer:
     # The number of active MDS instances
@@ -29,6 +31,7 @@ spec:
     # The affinity rules to apply to the mds deployment
     placement: {{ rook_ceph_filesystem_placement_options }}
     annotations: {{ rook_ceph_filesystem_annotation_options }}
+    priorityClassName: ceph-storage-critical
     resources:
       limits:
         cpu: "{{ rook_ceph_filesystem_resource_limits_cpu }}"

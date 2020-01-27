@@ -20,6 +20,8 @@ spec:
     failureDomain: osd
     replicated:
       size: {{ rook_ceph_object_store_data_pool_replication_count }}
+  # Whether to preserve metadata and data pools on object store deletion
+  preservePoolsOnDelete: false
   # The gaeteway service configuration
   gateway:
     # type of the gateway (s3)
@@ -37,6 +39,7 @@ spec:
     # The affinity rules to apply to the rgw deployment or daemonset.
     placement: {{ rook_ceph_object_store_placement }}
     annotations: {{ rook_ceph_object_store_annotations }}
+    priorityClassName: ceph-storage-critical
     resources:
       limits:
         cpu: "{{ rook_ceph_object_store_resource_limits_cpu }}"

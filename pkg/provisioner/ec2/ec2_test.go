@@ -1,4 +1,4 @@
-package aws
+package ec2
 
 import (
 	"os"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/johandry/log"
 	"github.com/kraken/ui"
+	"github.com/liferaft/kubekit/pkg/provisioner/config"
 	"github.com/stretchr/testify/assert"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -53,19 +54,20 @@ func TestCreateFrom(t *testing.T) {
 				config: newConfigFromYaml(),
 			},
 			want: &Platform{
-				name: "aws",
+				name: "ec2",
 				config: &Config{
-					ClusterName: "testCluster",
-					Username:    "ec2-user",
-					AwsVpcID:    "vpc-8d56b9e9",
+					ClusterName:       "testCluster",
+					Username:          "ec2-user",
+					AwsVpcID:          "vpc-8d56b9e9",
+					ElasticFileshares: map[string]config.ElasticFileshare{},
 					DefaultNodePool: NodePool{
 						SecurityGroups:    []string{"sg-502d9a37"},
 						ConnectionTimeout: "5m",
 						Ami:               "ami-abc65dd3",
 						Subnets:           []string{"subnet-5bddc82c"},
 						InstanceType:      "m4.2xlarge",
-						RootVolSize:       200,
-						RootVolType:       "gp2",
+						RootVolumeSize:    200,
+						RootVolumeType:    "gp2",
 						KubeletNodeLabels: []string{
 							`node-role.kubernetes.io/compute=""`,
 							`node.kubernetes.io/compute=""`,
@@ -105,19 +107,20 @@ func TestCreateFrom(t *testing.T) {
 				config: newConfigFromBadYaml(),
 			},
 			want: &Platform{
-				name: "aws",
+				name: "ec2",
 				config: &Config{
-					ClusterName: "testCluster",
-					Username:    "ec2-user",
-					AwsVpcID:    "vpc-8d56b9e9",
+					ClusterName:       "testCluster",
+					Username:          "ec2-user",
+					AwsVpcID:          "vpc-8d56b9e9",
+					ElasticFileshares: map[string]config.ElasticFileshare{},
 					DefaultNodePool: NodePool{
 						SecurityGroups:    []string{},
 						ConnectionTimeout: "",
 						Ami:               "ami-abc65dd3",
 						Subnets:           []string{"subnet-5bddc82c"},
 						InstanceType:      "m4.2xlarge",
-						RootVolSize:       200,
-						RootVolType:       "gp2",
+						RootVolumeSize:    200,
+						RootVolumeType:    "gp2",
 						KubeletNodeLabels: []string{
 							`node-role.kubernetes.io/compute=""`,
 							`node.kubernetes.io/compute=""`,
@@ -186,7 +189,7 @@ func TestNew(t *testing.T) {
 				},
 			},
 			want: &Platform{
-				name: "aws",
+				name: "ec2",
 				config: &Config{ClusterName: "testCluster",
 					AwsEnv:                  "aws-k8s",
 					KubeAPISSLPort:          8081,
@@ -200,14 +203,15 @@ func TestNew(t *testing.T) {
 					AwsVpcID:                "# Required value. Example: vpc-8d56b9e9",
 					ConfigureFromPrivateNet: false,
 					TimeServers:             []string{"169.254.169.123"},
+					ElasticFileshares:       map[string]config.ElasticFileshare{},
 					DefaultNodePool: NodePool{
 						SecurityGroups:    []string{"# Required value. Example: sg-502d9a37"},
 						ConnectionTimeout: "5m",
 						Ami:               "ami-0b8485a3553c5d032",
 						InstanceType:      "m4.2xlarge",
 						Subnets:           []string{"# Required value. Example: subnet-5bddc82c"},
-						RootVolSize:       200,
-						RootVolType:       "gp2",
+						RootVolumeSize:    200,
+						RootVolumeType:    "gp2",
 						KubeletNodeLabels: []string{
 							`node-role.kubernetes.io/compute=""`,
 							`node.kubernetes.io/compute=""`,
@@ -250,7 +254,7 @@ func TestNew(t *testing.T) {
 
 func defaultAWS(credentials []string) *Platform {
 	p := &Platform{
-		name:    "aws",
+		name:    "ec2",
 		config:  &defaultConfig,
 		ui:      tUI,
 		version: version,
@@ -262,14 +266,15 @@ func defaultAWS(credentials []string) *Platform {
 
 func newConfig() *Config {
 	c := &Config{
-		ClusterName: "testCluster",
-		Username:    "ec2-user",
+		ClusterName:       "testCluster",
+		Username:          "ec2-user",
+		ElasticFileshares: map[string]config.ElasticFileshare{},
 		DefaultNodePool: NodePool{
 			ConnectionTimeout: "5m",
-			Ami:               KubekitOS,
+			Ami:               KubeOS,
 			InstanceType:      "m4.2xlarge",
-			RootVolSize:       200,
-			RootVolType:       "gp2",
+			RootVolumeSize:    200,
+			RootVolumeType:    "gp2",
 			KubeletNodeLabels: []string{
 				`node-role.kubernetes.io/compute=""`,
 				`node.kubernetes.io/compute=""`,
@@ -306,7 +311,7 @@ type miniConfig struct {
 func newConfigFromYaml() map[interface{}]interface{} {
 	yamlStr := `
 platforms:
-  aws:
+  ec2:
     username: ec2-user
     aws_vpc_id: vpc-8d56b9e9
     private_key_file: ""
@@ -315,8 +320,8 @@ platforms:
       connection_timeout: 5m
       aws_ami: ami-abc65dd3
       aws_instance_type: m4.2xlarge
-      root_vol_size: 200
-      root_vol_type: gp2
+      root_volume_size: 200
+      root_volume_type: gp2
       security_groups:
       - sg-502d9a37
       subnets:
@@ -338,10 +343,11 @@ platforms:
         kubelet_node_labels:
         - node-role.kubernetes.io/worker=""
         - node.kubernetes.io/worker=""
+    elastic_fileshares: {}
 `
 	c := miniConfig{}
 	yaml.Unmarshal([]byte(yamlStr), &c)
-	p := c.Platforms["aws"]
+	p := c.Platforms["ec2"]
 	cnf := p.(map[interface{}]interface{})
 	return cnf
 }
@@ -349,7 +355,7 @@ platforms:
 func newConfigFromBadYaml() map[interface{}]interface{} {
 	yamlStr := `
 platforms:
-  aws:
+  ec2:
     username: ec2-user
     aws_vpc_id: vpc-8d56b9e9
     private_key_file: ""
@@ -358,8 +364,8 @@ platforms:
       connection_timeout:
       aws_ami: ami-abc65dd3
       aws_instance_type: m4.2xlarge
-      root_vol_size: 200
-      root_vol_type: gp2
+      root_volume_size: 200
+      root_volume_type: gp2
       security_groups: []
       subnets:
       - subnet-5bddc82c
@@ -380,10 +386,11 @@ platforms:
         kubelet_node_labels:
         - node-role.kubernetes.io/worker=""
         - node.kubernetes.io/worker=""
+    elastic_fileshares: {}
 `
 	c := miniConfig{}
 	yaml.Unmarshal([]byte(yamlStr), &c)
-	p := c.Platforms["aws"]
+	p := c.Platforms["ec2"]
 	cnf := p.(map[interface{}]interface{})
 	return cnf
 }

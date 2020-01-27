@@ -22,6 +22,15 @@ func (p *Platform) State() *terraformer.State {
 	return p.t.State
 }
 
+// PersistStateToFile makes the state to persist in a file and be up to date all
+// the time. Every time the state changes Terraformer will update the file
+func (p *Platform) PersistStateToFile(filename string) error {
+	if p.t == nil {
+		return nil
+	}
+	return p.t.PersistStateToFile(filename)
+}
+
 // LoadState loads the given Terraform state in a buffer into the terraformer state
 func (p *Platform) LoadState(stateBuffer *bytes.Buffer) error {
 	if p.t == nil {
@@ -157,14 +166,17 @@ func (p *Platform) Nodes() []*state.Node {
 
 	output := p.t.State.RootModule().OutputValues
 
+	// set kubernetes version after provisioning
+	if p.config.KubernetesVersion == "" {
+		p.config.KubernetesVersion = state.OutputKeysValueAsStringDefault(output, "kubernetes_version", "")
+	}
+
 	// if all pools using the same image, set default for config
 	amiSet := map[string]struct{}{}
 	for k, v := range p.config.NodePools {
 		name := fmt.Sprintf("%s-ami", strings.NewReplacer("_", "-", ".", "-").Replace(strings.ToLower(k)))
-		if ami, ok := output[name]; ok {
-			if amiStr, _ := state.ValueAsString(ami); len(amiStr) != 0 {
-				v.AwsAmi = amiStr
-			}
+		if ami := state.OutputKeysValueAsStringDefault(output, name, ""); len(ami) > 0 {
+			v.AwsAmi = ami
 		}
 		amiSet[v.AwsAmi] = struct{}{}
 		p.config.NodePools[k] = v

@@ -20,6 +20,9 @@
     group: root
     mode: 0755
 
+- name: update CA certificates
+  shell: "update-ca-certificates"
+
 - name: test if kube-apiserver is running
   shell: systemctl status kube-apiserver
   register: apiserver_result

@@ -25,3 +25,11 @@
     that: hostvars[inventory_hostname]['ansible_host'] != kube_virtual_ip_api
     msg: "You CANNOT assign {{ kube_virtual_ip_api }} as a kube_virtual_ip_api address.  It is taken by {{ inventory_hostname }}"
   when: not disable_master_ha | bool
+
+- name: verify that public_virtual_ip is not used by host in inventory
+  assert:
+    that: hostvars[inventory_hostname]['ansible_host'] != public_virtual_ip
+    msg: "You CANNOT assign {{ public_virtual_ip }} as a public_virtual_ip address.  It is taken by {{ inventory_hostname }}"
+  when:
+  - public_virtual_ip is defined and public_virtual_ip
+  - not disable_master_ha | bool

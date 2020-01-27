@@ -1,16 +1,26 @@
 # Outputs
 # ==============================================================================
 output "endpoint" {
-  value = "${aws_eks_cluster.kubekit.endpoint}"
+  value = aws_eks_cluster.kubekit.endpoint
 }
 
 output "certificate-authority" {
-  value = "${aws_eks_cluster.kubekit.certificate_authority.0.data}"
+  value = aws_eks_cluster.kubekit.certificate_authority.0.data
 }
 
 output "role-arn" {
-  value = "${aws_iam_role.cluster-node.arn}"
+  value = aws_iam_role.cluster-node.arn
 }
+
+output "kubernetes_version" {
+  value = aws_eks_cluster.kubekit.version
+}
+
+{{ range $k, $v := $.NodePools }}
+output "{{ $v.Name }}-ami" {
+  value = aws_launch_configuration.node-{{ Dash ( Lower $v.Name ) }}.image_id
+}
+{{ end }}
 
 output "nodes" {
   value = [ {{- range $k, $v := $.NodePools -}} {{- range $i := Count $v.Count  }}

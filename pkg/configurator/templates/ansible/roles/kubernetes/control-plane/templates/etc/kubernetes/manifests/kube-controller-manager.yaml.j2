@@ -17,13 +17,18 @@ spec:
   - name: kube-controller-manager
     image: {{ core_repo_root }}{{ current_manifest['dependencies']['control-plane']['kube-controller-manager']['src'] }}
     imagePullPolicy: IfNotPresent
+    env:
+    - name: GOMAXPROCS
+      valueFrom:
+        resourceFieldRef:
+          resource: limits.cpu
     command:
 {% if current_manifest['dependencies']['control-plane']['kube-controller-manager']['src'].split('/')[-1].startswith('hyperkube') %}
     - /hyperkube
 {% endif %}
     - kube-controller-manager
     - --bind-address={{ kube_api_secure_bind_address }}
-{% if cloud_provider_enabled and cloud_provider == "aws" %}
+{% if cloud_provider_enabled and cloud_provider == "ec2" %}
     - --cloud-provider=aws
     - --cloud-config=/etc/aws/aws.conf
 {% elif cloud_provider_enabled and cloud_provider == "vsphere" %}
@@ -54,7 +59,17 @@ spec:
       timeoutSeconds: 15
     resources:
       requests:
-        cpu: 200m
+        cpu: {{ kube_controller_manager_requests_cpu }}
+        memory: {{ kube_controller_manager_requests_memory }}
+{% if kube_controller_manager_limits_cpu or kube_controller_manager_limits_memory %}
+      limits:
+{% if kube_controller_manager_limits_cpu %}
+        cpu: {{ kube_controller_manager_limits_cpu }}
+{% endif %}
+{% if kube_controller_manager_limits_memory %}
+        memory: {{ kube_controller_manager_limits_memory }}
+{% endif %}
+{% endif %}
     volumeMounts:
 {% if controlplane_timezone != "" %}
     - name: tz-config
@@ -69,7 +84,7 @@ spec:
     - mountPath: {{ kube_folder }}
       name: etc-kubernetes
       readOnly: true
-{% if cloud_provider_enabled and cloud_provider == "aws" %}
+{% if cloud_provider_enabled and cloud_provider == "ec2" %}
     - mountPath: /etc/aws/aws.conf
       name: cloud-provider-conf
       readOnly: true
@@ -103,7 +118,7 @@ spec:
       path: {{ kube_folder }}
       type: Directory
     name: etc-kubernetes
-{% if cloud_provider_enabled and cloud_provider == "aws" %}
+{% if cloud_provider_enabled and cloud_provider == "ec2" %}
   - hostPath:
       path: /etc/aws/aws.conf
       type: File

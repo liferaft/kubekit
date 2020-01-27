@@ -55,23 +55,23 @@
       group: root
       mode: 0644
       force: yes
-    when: cluster_iface.device is match("byn.*")
+    when: cluster_iface.device is match("byn.*") or (public_vip_iface and public_vip_iface.device is match("byn.*"))
     notify:
       - reload and restart keepalived
       - reload and restart bynet
 
-#  - name: make keepalived dependant on bynet
-#    copy:
-#      src: "etc/systemd/system/keepalived.service.d/keepalived.conf"
-#      dest: "/etc/systemd/system/keepalived.service.d/keepalived.conf"
-#      owner: root
-#      group: root
-#      mode: 0644
-#      force: yes
-#    when: cluster_iface.device is match("byn.*")
-#    notify:
-#      - reload and restart keepalived
-#      - reload and restart bynet
+  - name: make keepalived dependent on bynet
+    copy:
+      src: "etc/systemd/system/keepalived.service.d/keepalived.conf"
+      dest: "/etc/systemd/system/keepalived.service.d/keepalived.conf"
+      owner: root
+      group: root
+      mode: 0644
+      force: yes
+    when: cluster_iface.device is match("byn.*") or (public_vip_iface and public_vip_iface.device is match("byn.*"))
+    notify:
+      - reload and restart keepalived
+      - reload and restart bynet
 
   - name: "copy '/etc/rsyslog.d/30-haproxy.conf'"
     copy:

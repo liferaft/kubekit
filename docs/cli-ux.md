@@ -223,7 +223,7 @@ kubekit init [cluster] CLUSTER-NAME \
   --password password
 ```
 
-The cluster requires a platform where it's going to exists (e.g. `aws` or `vsphere`), and it's specified with the flag `--platform` or `-p`.
+The cluster requires a platform where it's going to exists (e.g. `ec2` or `vsphere`), and it's specified with the flag `--platform` or `-p`.
 
 The init cluster command creates the cluster configuration file in the default location (`~/.kubekit.d`) or in the directory specified with `--path` flag.
 
@@ -231,7 +231,7 @@ By default the cluster configuration file is a YAML file but could be JSON or TO
 
 A cluster can be created from a template with the `--template` or `-t` flag. This flag specifies the template name or location.
 
-For **AWS** and **EKS** please see the [`login`](#login) command for the description of the Amazon options.
+For **EC2** and **EKS** please see the [`login`](#login) command for the description of the Amazon options.
 
 An existing configuration cluster file - by default - cannot be overwritten, once it's created it with `init` it cannot be re-created with `init`. To update the file you have to use the `edit` command to modify the parameters. However, if you use the `--update` flag KubeKit will overwrite the cluster configuration with the values set in the environment variables starting with `KUBEKIT_VAR_` plus the parameter name. This flag is useful when using KubeKit with a script to automate a process.
 
@@ -358,7 +358,7 @@ kubekit delete [cluster] cluster-name \
   --force
 ```
 
-This command will destroy all the cluster nodes if the platform allows it. For example, this is possible on AWS and vSphere but not for bare-metal or vRA.
+This command will destroy all the cluster nodes if the platform allows it. For example, this is possible on EC2 and vSphere but not for bare-metal or vRA.
 
 If the flag `--all` is set, it will also delete the all cluster configuration files such as the config file, certificates and latest state.
 
@@ -722,18 +722,18 @@ Use the flag `--list` to show the credentials. When it's sensitive information s
 There is a 3rd way to provide the credentials which is through environment variables. Using the following environment variables, KubeKit will use them as credentials, and the `--list` flag will show them [partially or completely hide] if they are set.
 
 
-- For **AWS** or **EKS**, There are 3 options for authentication. The order of precedence is: cli options, aws profile, env variables:
+- For **EC2** or **EKS**, There are 3 options for authentication. The order of precedence is: cli options, aws profile, env variables:
   1. `--access_key`, `--secret_key`, `--region`
   2. `--profile`
   3. using environment variables.
   * `--session_token` is optional if you require aws session token authentication.
 
- Aws profile information can be found here: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
+ AWS profile information can be found here: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
 
 
  Session token information can be found here: See (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html) "Using Temporary Security Credentials with the AWS CLI" for more details.
 
-For **AWS** and **EKS** the variables are: **AWS_ACCESS_KEY_ID**, **AWS_SECRET_ACCESS_KEY**, **AWS_DEFAULT_REGION** OR **AWS_PROFILE**
+For **EC2** and **EKS** the variables are: **AWS_ACCESS_KEY_ID**, **AWS_SECRET_ACCESS_KEY**, **AWS_DEFAULT_REGION** OR **AWS_PROFILE**
 * If you require session tokens the additional variable:  **AWS_SESSION_TOKEN** will be used as well.
 
 Example:

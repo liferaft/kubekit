@@ -58,7 +58,7 @@ items:
       verbs: ["list", "watch"]
 
   - apiVersion: rbac.authorization.k8s.io/v1
-    # kubernetes versions before 1.8.0 should use rbac.authorization.k8s.io/v1beta1
+    # kubernetes versions before 1.8.0 should use rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
       namespace: kube-system
@@ -128,6 +128,11 @@ items:
           containers:
           - name: kube-state-metrics
             image: {{ core_repo_root }}{{ current_manifest['dependencies']['core']['kube-state-metrics']['src'] }}
+            env:
+            - name: GOMAXPROCS
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.cpu
             command:
             - /kube-state-metrics
             - --port=8080

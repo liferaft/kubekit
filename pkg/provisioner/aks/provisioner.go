@@ -11,7 +11,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm"
 
 	"github.com/kraken/terraformer"
-	"github.com/kubekit/azure"
+	"github.com/liferaft/azure"
 	"github.com/liferaft/kubekit/pkg/crypto"
 	"github.com/liferaft/kubekit/pkg/provisioner/state"
 	"github.com/liferaft/kubekit/pkg/provisioner/utils"
@@ -37,10 +37,10 @@ func (p *Platform) BeProvisioner(state *terraformer.State) error {
 	variables := p.Variables()
 	rendered := p.Code()
 
-	// DEBUG
-	//fmt.Println(string(rendered))
-
-	p.ui.Log.Debugf("Variables: %+v", variables)
+	// DEBUG:
+	// Do not leave these lines by default, they may print sensitive information:
+	// p.ui.Log.Debug(string(rendered))
+	// p.ui.Log.Debugf("Variables: %+v", variables)
 
 	t, err := utils.NewTerraformer(rendered, variables, state, p.config.ClusterName, "AKS", p.ui)
 	if err != nil {

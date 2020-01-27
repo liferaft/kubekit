@@ -8,6 +8,7 @@ import (
 	"github.com/liferaft/kubekit/cli"
 
 	"github.com/liferaft/kubekit/pkg/kluster"
+	"github.com/liferaft/kubekit/pkg/packages"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +16,7 @@ var (
 	doProvision,
 	doConfigure,
 	doCerts,
-	forceCerts,
+	genCACerts,
 	doExportTF,
 	doExportK8s,
 	doPlan,
@@ -31,6 +32,16 @@ var applyCmd = &cobra.Command{
 apply will create the cluster if it doesn't exists or will update or apply the
 configuration changes if it exists.`,
 	RunE: applyClusterRun,
+}
+
+// applyCertificatesCmd represents the 'apply certificates' command
+var applyCertificatesCmd = &cobra.Command{
+	Use:     "certificates CLUSTER-NAME",
+	Aliases: []string{"certs"},
+	Short:   "apply the certificates for the given cluster",
+	Long: `The command apply certificates applies all the certificates required by a cluster. 
+The cluster certificates can be applied without running through the entire configuration process.`,
+	RunE: applyCertificatesRun,
 }
 
 // applyClusterCmd represents the 'apply cluster' command
@@ -64,7 +75,7 @@ func addApplyCmd() {
 	applyCmd.Flags().StringP("package-file", "f", "", "package to install before configure. By default will be at the cluster directory named 'kubekit.rpm' or '.deb'")
 	// It's been discussed by the team if keep or remove --certificates. Kubernetes can do it with kubectl
 	// applyCmd.Flags().BoolVar(&doCerts, "certificates", false, "only apply the certificates. The Kubernetes cluster must exists. If the certificates doesn't exists then will be created")
-	applyCmd.Flags().BoolVar(&forceCerts, "generate-certs", false, "Overwrite or force the certificates generation even if they exists")
+	applyCmd.Flags().BoolVar(&genCACerts, "generate-ca-certs", false, "Overwrite or force the certificates generation even if they exists")
 	applyCmd.Flags().BoolVar(&doExportTF, "export-tf", false, "don't apply, just export the Terraform templates to the cluster config directory")
 	applyCmd.Flags().BoolVar(&doExportK8s, "export-k8s", false, "don't apply, just export the Kubernetes manifests templates to the cluster config directory")
 	applyCmd.Flags().Bool("force-pkg", false, "force install of package")
@@ -82,7 +93,7 @@ func addApplyCmd() {
 	applyClusterCmd.Flags().StringP("package-file", "f", "", "package to install before configure. By default will be at the cluster directory named 'kubekit.rpm' or '.deb'")
 	// It's been discussed by the team if keep or remove --certificates. Kubernetes can do it with kubectl
 	// applyClusterCmd.Flags().BoolVar(&doCerts, "certificates", false, "only apply the certificates. The Kubernetes cluster must exists. If the certificates doesn't exists then will be created")
-	applyClusterCmd.Flags().BoolVar(&forceCerts, "generate-certs", false, "Overwrite or force the certificates generation even if they exists")
+	applyClusterCmd.Flags().BoolVar(&genCACerts, "generate-ca-certs", false, "Overwrite or force the certificates generation even if they exists")
 	applyClusterCmd.Flags().BoolVar(&doExportTF, "export-tf", false, "don't apply, just export the Terraform templates to the cluster config directory")
 	applyClusterCmd.Flags().BoolVar(&doExportK8s, "export-k8s", false, "don't apply, just export the Kubernetes manifests templates to the cluster config directory")
 	// Advance command, do not print in help:
@@ -97,6 +108,30 @@ func addApplyCmd() {
 	applyPackageCmd.Flags().BoolVar(&doPkgBackup, "backup", false, "backup the package at the cluster node if there was a previous package file")
 	applyPackageCmd.Flags().StringP("package-file", "f", "", "package file to apply. By default will be at the cluster directory named 'kubekit.rpm' or '.deb'")
 	applyPackageCmd.Flags().Bool("force-pkg", false, "force install of package")
+
+	applyCmd.AddCommand(applyCertificatesCmd)
+}
+
+func applyCertificatesRun(cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("requires a cluster name")
+	}
+	if len(args) != 1 {
+		return fmt.Errorf("accepts 1 cluster name, received %d. %v", len(args), args)
+	}
+	clusterName := args[0]
+	if len(clusterName) == 0 {
+		return fmt.Errorf("cluster name cannot be empty")
+	}
+
+	cluster, err := loadCluster(clusterName)
+	if err != nil {
+		return err
+	}
+
+	// TODO: implement CA rotation and apply if toggled
+
+	return cluster.ApplyClientCertificates(true)
 }
 
 func applyClusterRun(cmd *cobra.Command, args []string) error {
@@ -132,6 +167,13 @@ func applyClusterRun(cmd *cobra.Command, args []string) error {
 		return cluster.Plan(false)
 	}
 
+	pkgFilename := cmd.Flags().Lookup("package-file").Value.String()
+	forcePkg := cmd.Flags().Lookup("force-pkg").Value.String() == "true"
+	//check to see if the rpm matches what kubekit expects, if it was passed in
+
+	if err := packages.CheckRpmPackage(pkgFilename, forcePkg); err != nil {
+		return err
+	}
 	// if one of these flags is set, then do not apply the entire process, just
 	// the explicit actions specified by the flags
 	explicitActions := doProvision || doConfigure // || doCerts
@@ -143,8 +185,6 @@ func applyClusterRun(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		// ... apply the package (if any) ...
-		pkgFilename := cmd.Flags().Lookup("package-file").Value.String()
-		forcePkg := cmd.Flags().Lookup("force-pkg").Value.String() == "true"
 
 		platform := cluster.Platform()
 		if pkgFilename != "" && (platform == "aks" || platform == "eks") {
@@ -173,9 +213,16 @@ func applyClusterRun(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		// TODO; Fix the overwrite of certificates. Now is set to overwrite
-		forceCerts = true
-		if err := initCertificates(clusterName, cluster, forceCerts, userCACertsFiles); err != nil {
+
+		//Do not check for eks/aks as there are no packages installed
+		if cluster.Platform() != "aks" && cluster.Platform() != "eks" {
+			config.UI.Log.Info("Verifying the installed packages are correct")
+			if err := packages.GetBaseImages(cluster, forcePkg, pkgFilename); err != nil {
+				return err
+			}
+		}
+
+		if err := initCertificates(clusterName, cluster, genCACerts, userCACertsFiles); err != nil {
 			return err
 		}
 
