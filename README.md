@@ -4,49 +4,52 @@
 
 KubeKit is a tool for setting up a Kubernetes-powered cluster.
 
-- [KubeKit](#kubekit)
-  - [Download](#download)
-  - [Basic KubeKit Configuration (Optional)](#basic-kubekit-configuration-optional)
-  - [Getting Started](#getting-started)
-  - [Supported Platforms](#supported-platforms)
-  - [Commands](#commands)
-  - [The Core KubeKit Workflow](#the-core-kubekit-workflow)
-    - [1) Create a cluster config file](#1-create-a-cluster-config-file)
-    - [1.a) Edit the cluster config file](#1a-edit-the-cluster-config-file)
-    - [2) Set or export credential variables](#2-set-or-export-credential-variables)
-    - [3) Install the kubernetes cluster](#3-install-the-kubernetes-cluster)
-    - [3.a) Provision a cluster on a cloudy platform](#3a-provision-a-cluster-on-a-cloudy-platform)
-    - [3.b) Configure Kubernetes](#3b-configure-kubernetes)
-    - [3.c) Certificates](#3c-certificates)
-    - [4) Use the Kubernetes cluster](#4-use-the-kubernetes-cluster)
-    - [5) Destroy the cluster](#5-destroy-the-cluster)
-  - [KubeKit Configuration](#kubekit-configuration)
-  - [Cluster Configuration](#cluster-configuration)
-    - [1) Platforms](#1-platforms)
-      - [vSphere](#vsphere)
-      - [AWS](#aws)
-        - [How to fill the cluster configuration file for AWS](#how-to-fill-the-cluster-configuration-file-for-aws)
-      - [EKS](#eks)
-      - [Bare-metal (`raw`), Stacki and vRA](#bare-metal-raw-stacki-and-vra)
-    - [1.a) Node Pools and Default Node Pool](#1a-node-pools-and-default-node-pool)
-    - [1.b) TLS Keys to access the nodes](#1b-tls-keys-to-access-the-nodes)
-    - [1.c) High Availability](#1c-high-availability)
-    - [1.d) Kubernetes API access](#1d-kubernetes-api-access)
-    - [2) State](#2-state)
-    - [3) Configuration](#3-configuration)
-  - [Destroy the cluster](#destroy-the-cluster)
-    - [How to manually delete a cluster](#how-to-manually-delete-a-cluster)
-  - [Backup/Restore KubeKit Cluster Config](#backup-restore-kubekit-cluster-config)
-    - [Backup](#backup)
-    - [Restore](#restore)
-  - [Builds](#builds)
-    - [Development](#development)
-    - [Troubleshooting](#troubleshooting)
-  - [Integration Test](#integration-test)
-  - [Setup Vendors](#setup-vendors)
-    - [Go Vendor Problems](#go-vendor-problems)
-  - [Examples](#examples)
-  - [Microservices](#microservices)
+- [KubeKit](#1-kubekit)
+  - [Download](#11-download)
+  - [Basic KubeKit Configuration (Optional)](#12-basic-kubekit-configuration-optional)
+  - [Getting Started](#13-getting-started)
+  - [Supported Platforms](#14-supported-platforms)
+  - [Commands](#15-commands)
+  - [The Core KubeKit Workflow](#16-the-core-kubekit-workflow)
+    - [1) Create a cluster config file](#161--create-a-cluster-config-file)
+    - [2.a) Edit the cluster config file](#162-a-edit-the-cluster-config-file)
+    - [2.b) Set parameters with environment variables](#162-b-set-parameters-with-environment-variables)
+    - [2.c) Set or export credential variables](#162-c-set-or-export-credential-variables)
+    - [3) Install the kubernetes cluster](#163--install-the-kubernetes-clusterers-with-environment-variables)
+    - [4.a) Provision a cluster on a cloudy platform](#164-a-provision-a-cluster-on-a-cloudy-platform)
+    - [4.b) Configure Kubernetes](#164-b-configure-kubernetes)
+    - [4.c) Certificates](#164-c-certificates)
+    - [5) Use the Kubernetes cluster](#165--use-the-kubernetes-cluster)
+    - [6) Destroy the cluster](#166--destroy-the-cluster)
+  - [KubeKit Configuration](#17-kubekit-configuration)
+  - [Cluster Configuration](#18-cluster-configuration)
+    - [1) Platforms](#181--platforms)
+      - [vSphere](#1811-vsphere)
+      - [EC2](#1812-aws)
+        - [How to fill the cluster configuration file for EC2](#18121-how-to-fill-the-cluster-configuration-file-for-ec2)
+      - [EKS](#1813-eks)
+      - [AKS](#1814-aks)
+      - [Bare-metal (`raw`), Stacki and vRA](#1815-bare-metal-raw-stacki-and-vra)
+    - [2.a) Node Pools and Default Node Pool](#182-a-node-pools-and-default-node-pool)
+    - [2.b) TLS Keys to access the nodes](#182-b-tls-keys-to-access-the-nodes)
+    - [2.c) High Availability](#182-c-high-availability)
+    - [2.d) Kubernetes API access](#182-d-kubernetes-api-access)
+    - [3) State](#183--state)
+    - [4) Configuration](#184--configuration)
+  - [Destroy the cluster](#19-destroy-the-cluster)
+    - [How to manually delete a cluster](#191-how-to-manually-delete-a-cluster)
+  - [Backup/Restore KubeKit Cluster Config](#110-backuprestore-kubekit-cluster-config)
+    - [Backup](#1101-backup)
+    - [Restore](#1102-restore)
+  - [Builds](#111-builds)
+    - [Development](#1111-development)
+    - [Troubleshooting](#1112-troubleshooting)
+  - [Integration Test](#112-integration-test)
+  - [Setup Vendors](#113-setup-vendors)
+    - [Go Vendor Problems](#1131-go-vendor-problems)
+  - [Examples](#114-examples)
+  - [KubeKit as a Service](#115-kubekit-as-a-service)
+  - [Microservices](#116-microservices)
 
 ## 1.1. Download
 
@@ -158,7 +161,7 @@ In this guide we use vSphere as example, for other platform just replace `vspher
 If you are using KubeKit in a shell script this is a quick example of how to use it, this time is a cluster on **AWS**:
 
 ```bash
-PLATFORM=aws
+PLATFORM=ec2
 NAME=kubedemo
 
 # 1)
@@ -203,7 +206,7 @@ Modify the values of `PLATFORM` ,`NAME`, the parameters exporting the variable w
 KubeKit can provision and configure Kubernetes on the following platforms:
 
 - **VMware**, platform name: `vsphere`
-- **AWS**, platform name `aws`. This will install Kubernetes on custom EC2 instances
+- **EC2**, platform name `ec2`. This will install Kubernetes on custom EC2 instances
 - **EKS**, platform name `eks`
 - **Bare-metal**, platform name `raw`. It's in Beta
 - **vRA**, platform name `vra`. It's in Beta
@@ -238,14 +241,14 @@ The cluster config file contains all the required information to provision (on c
 Use the KubeKit subcommand `init` to generate the cluster config file with default values, the cluster name and platform are required.
 
 ```bash
-kubekit init kubedemo --platform aws
+kubekit init kubedemo --platform ec2
 ```
 
 The cluster config file, by default, will be created in `$HOME/.kubekit.d/<UUID>/cluster.yaml`, where UUID is a 36 characters unique ID. To change the default location, export the environment variable `KUBEKIT_CLUSTERS_PATH` to the desired absolute location or with the parameter `clusters_path` in the KubeKit config file. If a relative path is set, KubeKit will get the relative path to the configuration file directory. Example:
 
 ```bash
 export KUBEKIT_CLUSTERS_PATH=`pwd`
-kubekit init kubedemo --platform aws
+kubekit init kubedemo --platform ec2
 kubekit get clusters -o wide
 kubekit describe kubedemo | grep path
 ```
@@ -258,7 +261,7 @@ You can get more information about the existing cluster config files with the su
 
 Now it's time to edit the cluster config file to have the required parameters. This section is explained in detail in the [Cluster Configuration](#cluster-configuration) section, here you'll find the minimum required changes to have a working cluster on AWS.
 
-For a quick cluster on AWS use the following parameters as example:
+For a quick cluster on EC2 use the following parameters as example:
 
 ```yaml
 "aws_region": "us-west-2",
@@ -343,7 +346,7 @@ So, it's safer to provide the credentials in flags or with environment variables
 
 Use also the flag `--list` of the `login` command to view the credentials that KubeKit will use, like `kubekit login NAME --list`.
 
-For **AWS** and **EKS** the variables are: **AWS_ACCESS_KEY_ID**, **AWS_SECRET_ACCESS_KEY** and **AWS_DEFAULT_REGION**
+For **EC2** and **EKS** the variables are: **AWS_ACCESS_KEY_ID**, **AWS_SECRET_ACCESS_KEY** and **AWS_DEFAULT_REGION**
 
 Example:
 
@@ -429,7 +432,7 @@ platforms:
 
 This example - at this time - is the same for **vRA**, **Stacki** and **Bare-metal** (`raw`), just replacing the platform name.
 
-### 1.6.4. ) Install the kubernetes cluster
+### 1.6.3. ) Install the kubernetes cluster
 
 To have the Kubernetes cluster up and running use the subcommand `apply` like this:
 
@@ -441,7 +444,7 @@ This step, for most of the platforms, will execute two actions: provision and co
 
 Some platforms or Kubernetes clusters do not allow provisioning, for example, a bare-metal cluster already exists, so it can't be provisioned with KubeKit, just configured.
 
-### 1.6.5. a) Provision a cluster on a cloudy platform
+### 1.6.4. a) Provision a cluster on a cloudy platform
 
 You can skip this section if you are going to configure Kubernetes on bare-metal or an existing cluster (i.e. VRA). Go to the next section **Configure Kubernetes**.
 
@@ -459,9 +462,9 @@ kubekit apply kubedemo --provision
 
 The provision flag will start creating the VM's or EC2 instances, plus all other infrastructure requirements. When it's done, login to vCenter or AWS Console to view the brand-new cluster, the VM's or EC2 instances names are prefixed with the cluster name. The `provision` flag is not to configure Kubernetes, it just creates a cluster of master(s) and worker(s). With the exception of EKS and AKS, the provisioning creates a Kubernetes cluster but it's useless until you configure it.
 
-The duration to provision a 2x2 cluster on **vSphere** is about **3 minutes** when it's cloning a template, otherwise would be around **30 minutes**. The duration to provision a 2x2 cluster on **AWS** is about **5 minutes**.
+The duration to provision a 2x2 cluster on **vSphere** is about **3 minutes** when it's cloning a template, otherwise would be around **30 minutes**. The duration to provision a 2x2 cluster on **EC2** is about **5 minutes**.
 
-### 1.6.6. b) Configure Kubernetes
+### 1.6.4. b) Configure Kubernetes
 
 This is the process to install and/or configure Kubernetes on an existing cluster, either a cluster that was created with the `provision` subcommand or that already exists, for example, bare-metal or VRA.
 
@@ -474,23 +477,30 @@ Some other parameters are automatically set their values from the `provision` se
 Next, enter or modify the values of the other parameters such as:
 
 - `default_ingress_host`
-- `disable_master_ha`: This is located in the `platforms` section of the config file. If `true` there won't be High Availability for the Kubernetes masters. If set to `false`, you have to provide `kube_virtual_ip_api` and `kube_vip_api_ssl_port`.
-- `kube_virtual_ip_api` and `kube_vip_api_ssl_port`: Only if `disable_master_ha` is `false`. Make sure the IP address is available, unassigned, and reachable from wherever you are going to use Kubernetes.
-
+- `disable_master_ha`: This is located in the `platforms` section of the config file. If `true` there won't be High Availability for the Kubernetes masters. If set to `false`, you need to provide `kube_virtual_ip_api` and `kube_vip_api_ssl_port`. In platforms vSphere, Stacki and Bare-metal if you need to use an external Publi VIP to access the kubernetes API you need to provide `public_virtual_ip` and `public_virtual_ip_ssl_port` along with `public_vip_iface_name` which is the interface name on nodes where public VIP will be configured.
+- `kube_virtual_ip_api` and `kube_vip_api_ssl_port`: Only if `disable_master_ha` is `false`. Make sure the IP address is available, unassigned, and reachable from wherever you are going to use Kubernetes. 
+- `public_virtual_ip` and `public_virtual_ip_ssl_port`: These are available only for Stacki, vSphere and Bare-metal(raw) platforms. These are optional fields and to be used if you need to use external Public virtual IP (Public VIP) to access the kubernetes API.
 When the `config` section is complete you are ready to configure Kubernetes on the cluster executing `kubekit apply NAME --configure`, for example:
 
 ```bash
 kubekit apply kubedemo --configure
 ```
 
-### 1.6.7. c) Certificates
+### 1.6.4. c) Certificates
 
 Besides install and configure Kubernetes on each node, the `--configure` flag or process is going to generate TLS certificates and the `kubeconfig` file in the directory `certificates` where the cluster config file is.
 
-If the certificates exists they can be forced to be re-generated with the flag `--generate-certs`, for example:
+If the client certificates exists they can be forced to be re-generated without having to re-apply your cluster by doing the following:
 
 ```bash
-kubekit apply kubedemo --generate-certs
+kubekit init certificates kubedemo   # regenerates certificates
+kubekit apply certificates kubedemo  # applies certificates
+```
+
+If the CA certificates exists they can be forced to be re-generated but should only be done when you have reset your cluster, as we do not currently support a rolling update of the CA certificates, by using:
+
+```bash
+kubekit apply certificates --generate-ca-certs
 ```
 
 The CA root certificates required to generate the key pairs (private and public certificate) will be generated as self-signed certificates unless they are provided with the following flags:
@@ -516,7 +526,7 @@ If the TLS keys to access the cluster instances are not provided, KubeKit will g
 
 You may need those certificates to login to the nodes or access Kubernetes although you don't have to login at all to the cluster instances. To use the Kubernetes API from other application (i.e. `curl` or Python script) you'll need the certificates and you will need the `kubeconfig` file to access Kubernetes with `kubectl`.
 
-### 1.6.8. ) Use the Kubernetes cluster
+### 1.6.5. ) Use the Kubernetes cluster
 
 When the configuration is done you need to export the `KUBECONFIG` environment variable to where the `kubeconfig` file is.
 
@@ -542,7 +552,7 @@ kubectl get pods -n kube-system
 
 Now the Kubernetes cluster is ready for you. Enjoy it!
 
-### 1.6.9. ) Destroy the cluster
+### 1.6.6. ) Destroy the cluster
 
 When the cluster is no needed, you may want to destroy it to save money or resources. This can be done easily with the `delete cluster` subcommand, like in this example:
 
@@ -614,7 +624,7 @@ kubekit init [cluster] NAME --platform PLATFORM_NAME
 Where **NAME** is a required parameter for the name of the cluster and the object word `cluster` is optional. the flag `--platform` or `-p` is required to specify in which platform this cluster exists or will be provisioned. Example:
 
 ```bash
-kubekit init kubedemo -p aws
+kubekit init kubedemo -p ec2
 ```
 
 The cluster config file will be created in the directory pointed by the `clusters_path` parameter in the KubeKit config file, in `/UUID/cluster.yaml` and it will contain something like this:
@@ -624,7 +634,7 @@ version: 1
 kind: cluster
 name: kubedemo
 platforms:
-  aws:
+  ec2:
     ...
     default_node_pool:
       ...
@@ -634,7 +644,7 @@ platforms:
       worker:
         count: 1
 state:
-  aws:
+  ec2:
     status: absent
 config:
   etcd_initial_cluster_token: 0c3616cc-434e
@@ -675,9 +685,9 @@ You can optionally assign values to:
 
 KubeKit will need the credentials to access the vSphere server, these credentials should be in the following environment variables: **VSPHERE_SERVER**, **VSPHERE_USERNAME** and **VSPHERE_PASSWORD**, or using the `login cluster` command.
 
-#### 1.8.1.2. AWS
+#### 1.8.1.2. EC2
 
-To create a cluster in **AWS**, use the cluster config settings as an example:
+To create a cluster in **EC2**, use the cluster config settings as an example:
 
 ```yaml
 aws_vpc_id: vpc-8d56b9e9
@@ -697,11 +707,11 @@ And add the correct values to:
 
 Make you have access to the `aws_vpc_id` and make sure the `aws_subnet_id` and `aws_security_group_id` are in the selected VPC.
 
-KubeKit will need the credentials to access AWS, these credentials should be in the following environment variables: **AWS_ACCESS_KEY_ID**, **AWS_SECRET_ACCESS_KEY** and **AWS_DEFAULT_REGION**, or using the `login cluster` command.
+KubeKit will need the credentials to access EC2, these credentials should be in the following environment variables: **AWS_ACCESS_KEY_ID**, **AWS_SECRET_ACCESS_KEY** and **AWS_DEFAULT_REGION**, or using the `login cluster` command.
 
-##### 1.8.1.2.1. How to fill the cluster configuration file for AWS
+##### 1.8.1.2.1. How to fill the cluster configuration file for EC2
 
-Here are some helpers to get the correct values for the AWS parameters:
+Here are some helpers to get the correct values for the EC2 parameters:
 
 Assuming you have your AWS CLI correctly configured, to list the **VPC**'s you have access to, execute
 
@@ -720,7 +730,7 @@ aws ec2 describe-security-groups --filter "Name=vpc-id,Values=${VPC_ID}" --query
 
 #### 1.8.1.3. EKS
 
-EKS is similar to AWS. The EKS platform requires a VPC ( `aws_vpc_id`), a list of Security Groups (`cluster_security_groups`) and more than one VPC Subnets (`ingress_subnets`). Use these settings as an example:
+EKS is similar in configuration to EC2. The EKS platform requires a VPC ( `aws_vpc_id`), a list of Security Groups (`cluster_security_groups`) and more than one VPC Subnets (`ingress_subnets`). Use these settings as an example:
 
 ```yaml
 aws_vpc_id: vpc-8d56b9e9
@@ -817,7 +827,101 @@ Add the correct values to:
 
 Make sure you have access to the provided VPC and you have access to create EKS clusters. The EKS credentials are the same as for AWS and are provided also in the same way.
 
-#### 1.8.1.4. Bare-metal (`raw`), Stacki and vRA
+#### 1.8.1.4. AKS
+
+```yaml
+# uncomment below if you want to enable preview features
+# preview_features:
+# - namespace: Microsoft.ContainerService
+#   name: PodSecurityPolicyPreview
+
+# the private and public key to use to access your kubernetes cluster
+# set these appropriately if you want to use existing keys, otherwise they will be generated for you
+private_key_file:
+public_key_file:
+
+# the azure environment
+environment: public
+
+# the resource group location you want to create resources in
+resource_group_location: Central US
+
+# if you are using an existing vnet, fill in the values below, otherwise leave blank and the vnet will be created for you
+# where the name of the vnet will be taken from the cluster name
+vnet_name: ""
+vnet_resource_group_name: ""
+
+# creates a private dns zone name if it is non-empty
+private_dns_zone_name: ""
+ 
+# change the vnet address space if you are using an existing vnet and set it to the same as it
+vnet_address_space: 10.240.0.0/16
+
+# define a new subnet address prefix, even if you are using an existing vnet, make sure its one that is not taken already or has overlap
+subnet_address_prefix: 10.240.0.0/20
+
+# kubernetes settings for service and docker
+# do not touch if you dont know what you are doing
+service_cidr: 172.21.0.0/16
+docker_bridge_cidr: 172.17.0.1/16
+dns_service_ip: 172.21.0.10
+
+# set kubernetes version to empty string if you want to use the latest available in the given resource group location
+# currently, you must give full major.minor.patch, ex: 1.14.8, version
+# later we will support major.minor, ex: 1.14, version to be passed but that will be awhile
+kubernetes_version: "" 
+
+# the admin username to set for logging into the kubernetes worker nodes
+admin_username: kubekit
+
+# no need to change unless you know what you are doing
+network_policy: calico
+
+# pod security policy is currently in preview, if you want to try it you will need to enable to preview feature
+enable_pod_security_policy: false
+
+# the kubernetes cluster client id and secret can be set independently of the one to use create the cluster
+# if its left as empty string, it will inherit the one you logged into for kubekit for provisioning
+cluster_client_id:
+cluster_client_secret:
+
+# the default settings for the node pools
+default_node_pool:
+  # the vm instance type
+  vm_size: Standard_F8s_v2
+     
+  # the os disk size in GiB
+  root_volume_size: 100
+
+  # the max number of pods per node, this will affect how many ip addresses azure creates for you automatically
+  # do not change unless you know what you are doing and know the consequences of it
+  max_pods: 30
+
+  # the node pool type, options are: VirtualMachineScaleSets or AvailabilitySet
+  type: VirtualMachineScaleSets
+
+  # NOT IMPLEMENTED (placeholder): the docker root to change to
+  docker_root: /mnt
+
+node_pools:
+  # you can define your own node pools here and override specific values if need be from the default node pool settings
+  fastcompute:
+    count: 3
+    vm_size: Standard_F8s_v2
+    root_volume_size: 100
+    max_pods: 30
+    type: VirtualMachineScaleSets
+    docker_root: /mnt
+  slowcompute:
+    count: 3
+    vm_size: Standard_F8s_v2
+    root_volume_size: 100
+    max_pods: 30
+    type: VirtualMachineScaleSets
+    docker_root: /mnt
+```
+
+#### 1.8.1.5. Bare-metal (`raw`), Stacki and vRA
 
 These 3 platforms - at this time - have the same configuration and modus operandi.
 
@@ -847,7 +951,7 @@ The default node pool contain the parameters that are applied to every node pool
 
 For EKS there is only one possible node group, `worker` but if you would like to use other kind of nodes such as GPU nodes, just replace the `aws_ami` and `aws_instance_type` as indicated by AWS/EKS documentation.
 
-### 1.8.3. b) TLS Keys to access the nodes
+### 1.8.2. b) TLS Keys to access the nodes
 
 KubeKit will use the TLS Keys you provide to access the nodes or generate them for you. This is done with the following parameters:
 
@@ -862,7 +966,7 @@ After the TLS keys are generated or used (read from the given files) KubeKit wil
 
 Same as `DEC()` exists the function, `ENC()` meaning, "encrypt this text after use". If you like to enter the private key in the file, instead of using a private key filename, make sure to put it inside the `ENC()` function. The next time KubeKit save/update the config file, that text or private key will be encrypted and inside `DEC()` function.
 
-### 1.8.4. c) High Availability
+### 1.8.2. c) High Availability
 
 High Availability (HA) means that at least one master node in a cluster is available. If a master node goes down or fails, other master node will take its place. HA is not required if the cluster have only one master node, but if this node fail the entire Kubernetes cluster is not accessible.
 
@@ -874,20 +978,29 @@ On vSphere or another platform, you need to create a Virtual IP (VIP). This VIP 
 
 To enable HA in your non-AWS cluster, use the following parameters:
 
-- `disable_master_ha`: By default, it's `true` meaning the cluster is not HA (Highly Available). If you set it to `false` make sure to provide correct values to `kube_virtual_ip_api`, `kube_virtual_ip_shortname`, `kube_vip_api_ssl_port`. The VIP should exist and be available, not assigned to any VM or network resource.
-- `kube_virtual_ip_api`: Is the Virtual IP. Again, this VIP has to be available and cannot be assigned to any instance, server or network resource.
+- `disable_master_ha`: By default, it's `true` meaning the cluster is not HA (Highly Available). If you set it to `false` make sure to provide correct values to `kube_virtual_ip_api`, `kube_virtual_ip_shortname`, `kube_vip_api_ssl_port`, `public_virtual_ip`, `public_virtual_ip_ssl_port` and `public_vip_iface_name`. The VIPs should exist and be available, not assigned to any VM or network resource.
+- `kube_virtual_ip_api`: Is the Virtual IP. Again, this VIP has to be available and cannot be assigned to any instance, server or network resource. For the vsphere, stacki and raw platforms this is used as an internal Virtual IP.
 - `kube_vip_api_ssl_port`: Port to access the Kubernetes API server through the VIP. Cannot be the same as `kube_api_ssl_port`.
-- `kube_virtual_ip_shortname`: It's a domain name assigned to the VIP. This is an optional value if HA is enabled.
+- `kube_virtual_ip_shortname`: It's a domain name assigned to the internal VIP. This is an optional value if HA is enabled.
+- `public_virtual_ip`: Is the Public Virtual IP used externally to access the kubernetes API and is optional. If not required, this field should be left empty.Public virtual ip and public interface is available only for platforms vSphere, Stacki and Bare-metal(raw)
+- `public_virtual_ip_ssl_port`: Port to access the Kubernetes API server through the Public VIP.
+- `public_vip_iface_name`: Interface name where the Public VIP will be configured. It needs to be set as `ansible_{interface}` interface to configure the external Public VIP on interface.
 
-### 1.8.5. d) Kubernetes API access
+### 1.8.2. d) Kubernetes API access
 
-There are 3 parameters to access the API server, if there is no access to the API server it's not possible to access Kubernetes.
+There are 3 parameters needed to access the API server(s). If there is no access to the API server it's not possible to access Kubernetes.
 
 - `kube_api_ssl_port`: Port to access the Kubernetes API server. The default value and use of this port is different for each platform. Refer to each platform for more information.
 
 - `public_apiserver_dns_name` and `private_apiserver_dns_name`: Whatever the API server is (HA with a VIP or just a single master node), you can provide a domain name for it, public and/or private.
 
-### 1.8.6. ) State
+The following are optional for public access to the API server(s) if you have configured the rest of your cluster to only be privately accessible or on a different network:
+
+- `public_virtual_ip`: For platforms vsphere, stacki and Bare-metal(raw)) you can provide a optional public VIP that can be used to access the API externally from a node that is not in the same network. If Public VIP is not required this field should be left empty.
+- `public_virtual_ip_ssl_port`: Port used to access Kubernetes API externally using Public VIP.
+
+
+### 1.8.3. ) State
 
 If you provisioned the cluster using KubeKit then KubeKit will get the nodes IP address and DNS from the state file located in the `.tfstate` directory, but if you are using bare-metal or an existing cluster (i.e. VRA) then you need to provide the nodes IP address, domain name and role name.
 
@@ -901,7 +1014,7 @@ The state section contain the information of the cluster nodes per platform. So,
 
 ```yaml
 state:
-  aws:
+  ec2:
     status: absent
 ```
 
@@ -965,7 +1078,7 @@ state:
       role: worker
 ```
 
-### 1.8.7. ) Configuration
+### 1.8.4. ) Configuration
 
 The configuration section have the parameters to configure Kubernetes, these parameters are platform-agnostic.
 
@@ -974,6 +1087,8 @@ Not all the parameters required to configure Kubernetes are in this section, the
 Some of the configuration parameters are:
 
 - `cluster_iface_name`: The name of the network device through which Kubernetes services and pods will be communicating. If Stacki, bare metal or multi NIC generic use `ansible_byn0`. If vRA or generic (i.e. AWS, vSphere) use `ansible_eth0`.
+- `public_vip_iface_name`: The network interface name where Public VIP will be configured for platforms stacki, vsphere and raw.
+- `cni_ip_encapsulation`: Can be `Always` (default value) or  `Off`.
 - `time_servers`: List of time servers for timesyncd
 - `host_timezone`: Optional timezone configuration for host. Must be a valid zone such as "UTC", "Europe/Berlin" or "Asia/Tokyo". Will not alter host timezone settings if ommited.
 - `controlplane_timezone`: Optional timezone configuration for controlplane pods ( etcd, apiserver, controller-manager and scheduler ). controlplane pods use UTC by default.
@@ -992,7 +1107,7 @@ There is also a set of parameters to configure:
 
 ## 1.9. Destroy the cluster
 
-To destroy the cluster is necessary to have the tfstate file, located in `.tfstates` directory, there is one tfstate file per platform, so they are named `<platform>.tfstate` (i.e. `aws.tfstate`).
+To destroy the cluster is necessary to have the tfstate file, located in `.tfstates` directory, there is one tfstate file per platform, so they are named `<platform>.tfstate` (i.e. `ec2.tfstate`).
 
 This means, you only can destroy a cluster that was provisioned with KubeKit.
 
@@ -1014,7 +1129,7 @@ To manually destroy a cluster on **vSphere**:
 4. Select all the VM's, right click on them, and go to `Power` > `Power off`
 5. Select all the VM's, right click on them, and go to `Delete from Disk`
 
-To manually destroy a cluster on **AWS**:
+To manually destroy a cluster on **EC2**:
 
 1. Login to the AWS console
 2. Go to `EC2` > `Instances`, select all the instances and go to `Action` > `Instance state` > `Terminate`
@@ -1131,85 +1246,36 @@ To know all the actions `make` can do, execute `make help`.
 
 ------
 
-KubeKit is made of different packages. The homemade packages are located in the GitHub organization `KubeKit` and `Kraken`. It's necessary to git clone these repositories or the repositories to modify before do any change.
-
-The repositories are:
-
-- `liferaft/kubekit`: This is the main repository that centralize all the other packages, the CLI and the `kluster` package.
-- `kubekit/provisioner`: This is the package/repository in charge of provisioning the platforms. It uses the `kraken/terraformer` package which uses the Terraform Go packages.
-- `kubekit/configurator`: This is the package/repository in charge of configuring/installing Kubernetes in the provisioned or existing cluster. It uses Ansible to execute a playbook at every node of the cluster.
-- `kubekit/manifest`: This package/repository contain the KubeKit dependencies. This repository may be shared with the KubekitOS team because they have to install those dependencies on the KubekitOS images.
-- `kraken/terraformer`: Used by `kubekit/provisioner` this repository/package is the bridge between KubeKit and Terraform.
-
 To start developing on KubeKit, execute the following steps:
 
-1. Clone all the repositories to modify:
+1. Clone the repository:
 
    ```bash
-   mkdir -p $GOPATH/src/github.com/kubekit
-   cd $GOPATH/src/github.com/kubekit
-   git clone git@github.com:kubekit/configurator.git
-   git clone git@github.com:kubekit/provisioner.git
    git clone git@github.com:liferaft/kubekit.git
-   git clone git@github.com:kubekit/manifest.git
-   cd ..
-   mkdir kraken
-   cd kraken
-   git clone git@github.com:kraken/terraformer.git
    ```
 
 2. Checkout the branch to modify:
 
-   In this example, the branch to checkout is `uks-1239/sync_configurator` on every repository. The branches in `kubekit/manifest` are named `release-x.y.z`.
-
-   ```bash
-   cd $GOPATH/src/github.com/liferaft/kubekit/pkg/configurator
-   git checkout uks-1239/sync_configurator
-   cd ../provisioner
-   git checkout uks-1239/sync_configurator
-   cd ../kubekit
-   git checkout uks-1239/sync_configurator
-   cd ../manifest
-   git checkout release-1.2.1
-   ```
-
-   After this is done, you can modify the Terraform template (in provisioner), the Ansible templates (in Configurator) or the Go code in any of those repositories.
-
-3. Generate the code from templates:
-
-   If the changes were in the Terraform template (in provisioner) or the Ansible templates (in Configurator) , it's important to generate the Go code that contain those templates. To do that, execute `make generate` on the repository where the template was modified. IMPORTANT: Do not execute `make generate` if the template was not modified, the Go code will change with the generation timestamp, and this change is not relevant.
-
-   ```bash
-   cd provisioner
-   make generate
-   cd ../configurator
-   make generate
-   ```
-
-4. Update the generate code or modified Go code in KubeKit:
-
-   Do this if the change is in any of the external packages (i.e Provisioner, Configurator, Manifest or Terraformer), either in the Go code or templates. There is no need to update a package that wasn't modified.
+   In this example, the branch to checkout is `feat/sync_configurator`.
 
    ```bash
    cd kubekit
-   make vendor-update-configurator  # if you modified the configurator
-   make vendor-update-provisioner   # if you modified the provisioner
-   make vendor-update-terraformer   # if you modified the terraformer package
-   make vendor-update-manifest      # if you modified the manifest package
+   git checkout feat/sync_configurator
    ```
 
-   This one-liner can help you to update multiple repositories:
+3. Generate the code from templates:
+
+   If the changes were in the Terraform template (in `pkg/provisioner/*/templates/*.tf`) or the Ansible templates (in `pkg/configurator/templates/`) , it's important to generate the Go code that contain those templates. To do that, execute `make generate` on the repository.
 
    ```bash
-   make vendor-update-{provisioner,configurator}
+   make generate
    ```
 
-5. Build KubeKit:
+4. Build KubeKit:
 
    As explained in the **Build** section above, execute:
 
    ```bash
-   cd kubekit
    make build
    ```
 
@@ -1219,12 +1285,12 @@ To start developing on KubeKit, execute the following steps:
 
    Read the Examples section for more information about how to setup your environment to use KubeKit.
 
-   Open `liferaft/kubekit/example/config.json` and make sure the parameter `clusters_path` is set to `"./clusters"`.
+   Open `kubekit/kubekit/example/config.json` and make sure the parameter `clusters_path` is set to `"./clusters"`.
 
-   Make sure the link `liferaft/kubekit/example/kubekit` is pointing to `../bin/kubekit` and that the built kubekit binary is in `../bin`.
+   Make sure the link `kubekit/kubekit/example/kubekit` is pointing to `../bin/kubekit` and that the built kubekit binary is in `../bin`.
 
    ```bash
-   cd liferaft/kubekit/example
+   cd kubekit/kubekit/example
    mkdir clusters
    ./kubekit version      # just to verify it's in the ../bin directory
    ```
@@ -1249,7 +1315,7 @@ To start developing on KubeKit, execute the following steps:
    Then, use these commands to create and destroy a cluster. More details in the **Getting Started** or **Examples** sections.
 
    ```bash
-   ./kubekit init kubedemo --platform aws
+   ./kubekit init kubedemo --platform ec2
    ./kubekit get clusters
    ./kubekit edit kubedemo
 
@@ -1260,7 +1326,7 @@ To start developing on KubeKit, execute the following steps:
    ./kubekit delete kubedemo --all
    ```
 
-   Use other platform name instead of `aws` to create a cluster on such platform.
+   Use other platform name instead of `ec2` to create a cluster on such platform.
 
 ### 1.11.2. Troubleshooting
 
@@ -1287,13 +1353,13 @@ It's also possible to execute a remote command using the KubeKit command `exec N
 kubekit exec kubedemo --cmd "cat /etc/kubernetes/vsphere.conf" --pools master
 ```
 
-## 1.11. Integration Test
+## 1.12. Integration Test
 
 Jenkins is in charge of executing integration test every time there is a new release, however you may want to execute integration tests manually.
 
 In the previous section (Build) is explained how to manually test to create and destroy a cluster on a platform. To do the same test in every platform, a few or just one, you can also use `make` for this.
 
-Use the rule `test-platform-all` to create a cluster in every supported platform (AWS, vSphere and EKS) and `destroy-test-platform-all` when you are done and wants to destroy the clusters. There is also a set of rules named `test-platform-PLATFORM` and `destroy-test-platform-PLATFORM` (replace `PLATFORM` for the platform name: `aws`, `vsphere` and `eks`) to create/destroy a cluster in such platform.
+Use the rule `test-platform-all` to create a cluster in every supported platform (EC2, vSphere and EKS) and `destroy-test-platform-all` when you are done and wants to destroy the clusters. There is also a set of rules named `test-platform-PLATFORM` and `destroy-test-platform-PLATFORM` (replace `PLATFORM` for the platform name: `ec2`, `vsphere` and `eks`) to create/destroy a cluster in such platform.
 
 Once the cluster is created you can use `kubectl` to play with it but you can also use the rule `test-cluster` to execute a few smoke tests on the cluster to validate it's healthy and ready to use. If you want to use `kubectl` directly, remember to first execute `eval $(kubekit get env NAME)`.
 
@@ -1333,21 +1399,10 @@ In a different terminal, you can check the log file with:
 make log-test-platform C=kubedemo
 ```
 
-## 1.12. Setup Vendors
+## 1.13. Go modules
+TBD
 
-**IMPORTANT**: The execution of these actions may modify the existing Go packages you have in your `$GOPATH` directory. **Use carefully**.
-
-To quickly and easily setup the required Go packages in your system, execute `make vendor`. This will get or update the required Go packages in your `$GOPATH/src` directory. Then will fix some errors that cause the code don't compile.
-
-### 1.12.1. Go Vendor Problems
-
-The vendor actions, like getting new vendors or updates, sometimes may cause compilation errors. Some possible causes are:
-
-- _Repeated packages_: Some packages are inside the vendor directory of a package and in the $GOPATH. To remove the package from the vendor directory may fix this issue.
-- _Not vendored packages_: Some packages are not added correctly to the project vendor directory by Govendor. If this is the case, copy the package from $GOPATH but make sure to not copy the .git directory and files.
-- _Sirupsen_: The `Sirupsen` logging package change to `sirupsen` but some packages still uses the former. Change the import to use `sirupsen`.
-
-## 1.13. Examples
+## 1.14. Examples
 
 Go to the `example/` directory to play or view some examples to setup a Kubernetes cluster on every supported platform.
 
@@ -1364,7 +1419,7 @@ export AWS_DEFAULT_REGION=us-west-2
 ```
 
 ```bash
-./kubekit init kubedemo --platform aws
+./kubekit init kubedemo --platform ec2
 ./kubekit edit kubedemo
 ./kubekit apply kubedemo
 ```
@@ -1379,11 +1434,11 @@ kubectl get nodes
 kubekit delete cluster kubedemo
 ```
 
-Replace `aws` in the previous commands for `vsphere` get the same cluster on vSphere.
+Replace `ec2` in the previous commands for `vsphere` get the same cluster on vSphere.
 
 Go to the **Getting Started** section to get more information.
 
-## 1.14. KubeKit as a Service
+## 1.15. KubeKit as a Service
 
 KubeKit can also be executed as a service allowing us to interact with KubeKit through a REST/HTTP API or gRPC API using mTLS (or not if disabled).
 
@@ -1479,6 +1534,6 @@ Version:
 
 The `kubekitctl` command is a work in process as well as the KubeKit server.
 
-## 1.15. Microservices
+## 1.16. Microservices
 
 Go to the [KubeKit Microservices Example](https://github.com/liferaft/kubekit-micro-examples) to use KubeKit as a microservices application.

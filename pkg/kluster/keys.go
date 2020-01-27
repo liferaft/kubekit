@@ -69,11 +69,11 @@ func (k *Kluster) handlePrivateKey(platform provisioner.Provisioner) error {
 		// ... it's not encrypted, it's plain text or requesting to encrypt, so encrypt it
 		c, err := crypto.New(nil)
 		if err != nil {
-			return err
+			return fmt.Errorf("generic error during encryption setup for cluster %s, filename: %q. error: %s", platform.Name(), privKeyFile, err)
 		}
 		encPrivKey, err := c.EncryptValue(privKey)
 		if err != nil {
-			return err
+			return fmt.Errorf("generic error during encryption of the private key for cluster %s, filename: %q. error: %s", platform.Name(), privKeyFile, err)
 		}
 
 		// ... and finally, assign it
@@ -85,7 +85,7 @@ func (k *Kluster) handlePrivateKey(platform provisioner.Provisioner) error {
 	var err error
 	privKeyFile, err = homedir.Expand(privKeyFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to expand the path to the private key for cluster %s, filename: %q. error: %s", platform.Name(), privKeyFile, err)
 	}
 
 	_, err = os.Stat(privKeyFile)
@@ -94,26 +94,29 @@ func (k *Kluster) handlePrivateKey(platform provisioner.Provisioner) error {
 		// ... or reading the private key file, if it exists
 		privKey, err = ioutil.ReadFile(privKeyFile)
 		if err != nil {
-			return fmt.Errorf("failed to read private key for %s from %s. %s", platform.Name(), privKeyFile, err)
+			return fmt.Errorf("failed to read private key for %s, filename: %q. error: %s", platform.Name(), privKeyFile, err)
 		}
 	} else if os.IsNotExist(err) && requiredPrivKey && !isException {
 		// ... either generating it, if the private key file does not exists
 		privKeyFile, privKey, err = k.GenPrivKeyFile(true)
 		if err != nil {
-			return fmt.Errorf("failed to generate private key for %s. %s", platform.Name(), err)
+			return fmt.Errorf("failed to generate private key for %s. error: %s", platform.Name(), err)
 		}
+	} else if os.IsNotExist(err) && !requiredPrivKey {
+		//No priv key required as we have a password
+		return nil
 	} else {
-		return err
+		return fmt.Errorf("generic error in private key for cluster %s, filename: %q. error: %s", platform.Name(), privKeyFile, err)
 	}
 
 	// private keys should not be plain in config file, so encrypt it ..
 	c, err := crypto.New(nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("generic error during encryption setup for cluster %s, filename: %q. error: %s", platform.Name(), privKeyFile, err)
 	}
 	cryptoKey, err := c.EncryptValue(privKey)
 	if err != nil {
-		return err
+		return fmt.Errorf("generic error during encryption of the private key for cluster %s, filename: %q. error: %s", platform.Name(), privKeyFile, err)
 	}
 
 	// ... and finally, assign it
@@ -133,24 +136,29 @@ func (k *Kluster) handlePublicKey(platform provisioner.Provisioner) error {
 	var err error
 	pubKeyFile, err = homedir.Expand(pubKeyFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to expand the path to the public key for cluster %s, filename: %q. error: %s", platform.Name(), pubKeyFile, err)
 	}
 
 	_, err = os.Stat(pubKeyFile)
 	_, isException := platformKeyGenExceptions[k.Platform()]
+
 	if os.IsNotExist(err) && requiredPublicKey && !isException {
+		//we need a public key
 		pubKeyFile, pubKey, err = k.GenPubKeyFile(platform)
 		if err != nil {
-			return fmt.Errorf("failed to generate public key for %s. %s", platform.Name(), err)
+			return fmt.Errorf("failed to generate public key for cluster %s. error: %s", platform.Name(), err)
 		}
 	} else if err == nil {
 		// If exists, ready it
 		pubKey, err = ioutil.ReadFile(pubKeyFile)
 		if err != nil {
-			return fmt.Errorf("failed to read public key for %s from %s. %s", platform.Name(), pubKeyFile, err)
+			return fmt.Errorf("failed to read public key for cluster %s, filename: %q. error: '%s'", platform.Name(), pubKeyFile, err)
 		}
+	} else if os.IsNotExist(err) && !requiredPublicKey {
+		//No pub key required as we have a password
+		return nil
 	} else {
-		return err
+		return fmt.Errorf("generic error in public key for cluster %s, filename: %q. error: %s", platform.Name(), pubKeyFile, err)
 	}
 
 	k.ui.Log.Debugf("creating public key file %s", pubKeyFile)

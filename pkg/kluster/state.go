@@ -2,10 +2,12 @@ package kluster
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/hashicorp/terraform/states"
 	"github.com/kraken/terraformer"
 	"github.com/liferaft/kubekit/pkg/configurator"
 )
@@ -29,36 +31,37 @@ func (k *Kluster) LoadState() error {
 	}
 	stateFilename := k.StateFile()
 
-	// If there is no state file, assign an empty state. The provisioner should save it later
-	if _, err := os.Stat(stateFilename); os.IsNotExist(err) {
-		k.ui.Log.Debugf("not found state for cluster %q in %s, using empty state", k.Name, stateFilename)
-		// TODO: Should state be set to nil or should be as it is?
-		// i.e. if there is an state, should it be nil or keep that state?
-		p := k.provisioner[platform]
-		return p.BeProvisioner(nil)
-	}
+	var state *states.State
 
-	lock, err := lockFile(stateFilename)
-	if err != nil {
-		return err
-	}
-	defer lock.Unlock()
+	if _, err := os.Stat(stateFilename); !os.IsNotExist(err) {
+		k.ui.Log.Debugf("Loading state from state file %q", stateFilename)
+		// If there is a state file, read it to assign it to the provisioner
+		stateBytes, err := ioutil.ReadFile(stateFilename)
+		if err != nil {
+			return err
+		}
+		stateBuffer := bytes.NewBuffer(stateBytes)
 
-	stateBytes, err := ioutil.ReadFile(stateFilename)
-	if err != nil {
-		return err
-	}
-	stateBuffer := bytes.NewBuffer(stateBytes)
-
-	state, err := terraformer.LoadState(stateBuffer)
-	if err != nil {
-		return err
+		state, err = terraformer.LoadState(stateBuffer)
+		if err != nil {
+			return fmt.Errorf("can't load the state from %q. %s", stateFilename, err)
+		}
 	}
 
 	p := k.provisioner[platform]
 	if err := p.BeProvisioner(state); err != nil {
 		return err
 	}
+
+	// If there is a state file:
+	// 		- the function PersistStateToFile() create a backup of the state file
+	// 		- saves the current state (previously loaded from the file) to the state file
+	// 		- make sure the state is always up dated in the file
+	// If there isn't a state file:
+	// 		- the platform was created without state, so it has the empty state
+	// 		- the function PersistStateToFile() creates the state file with the empty state
+	// 		- make sure the state is always up dated in the file
+	p.PersistStateToFile(stateFilename)
 
 	if _, ok := k.State[platform]; !ok {
 		k.State[platform] = &State{
@@ -87,9 +90,10 @@ func (k *Kluster) LoadState() error {
 	switch platform {
 	case "eks":
 		dataKeys = append(dataKeys, "role-arn", "elastic-fileshares")
-		// case "aws":
+		// case "ec2":
 		// 	dataKeys = append(dataKeys, "elastic-fileshares")
 	case "vsphere":
+		var err error
 		dataKeys = append(dataKeys, "server", "username", "password", "some-other-shit")
 		creds, err = k.GetCredentialsAsMap()
 		if err != nil {
@@ -113,6 +117,7 @@ func (k *Kluster) LoadState() error {
 }
 
 // SaveState saves the state to the state file for the given platform
+// If the state is persisted to a file, there is no need to use this func
 func (k *Kluster) SaveState() error {
 	platform := k.Platform()
 

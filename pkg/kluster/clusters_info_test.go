@@ -8,7 +8,7 @@ import (
 
 func TestClusterInfo_ContainsAll(t *testing.T) {
 	testClustersInfo := ClustersInfo{
-		ClusterInfo{"demo01", 3, "aws", "running", "1.0", "/home/user/.kubekit.d/clusters/UID01", "http://fake.com/entrypoint:8080", "/home/user/.kubekit.d/clusters/UID01/certificates/kubeconfig"},
+		ClusterInfo{"demo01", 3, "ec2", "running", "1.0", "/home/user/.kubekit.d/clusters/UID01", "http://fake.com/entrypoint:8080", "/home/user/.kubekit.d/clusters/UID01/certificates/kubeconfig"},
 		ClusterInfo{"demo03", 0, "vsphere", "absent", "1.0", "/home/user/.kubekit.d/clusters/UID02", "None", ""},
 	}
 
@@ -30,9 +30,9 @@ func TestClusterInfo_ContainsAll(t *testing.T) {
 		{"check non string, correct value", testClustersInfo[0], map[string]string{"nodes": "3"}, true},
 		{"check non string, incorrect value", testClustersInfo[0], map[string]string{"nodes": "4"}, false},
 		{"contains all", testClustersInfo[1], map[string]string{"name": "demo03", "nodes": "0", "platform": "vsphere", "status": "absent", "version": "1.0", "path": "/home/user/.kubekit.d/clusters/UID02", "url": "None", "kubeconfig": ""}, true},
-		{"contains all", testClustersInfo[0], map[string]string{"name": "demo01", "nodes": "3", "platform": "aws", "status": "running", "version": "1.0", "path": "/home/user/.kubekit.d/clusters/UID01", "url": "http://fake.com/entrypoint:8080", "kubeconfig": "/home/user/.kubekit.d/clusters/UID01/certificates/kubeconfig"}, true},
-		{"contains all but one", testClustersInfo[0], map[string]string{"name": "demo01", "nodes": "4", "platform": "aws", "status": "running", "version": "1.0", "path": "/home/user/.kubekit.d/clusters/UID01", "url": "http://fake.com/entrypoint:8080", "kubeconfig": "/home/user/.kubekit.d/clusters/UID01/certificates/kubeconfig"}, false},
-		{"contains all but one invalid", testClustersInfo[0], map[string]string{"fake": "param", "name": "demo01", "nodes": "3", "platform": "aws", "status": "running", "version": "1.0", "path": "/home/user/.kubekit.d/clusters/UID01", "url": "http://fake.com/entrypoint:8080", "kubeconfig": "/home/user/.kubekit.d/clusters/UID01/certificates/kubeconfig"}, false},
+		{"contains all", testClustersInfo[0], map[string]string{"name": "demo01", "nodes": "3", "platform": "ec2", "status": "running", "version": "1.0", "path": "/home/user/.kubekit.d/clusters/UID01", "url": "http://fake.com/entrypoint:8080", "kubeconfig": "/home/user/.kubekit.d/clusters/UID01/certificates/kubeconfig"}, true},
+		{"contains all but one", testClustersInfo[0], map[string]string{"name": "demo01", "nodes": "4", "platform": "ec2", "status": "running", "version": "1.0", "path": "/home/user/.kubekit.d/clusters/UID01", "url": "http://fake.com/entrypoint:8080", "kubeconfig": "/home/user/.kubekit.d/clusters/UID01/certificates/kubeconfig"}, false},
+		{"contains all but one invalid", testClustersInfo[0], map[string]string{"fake": "param", "name": "demo01", "nodes": "3", "platform": "ec2", "status": "running", "version": "1.0", "path": "/home/user/.kubekit.d/clusters/UID01", "url": "http://fake.com/entrypoint:8080", "kubeconfig": "/home/user/.kubekit.d/clusters/UID01/certificates/kubeconfig"}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -45,8 +45,8 @@ func TestClusterInfo_ContainsAll(t *testing.T) {
 
 func TestClustersInfo_FilterBy(t *testing.T) {
 	clustersInfoTestData := ClustersInfo{
-		{Name: "demo01", Platform: "aws", Nodes: 0},
-		{Name: "demo02", Platform: "aws", Nodes: 3},
+		{Name: "demo01", Platform: "ec2", Nodes: 0},
+		{Name: "demo02", Platform: "ec2", Nodes: 3},
 		{Name: "demo03", Platform: "eks", Nodes: 3},
 		{Name: "demo04", Platform: "aks", Nodes: 0},
 	}
@@ -58,9 +58,9 @@ func TestClustersInfo_FilterBy(t *testing.T) {
 	}{
 		{"filter by nothing", clustersInfoTestData, map[string]string{}, clustersInfoTestData},
 		{"nothing to filter by", ClustersInfo{}, map[string]string{"name": "demo01"}, ClustersInfo{}},
-		{"filter to get one item", clustersInfoTestData, map[string]string{"name": "demo01"}, ClustersInfo{{Name: "demo01", Platform: "aws", Nodes: 0}}},
-		{"filter to get multimple items", clustersInfoTestData, map[string]string{"platform": "aws"}, ClustersInfo{{Name: "demo01", Platform: "aws", Nodes: 0}, {Name: "demo02", Platform: "aws", Nodes: 3}}},
-		{"filter by non-string", clustersInfoTestData, map[string]string{"nodes": "3"}, ClustersInfo{{Name: "demo02", Platform: "aws", Nodes: 3}, {Name: "demo03", Platform: "eks", Nodes: 3}}},
+		{"filter to get one item", clustersInfoTestData, map[string]string{"name": "demo01"}, ClustersInfo{{Name: "demo01", Platform: "ec2", Nodes: 0}}},
+		{"filter to get multimple items", clustersInfoTestData, map[string]string{"platform": "ec2"}, ClustersInfo{{Name: "demo01", Platform: "ec2", Nodes: 0}, {Name: "demo02", Platform: "ec2", Nodes: 3}}},
+		{"filter by non-string", clustersInfoTestData, map[string]string{"nodes": "3"}, ClustersInfo{{Name: "demo02", Platform: "ec2", Nodes: 3}, {Name: "demo03", Platform: "eks", Nodes: 3}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -126,7 +126,7 @@ func arraySortedEqual(a, b []string) bool {
 
 func TestClustersInfo_Template(t *testing.T) {
 	testClustersInfo := ClustersInfo{
-		ClusterInfo{"demo01", 3, "aws", "running", "1.0", "/home/user/.kubekit.d/clusters/UID01", "http://fake.com/entrypoint:8080", "/home/user/.kubekit.d/clusters/UID01/certificates/kubeconfig"},
+		ClusterInfo{"demo01", 3, "ec2", "running", "1.0", "/home/user/.kubekit.d/clusters/UID01", "http://fake.com/entrypoint:8080", "/home/user/.kubekit.d/clusters/UID01/certificates/kubeconfig"},
 		ClusterInfo{"demo03", 0, "vsphere", "absent", "1.0", "/home/user/.kubekit.d/clusters/UID02", "None", ""},
 	}
 	tests := []struct {
@@ -141,8 +141,8 @@ func TestClustersInfo_Template(t *testing.T) {
 		{"empty template", testClustersInfo, "", "", false},
 		{"just a text", testClustersInfo, "foo", "foo\nfoo\n", false},
 		{"just names", testClustersInfo, "{{.Name}}", "demo01\ndemo03\n", false},
-		{"names and platform", testClustersInfo, "{{.Name}}\t{{.Platform}}", "demo01\taws\ndemo03\tvsphere\n", false},
-		{"table, names and platform", testClustersInfo, "table {{.Name}}\t{{.Platform}}", "NAME     PLATFORM\ndemo01   aws\ndemo03   vsphere\n", false},
+		{"names and platform", testClustersInfo, "{{.Name}}\t{{.Platform}}", "demo01\tec2\ndemo03\tvsphere\n", false},
+		{"table, names and platform", testClustersInfo, "table {{.Name}}\t{{.Platform}}", "NAME     PLATFORM\ndemo01   ec2\ndemo03   vsphere\n", false},
 		{"table, names and nodes", testClustersInfo, "table {{.Name}}\t{{.Nodes}}", "NAME     NODES\ndemo01   3\ndemo03   0\n", false},
 		{"table, names and entrypoint with URL", testClustersInfo, "table {{.Name}}\t{{.URL}}", "NAME     ENTRYPOINT\ndemo01   http://fake.com/entrypoint:8080\ndemo03   None\n", false},
 		{"table, names and entrypoint", testClustersInfo, "table {{.Name}}\t{{.Entrypoint}}", "NAME     ENTRYPOINT\ndemo01   http://fake.com/entrypoint:8080\ndemo03   None\n", false},

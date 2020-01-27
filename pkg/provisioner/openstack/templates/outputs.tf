@@ -1,12 +1,12 @@
 {{ $masterNodePool := MasterPool $.NodePools }}
 
 output "service_ip" {
-  value = "
+  value =
 {{- if $.KubeVirtualIPApi -}}
-  {{- $.KubeVirtualIPApi -}} 
-{{- else -}}  
-  ${openstack_compute_floatingip_associate_v2.float_assoc-{{ Dash ( Lower $masterNodePool.Name ) }}.0.floating_ip}
-{{- end }}"
+  "{{- $.KubeVirtualIPApi -}}"
+{{- else -}}
+  openstack_compute_floatingip_associate_v2.float_assoc-{{ Dash ( Lower $masterNodePool.Name ) }}.0.floating_ip
+{{- end }}
 }
 
 output "service_port" {

@@ -1,18 +1,18 @@
 {{ $masterNodePool := MasterPool $.NodePools }}
 
 output "service_ip" {
-  value = "
+  value =
 {{- if $.KubeVirtualIPApi -}}
-  {{- $.KubeVirtualIPApi -}} 
+  "{{- $.KubeVirtualIPApi -}}"
 {{- else -}}  
-  ${vsphere_virtual_machine.{{ Dash ( Lower $masterNodePool.Name ) }}.0.default_ip_address}
-{{- end }}"
+  vsphere_virtual_machine.{{ Dash ( Lower $masterNodePool.Name ) }}.0.default_ip_address
+{{- end }}
 }
 
 output "service_port" {
   value = "
 {{- if and $.KubeVirtualIPApi $.KubeVIPAPISSLPort -}}
-  {{- $.KubeVIPAPISSLPort -}} 
+  {{- $.KubeVIPAPISSLPort -}}
 {{- else -}} 
   {{- $.KubeAPISSLPort -}}
 {{- end }}"

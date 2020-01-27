@@ -1,4 +1,4 @@
-package aws
+package ec2
 
 import (
 	"github.com/kraken/ui"
@@ -24,7 +24,7 @@ func New(clusterName string, envConfig map[string]string, ui *ui.UI, version str
 	config.ClusterName = clusterName
 
 	return &Platform{
-		name:    "aws",
+		name:    "ec2",
 		config:  config,
 		ui:      ui,
 		version: version,
@@ -44,7 +44,7 @@ func CreateFrom(clusterName string, config map[interface{}]interface{}, credenti
 
 func newPlatform(c *Config, credentials []string, ui *ui.UI, version string) *Platform {
 	p := Platform{
-		name:    "aws",
+		name:    "ec2",
 		config:  c,
 		ui:      ui,
 		version: version,

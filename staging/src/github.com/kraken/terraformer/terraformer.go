@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/terraform-providers/terraform-provider-null/null"
@@ -42,9 +43,10 @@ type Terraformer struct {
 	Stats        *Stats
 	plan         *Plan
 	lw           *LogWriter
-	providers    map[string]providers.Factory
+	providers    map[addrs.Provider]providers.Factory
 	provisioners map[string]provisioners.Factory
 	context      *terraform.Context
+	stateMgr     statemgr.Writer
 }
 
 // State is an alias for terraform.State
@@ -66,8 +68,8 @@ func New(logger Logger, hooks ...terraform.Hook) (*Terraformer, error) {
 	// According to NewContext() code, if the state is nill it will be set as a new state.
 
 	// set default providers, if more are needed adds them with AddProvider
-	providers := map[string]providers.Factory{
-		"null": providersFactory(null.Provider()),
+	providers := map[addrs.Provider]providers.Factory{
+		addrs.NewLegacyProvider("null"): providersFactory(null.Provider()),
 	}
 	// default provisioners, if more are needed adds them with AddProvisioner
 	provisioners := map[string]provisioners.Factory{}
@@ -106,7 +108,8 @@ func (t *Terraformer) Apply(destroy bool) (err error) {
 
 	countHook := new(local.CountHook)
 	stateHook := new(local.StateHook)
-	ctx, err := t.NewContext(destroy, countHook, stateHook)
+	t.Hooks = append(t.Hooks, stateHook, countHook)
+	ctx, err := t.NewContext(destroy)
 	if err != nil {
 		return err
 	}
@@ -129,8 +132,7 @@ func (t *Terraformer) Apply(destroy bool) (err error) {
 	t.Stats = NewStats(plan)
 	t.lw.Logger.Infof("actions: %d to add, %d to change, %d to destroy", t.Stats.Add, t.Stats.Change, t.Stats.Destroy)
 
-	// TODO: stateHook.State is not a terraform.State it is a state.State (terraform/state/state.go). Find how to get one of those, check backend/local/backend_apply.go L#56
-	// stateHook.State =
+	stateHook.StateMgr = t.stateMgr
 
 	// Apply the changes and get the final state
 	errorCh := make(chan error)
@@ -370,7 +372,7 @@ func SaveState(w io.Writer, state *State) error {
 // AddProvider append a new provider to the list of providers to support in the
 // Terraform templates
 func (t *Terraformer) AddProvider(name string, provider terraform.ResourceProvider) {
-	t.providers[name] = providersFactory(provider)
+	t.providers[addrs.NewLegacyProvider(name)] = providersFactory(provider)
 }
 
 // AddProvisioner append a new provisioner to the list of provisioners to support
@@ -381,7 +383,7 @@ func (t *Terraformer) AddProvisioner(name string, provisioner terraform.Resource
 
 // NewContext return a Terraform context with the Terraform templates (Terraformer
 // code), provisioners, providers, variables and the current infrastructure state
-func (t *Terraformer) NewContext(destroy bool, hooks ...terraform.Hook) (*terraform.Context, error) {
+func (t *Terraformer) NewContext(destroy bool) (*terraform.Context, error) {
 	cfg, err := t.config()
 	if err != nil {
 		return nil, err
@@ -392,19 +394,12 @@ func (t *Terraformer) NewContext(destroy bool, hooks ...terraform.Hook) (*terraf
 		return nil, err
 	}
 
-	if len(hooks) == 0 {
-		hooks = []terraform.Hook{}
-	}
-	if len(t.Hooks) != 0 {
-		hooks = append(hooks, t.Hooks...)
-	}
-
 	ctxOpts := terraform.ContextOpts{
 		Config:           cfg,
 		Destroy:          destroy,
 		State:            t.State,
 		Variables:        vars,
-		Hooks:            hooks,
+		Hooks:            t.Hooks,
 		ProviderResolver: providers.ResolverFixed(t.providers),
 		Provisioners:     t.provisioners,
 	}
@@ -495,4 +490,44 @@ func (t *Terraformer) variables(v map[string]*configs.Variable) (terraform.Input
 	}
 
 	return iv, nil
+}
+
+// PersistStateToFile reads the state from the given file, if exists. Then will save
+// the current state to the given file every time it changes during the Terraform
+// actions.
+func (t *Terraformer) PersistStateToFile(filename string) error {
+	readStateFromFile := func() error {
+		file, err := os.Open(filename)
+		defer file.Close()
+		if err != nil {
+			return err
+		}
+		return t.LoadState(file)
+	}
+
+	if _, err := os.Stat(filename); !os.IsNotExist(err) {
+		// If the file exists, read the state from the file and make it a backup of the file
+		if err := readStateFromFile(); err != nil {
+			return err
+		}
+		os.Rename(filename, filename+".bkp")
+	}
+
+	writeStateToFile := func() error {
+		var state bytes.Buffer
+		if err := t.SaveState(&state); err != nil {
+			return err
+		}
+		return ioutil.WriteFile(filename, state.Bytes(), 0644)
+	}
+
+	// The files does not exists, create it with the current state: empty or loaded
+	if err := writeStateToFile(); err != nil {
+		return err
+	}
+
+	fsStateMgr := statemgr.NewFilesystem(filename)
+	t.stateMgr = fsStateMgr
+
+	return nil
 }

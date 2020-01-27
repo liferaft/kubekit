@@ -40,7 +40,7 @@ Just like `kubekit` this will show the version of the KubeKit server, the API ve
 
 Just like `kubekit init` it's used to create the cluster configuration. As with `kubekit`, the client `kubekitctl` also accept parameters with the flag `--var`, actually it's the only way to pass data to the cluster configuration because the configuration file is not local. It also accepts the credentials with the different credentials flags for the following platforms:
 
-* AWS and EKS: `--access_key`, `--secret_key`,  `--region`, `--session_token` and `--profile`
+* EC2 and EKS: `--access_key`, `--secret_key`,  `--region`, `--session_token` and `--profile`
 
 * Azure/AKS: `--subscription_id`, `--tenant_id`, `--client_id` and `--client_secret`
 

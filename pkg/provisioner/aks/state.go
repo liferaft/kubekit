@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/kraken/terraformer"
-	"github.com/kubekit/azure"
+	"github.com/liferaft/azure"
 	"github.com/liferaft/kubekit/pkg/provisioner/state"
 )
 
@@ -21,6 +21,15 @@ func (p *Platform) State() *terraformer.State {
 		return nil
 	}
 	return p.t.State
+}
+
+// PersistStateToFile makes the state to persist in a file and be up to date all
+// the time. Every time the state changes Terraformer will update the file
+func (p *Platform) PersistStateToFile(filename string) error {
+	if p.t == nil {
+		return nil
+	}
+	return p.t.PersistStateToFile(filename)
 }
 
 // LoadState loads the given Terraform state in a buffer into the terraformer state

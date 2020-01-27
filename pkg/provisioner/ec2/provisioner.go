@@ -1,4 +1,4 @@
-package aws
+package ec2
 
 import (
 	"bytes"
@@ -26,6 +26,10 @@ func (p *Platform) BeProvisioner(state *terraformer.State) error {
 
 	variables := p.Variables()
 	rendered := p.Code()
+
+	// DEBUG
+	//fmt.Println(string(rendered))
+	//os.Exit(0)
 
 	t, err := utils.NewTerraformer(rendered, variables, state, p.config.ClusterName, "AWS", p.ui)
 	if err != nil {
@@ -61,6 +65,7 @@ func (p *Platform) Apply(destroy bool) error {
 	} else {
 		p.ui.Log.Debug("starting to terminate the cluster")
 	}
+
 	return p.t.Apply(destroy)
 }
 
@@ -69,7 +74,6 @@ func (p *Platform) Provision() error {
 	if p.t == nil {
 		return fmt.Errorf("cannot provision the cluster, the %s plaftorm is not a provisioner yet", p.name)
 	}
-
 	return p.t.Apply(false)
 }
 
@@ -92,8 +96,10 @@ func (p *Platform) Code() []byte {
 		templateContent.WriteString(fmt.Sprintf("# section created from template %s\n\n%s\n", k, v))
 	}
 	tmplFuncMap := template.FuncMap{
-		"Dash":  func(s string) string { return strings.NewReplacer("_", "-", ".", "-").Replace(s) },
-		"Lower": func(s string) string { return strings.ToLower(s) },
+		"Join":     strings.Join,
+		"Contains": strings.Contains,
+		"Dash":     func(s string) string { return strings.NewReplacer("_", "-", ".", "-").Replace(s) },
+		"Lower":    func(s string) string { return strings.ToLower(s) },
 		"QuoteList": func(s []string) string {
 			return fmt.Sprintf(`"%s"`, strings.Join(s, `","`))
 		},
@@ -120,6 +126,22 @@ func (p *Platform) Code() []byte {
 				Count: 1,
 			}
 		},
+		"AllSecGroups": func() []string {
+			groupSet := map[string]struct{}{}
+			for _, node := range p.config.NodePools {
+				for _, group := range node.SecurityGroups {
+					groupSet[group] = struct{}{}
+				}
+			}
+			for _, net := range p.config.DefaultNodePool.SecurityGroups {
+				groupSet[net] = struct{}{}
+			}
+			groups := []string{}
+			for group := range groupSet {
+				groups = append(groups, group)
+			}
+			return groups
+		},
 		"Count": func(count int) []int {
 			var i int
 			var counter []int
@@ -135,12 +157,15 @@ func (p *Platform) Code() []byte {
 			}
 			return false
 		},
-		"AllSubNets": func(pools map[string]NodePool) []string {
+		"AllSubNets": func() []string {
 			netSet := map[string]struct{}{}
-			for _, node := range pools {
+			for _, node := range p.config.NodePools {
 				for _, net := range node.Subnets {
 					netSet[net] = struct{}{}
 				}
+			}
+			for _, net := range p.config.DefaultNodePool.Subnets {
+				netSet[net] = struct{}{}
 			}
 			nets := []string{}
 			for net := range netSet {
@@ -148,9 +173,17 @@ func (p *Platform) Code() []byte {
 			}
 			return nets
 		},
+		"IsFastEphemeral": func(n NodePool) bool {
+			for _, label := range n.KubeletNodeLabels {
+				if label == "ephemeral-volumes=fast" {
+					return true
+				}
+			}
+			return false
+		},
 	}
 	resourceTpl, err := template.
-		New("aws").
+		New("ec2").
 		Option("missingkey=error").
 		Funcs(tmplFuncMap).
 		Parse(templateContent.String())

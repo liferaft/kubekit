@@ -1,0 +1,13 @@
+[Unit]
+Description=rook-ceph umounts
+Requires=docker.service
+Before=docker.service
+After=network-online.target
+
+[Service]
+ExecStop=/etc/kubernetes/rook-bin/umount.sh
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

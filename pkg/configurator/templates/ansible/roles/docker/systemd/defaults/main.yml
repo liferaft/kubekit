@@ -2,7 +2,7 @@
 #   k (kilobytes), m (megabytes), g (gigabytes)
 # setting the value to -1, sets it to unlimited
 docker_log_max_size: "16m"  # better to set over filebeat max_bytes parameter for a single message (default of 10MiB)
-docker_log_max_files: "3"  # needs to be a string
+docker_log_max_files: "5"  # needs to be a string
 docker_max_concurrent_downloads: 10
 docker_max_concurrent_uploads: 10
 

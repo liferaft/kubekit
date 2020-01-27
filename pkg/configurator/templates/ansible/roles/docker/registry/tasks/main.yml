@@ -25,7 +25,7 @@
     docker_registry_host: "{{ item.0 }}:{{ item.1 }}"
   with_nested: 
     - "{{ [ 'localhost', docker_registry_host_list ] | flatten | unique }}"
-    - ["{{ registry_port }}", "{{ platform_registry_port }}"]
+    - ["{{ registry_port }}", "{{ alternative_registry_port }}"]
 
 - include_tasks: certs.yml
   vars:
@@ -33,7 +33,7 @@
   with_items:
     - "{{ registry_port }}"
     - "{{ registry_lb_port }}"
-    - "{{ platform_registry_port }}"
+    - "{{ alternative_registry_port }}"
   when:
     - is_ha_cluster
     - kube_virtual_ip_api is defined
@@ -41,13 +41,7 @@
 
 - block:
 
-#  - name: load registry image
-#    shell: >
-#      docker_load=$(docker load -i {{ registry_archive_path }})
-#      && (loaded=$(echo "$docker_load" | awk '{print $NF}')
-#      && [[ "$loaded" != "lrk/"* ]]
-#      && ([ $(echo "$loaded" | awk -F':' '{print $1}' | awk -F'/' '{print $1}' | grep '\.') ] && docker tag "$loaded" "lrk/$loaded" || docker tag "$loaded" "lrk/docker.io/$loaded")
-#      || echo "{{ registry_archive_path }} already loaded")
+  - include_tasks: manifest_preload.yml
 
   - include_tasks: registry_image.yml
 
@@ -119,7 +113,20 @@
   # repo loading could be done in one step with the ansible docker image
   # module, but the module depends on pydocker on the remote nodes
 
-  - include_tasks: images.yml
+  - block:
+
+      - set_fact:
+          images_to_registry: "{{ images_to_registry|default([]) + item.value.values() }}"
+        with_items: "{{ current_manifest.dependencies | dict2items }}"
+
+      - include_tasks: images.yml
+        loop: "{{ images_to_registry }}"
+        loop_control:
+          label: "{{ image['name'] }}"
+          loop_var: image
+
+    tags:
+      - load_images_to_registry
 
   when: "'master' in group_names"
 

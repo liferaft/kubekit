@@ -49,7 +49,7 @@ unit-test-init:
 	@go run test/main.go
 	@$(ECHO) "$(C_YELLOW) Edit the Terraform variables files located in $(C_RED)*/templates/terraform.tfvars$(C_STD)";
 
-# P is the Unit Testing Platform. Could be 'aws' or 'vsphere'
+# P is the Unit Testing Platform. Could be 'ec2' or 'vsphere'
 P	?= vsphere
 
 # executes the unit test for an specific platform
@@ -88,7 +88,7 @@ go-unit-tests:
 # <platform>/terraform.go. NOTE: not all platforms have generated code
 # (e.g. raw and stacki do not have terraform code)
 .PHONY: generate
-generate: aks/code.go aws/code.go openstack/code.go vsphere/code.go aks/code.go eks/code.go
+generate: aks/code.go ec2/code.go openstack/code.go vsphere/code.go aks/code.go eks/code.go
 
 # Rule will regenerate a terraform.go file if any of the terraform files
 # in the templates subdirectory have been modified.

@@ -7,7 +7,7 @@ import (
 
 const ()
 
-// Platform implements the Provisioner interface for AWS
+// Platform implements the Provisioner interface for Openstack
 type Platform struct {
 	name    string
 	config  *Config

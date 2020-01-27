@@ -36,9 +36,25 @@ resource "aws_iam_role_policy_attachment" "cluster-AmazonEKSServicePolicy" {
   role       = "{{ Dash ( Lower .ClusterName ) }}-iam-role"
 }
 
+resource "null_resource" "eks_wait_for_iam_user_propagation" {
+  depends_on = [
+    "aws_iam_role.cluster",
+    "aws_iam_role_policy_attachment.cluster-AmazonEKSClusterPolicy",
+    "aws_iam_role_policy_attachment.cluster-AmazonEKSServicePolicy",
+  ]
+
+  provisioner "local-exec" {
+    command = "sleep 45"
+  }
+}
+
 resource "aws_eks_cluster" "kubekit" {
+  depends_on = [
+    "null_resource.eks_wait_for_iam_user_propagation",
+  ]
+
   name     = "{{ Dash ( Lower .ClusterName ) }}"
-  role_arn = "${aws_iam_role.cluster.arn}"
+  role_arn = aws_iam_role.cluster.arn
   version = "{{ .KubernetesVersion }}"
   enabled_cluster_log_types = [ {{ QuoteList .ClusterLogsTypes }} ]
 
@@ -48,11 +64,6 @@ resource "aws_eks_cluster" "kubekit" {
     endpoint_public_access = "{{ .EndpointPublicAccess }}"
     endpoint_private_access = "{{ .EndpointPrivateAccess }}"
   }
-
-  depends_on = [
-    "aws_iam_role_policy_attachment.cluster-AmazonEKSClusterPolicy",
-    "aws_iam_role_policy_attachment.cluster-AmazonEKSServicePolicy",
-  ]
 }
 
 # EKS Nodes
@@ -76,12 +87,42 @@ resource "aws_iam_role" "cluster-node" {
 POLICY
 }
 
+resource "aws_iam_role_policy" "fsx-policy" {
+  depends_on = ["aws_iam_role.cluster-node"]
+  name  = "{{ Dash ( Lower .ClusterName ) }}-fsx-policy"
+  role  = aws_iam_role.cluster-node.id
+
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "iam:CreateServiceLinkedRole",
+          "iam:AttachRolePolicy",
+          "iam:PutRolePolicy"
+          ],
+         "Resource": "arn:aws:iam::*:role/aws-service-role/fsx.amazonaws.com/*"
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "fsx:*"
+        ],
+        "Resource": ["*"]
+      }
+    ]
+}
+EOF
+}
+
 {{ with .S3Buckets }}
 	{{ range . }}
-resource "aws_iam_role_policy" "{{ . }}-policy" {
+resource "aws_iam_role_policy" "s3-{{ Dash ( Lower . ) }}-policy" {
   depends_on = ["aws_iam_role.cluster-node"]
-  name  = "{{ . }}-policy"
-  role  = "${aws_iam_role.cluster-node.id}"
+  name  = "{{ Dash ( Lower $.ClusterName ) }}-s3-{{ Dash ( Lower . ) }}-policy"
+  role  = aws_iam_role.cluster-node.id
 
   policy = <<EOF
 {
@@ -95,7 +136,7 @@ resource "aws_iam_role_policy" "{{ . }}-policy" {
               "s3:DeleteObject",
               "s3:ListBucket"
             ],
-            "Resource": "${data.aws_s3_bucket.{{ . }}.arn}/*"
+            "Resource": "${data.aws_s3_bucket.{{ Dash ( Lower . ) }}.arn}/*"
         },
         {
             "Effect": "Allow",
@@ -103,7 +144,7 @@ resource "aws_iam_role_policy" "{{ . }}-policy" {
               "s3:ListBucket",
               "s3:GetBucketLocation"
             ],
-            "Resource": "${data.aws_s3_bucket.{{ . }}.arn}"
+            "Resource": "${data.aws_s3_bucket.{{ Dash ( Lower . ) }}.arn}"
         },
         {
             "Effect": "Allow",
@@ -121,10 +162,10 @@ EOF
 
 {{ with .Route53Name }}
 	{{ range . }}
-resource "aws_iam_role_policy" "route53-policy" {
+resource "aws_iam_role_policy" "route53-policy-zone-{{ Dash ( Lower . ) }}" {
   depends_on = ["aws_iam_role.cluster-node"]
   name       = "{{ Dash ( Lower $.ClusterName ) }}-zone-{{ Dash ( Lower . ) }}-route53-policy"
-  role       = "${aws_iam_role.cluster-node.id}"
+  role       = aws_iam_role.cluster-node.id
 
   policy = <<EOF
 {
@@ -169,6 +210,20 @@ resource "aws_iam_instance_profile" "node" {
   role = "{{ Dash ( Lower .ClusterName ) }}-node"
 }
 
+resource "null_resource" "node_wait_for_iam_user_propagation" {
+  depends_on = [
+    "aws_iam_role.cluster-node",
+    "aws_iam_role_policy_attachment.node-AmazonEC2ContainerRegistryReadOnly",
+    "aws_iam_role_policy_attachment.node-AmazonEKS-CNI-Policy",
+    "aws_iam_role_policy_attachment.node-AmazonEKSWorkerNodePolicy",
+    "aws_iam_instance_profile.node",
+  ]
+
+  provisioner "local-exec" {
+    command = "sleep 45"
+  }
+}
+
 resource "aws_key_pair" "keypair" {
   // TODO need to verify if key name change will cause destruction on existing 1.0 systems
   key_name   = "{{ Dash ( Lower .ClusterName ) }}-key"
@@ -186,19 +241,23 @@ resource "aws_placement_group" "node-pool-{{ Dash ( Lower $v.Name ) }}" {
   {{ end }}
 
 resource "aws_launch_configuration" "node-{{ Dash ( Lower $v.Name ) }}" {
+  depends_on = [
+    "null_resource.node_wait_for_iam_user_propagation",
+  ]
+
   associate_public_ip_address = true
   ebs_optimized               = true
   iam_instance_profile        = "{{ Dash ( Lower $.ClusterName ) }}-node-iam-profile"
-  image_id                    = "
+  image_id                    =
   {{- if $v.AwsAmi -}}
-    {{- $v.AwsAmi -}}
+    "{{- $v.AwsAmi -}}"
   {{- else -}}
-    ${data.aws_ami.eks-node.id}
-  {{- end }}"
+    data.aws_ami.eks-node.id
+  {{- end }}
   instance_type               = "{{ $v.AwsInstanceType }}"
   name_prefix                 = "{{ Dash ( Lower $.ClusterName ) }}-node-{{ Dash ( Lower $v.Name ) }}-"
   security_groups             = [{{ QuoteList $v.SecurityGroups }}]
-  user_data_base64            = "${base64encode(local.node-{{ Dash ( Lower $v.Name ) }}-userdata)}"
+  user_data_base64            = base64encode(local.node-{{ Dash ( Lower $v.Name ) }}-userdata)
   key_name                    = "{{ Dash ( Lower $.ClusterName ) }}-key"
 
   root_block_device {
@@ -219,7 +278,7 @@ resource "aws_autoscaling_group" "node-{{ Dash ( Lower $v.Name ) }}" {
   desired_capacity     = "{{ $v.Count }}"
   max_size             = "{{ $v.Count }}"
   min_size             = "{{ $v.Count }}"
-  launch_configuration = "${aws_launch_configuration.node-{{ Dash ( Lower $v.Name ) }}.name}"
+  launch_configuration = aws_launch_configuration.node-{{ Dash ( Lower $v.Name ) }}.name
   {{ if $v.PGStrategy }}
   placement_group      = "{{ Dash ( Lower $.ClusterName ) }}-node-{{ Dash ( Lower $v.Name ) }}"
   {{- end }}
@@ -277,7 +336,7 @@ resource "aws_efs_file_system" "efs-{{ Dash ( Lower $k  ) }}" {
   {{ range $s := AllSubNets }}
 resource "aws_efs_mount_target" "{{ Dash $.ClusterName }}-efs-{{ Dash ( Lower $k ) }}-{{ $s }}-mount" {
   depends_on = ["aws_efs_file_system.efs-{{ Dash ( Lower $k ) }}"]
-  file_system_id = "${aws_efs_file_system.efs-{{ Dash ( Lower $k ) }}.id}"
+  file_system_id = aws_efs_file_system.efs-{{ Dash ( Lower $k ) }}.id
   subnet_id      = "{{ $s }}"
   security_groups = [ {{ QuoteList AllSecGroups }} ]
 }

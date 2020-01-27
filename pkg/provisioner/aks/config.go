@@ -33,6 +33,7 @@ var defaultConfig = Config{
 	DockerBridgeCIDR:    "172.17.0.1/16",
 	DNSServiceIP:        "172.21.0.10",
 	NetworkPolicy:       "calico",
+	LoadBalancerSKU:     "basic",
 	AdminUsername:       "kubekit",
 	//ContainerRegistrySku:          "Basic",
 	//ContainerRegistryAdminEnabled: false,
@@ -114,7 +115,14 @@ type Config struct {
 	ServiceCIDR                   string              `json:"service_cidr" yaml:"service_cidr" mapstructure:"service_cidr"`
 	DockerBridgeCIDR              string              `json:"docker_bridge_cidr" yaml:"docker_bridge_cidr" mapstructure:"docker_bridge_cidr"`
 	DNSServiceIP                  string              `json:"dns_service_ip" yaml:"dns_service_ip" mapstructure:"dns_service_ip"`
+	LoadBalancerSKU               string              `json:"load_balancer_sku" yaml:"load_balancer_sku" mapstructure:"load_balancer_sku"`
 	KubernetesVersion             string              `json:"kubernetes_version" yaml:"kubernetes_version" mapstructure:"kubernetes_version"`
+	EnableKubernetesDashboard     bool                `json:"enable_kubernetes_dashboard" yaml:"enable_kubernetes_dashboard" mapstructure:"enable_kubernetes_dashboard"`
+	EnableOMSAgent                bool                `json:"enable_oms_agent" yaml:"enable_oms_agent" mapstructure:"enable_oms_agent"`
+	LogAnalyticsWorkspaceID       string              `json:"log_analytics_workspace_id" yaml:"log_analytics_workspace_id" mapstructure:"log_analytics_workspace_id"`
+	LogAnalyticsWorkspaceSKU      string              `json:"log_analytics_workspace_sku" yaml:"log_analytics_workspace_sku" mapstructure:"log_analytics_workspace_sku"`
+	LogAnalyticsRetentionDays     int                 `json:"log_analytics_retention_days" yaml:"log_analytics_retention_days" mapstructure:"log_analytics_retention_days"`
+	EnableAzurePolicy             bool                `json:"enable_azure_policy" yaml:"enable_azure_policy" mapstructure:"enable_azure_policy"`
 	AdminUsername                 string              `json:"admin_username" yaml:"admin_username" mapstructure:"admin_username"`
 	NetworkPolicy                 string              `json:"network_policy" yaml:"network_policy" mapstructure:"network_policy"`
 	EnablePodSecurityPolicy       bool                `json:"enable_pod_security_policy" yaml:"enable_pod_security_policy" mapstructure:"enable_pod_security_policy"`

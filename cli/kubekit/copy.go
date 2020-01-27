@@ -143,7 +143,7 @@ func addCopyCmd() {
 	// copy cluster-config CLUSTER-NAME --export --zip --to NEW-NAME --platform NAME --path PATH --template NAME
 	copyCmd.AddCommand(copyClusterConfigCmd)
 	copyClusterConfigCmd.Flags().String("to", "", "new cluster name")
-	copyClusterConfigCmd.Flags().StringP("platform", "p", "", "platform where the cluster going to be provisioned (Example: aws, vsphere)")
+	copyClusterConfigCmd.Flags().StringP("platform", "p", "", "platform where the cluster going to be provisioned (Example: ec2, vsphere)")
 	copyClusterConfigCmd.Flags().String("path", "", "path to store the cluster configuration file if is not the default location")
 	copyClusterConfigCmd.Flags().StringP("format", "f", "yaml", "cluster config file format. Available formats: 'json', 'yaml' and 'toml'")
 	copyClusterConfigCmd.Flags().StringP("template", "t", "", "cluster template to create this cluster from. Could be a name or absolute location")
@@ -154,7 +154,7 @@ func addCopyCmd() {
 	// copy template NAME
 	copyCmd.AddCommand(copyTemplatesCmd)
 	copyTemplatesCmd.Flags().String("to", "", "new cluster name")
-	copyTemplatesCmd.Flags().StringP("platform", "p", "", "platform where the cluster going to be provisioned (Example: aws, vsphere)")
+	copyTemplatesCmd.Flags().StringP("platform", "p", "", "platform where the cluster going to be provisioned (Example: ec2, vsphere)")
 	copyTemplatesCmd.Flags().String("path", "", "path to store the cluster configuration file if is not the default location")
 
 	// copy files

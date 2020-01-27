@@ -104,19 +104,28 @@ spec:
           operator: "Exists"
         - effect: NoSchedule
           operator: Exists
-      nodeSelector:
-        kubernetes.io/os: linux
       containers:
       - name: coredns
         image: {{ core_repo_root }}{{ current_manifest['dependencies']['core']['coredns']['src'] }}
         imagePullPolicy: IfNotPresent
+        env:
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
         resources:
-          limits:
-            cpu: {{ coredns_limits_cpu }}
-            memory: {{ coredns_limits_memory }}
           requests:
             cpu: {{ coredns_requests_cpu }}
             memory: {{ coredns_requests_memory }}
+{% if coredns_limits_cpu or coredns_limits_memory %}
+          limits:
+{% if coredns_limits_cpu %}
+            cpu: {{ coredns_limits_cpu }}
+{% endif %}
+{% if coredns_limits_memory %}
+            memory: {{ coredns_limits_memory }}
+{% endif %}
+{% endif %}
         args: [ "-conf", "/etc/coredns/Corefile" ]
         volumeMounts:
         - name: config-volume

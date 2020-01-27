@@ -9,16 +9,17 @@
 
 - block:
 
+  # NOTE: the uri module doesn't let us pass the CA certificate without jumping through more hoops
   - name: wait until kube apiserver is available
-    uri:
-      url: "{{ kube_api_server_local }}/healthz"
-      status_code: 200
-      client_cert: "{{ cert_dir }}/{{ certs.admin.crt }}"
-      client_key: "{{ cert_dir }}/{{ certs.admin.key }}"
-    retries: 12
-    delay: 5
+    shell: |
+      curl -s {% if groups['master']|length == 1 and 'master' in group_names %}https://localhost:{{ kube_api_ssl_port }}{% elif (is_ha_cluster | bool) %}{{ kube_vip_api_server }}{% elif cloud_provider != 'aws' %}https://{{ hostvars['master000'][address_inventory_field] }}:{{ kube_api_ssl_port }}{% else %}https://{{ hostvars['master000']['private_ip'] }}:{{ kube_api_ssl_port }}{% endif %}/healthz \
+        --cacert {{ cert_dir }}/{{ root_ca_crt_filename }} \
+        --cert {{ cert_dir }}/{{ certs.admin.crt }} \
+        --key {{ cert_dir }}/{{ certs.admin.key }}
+    retries: 60  # kubelet will take some time to load the static pod manifests
+    delay: 10
     register: apiserver_availability
-    until: ('status' in apiserver_availability) and (apiserver_availability.status == 200)
+    until: "'ok' in apiserver_availability.stdout"
     # action has no previous state to compare. should be pass fail.
     changed_when: no
 
@@ -69,22 +70,42 @@
     - name: apply RBAC manifests
       shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply -f /srv/kubernetes/manifests/rbac/{{ item }}.yaml"
       with_items: "{{ rbac_manifests }}"
+      register: apply_rbac
+      until: apply_rbac.rc == 0
+      retries: 10
+      delay: 5
 
     - name: apply psp manifests
       shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply -f /srv/kubernetes/manifests/psp/{{ item }}.yaml"
       with_items: "{{ psp_manifests }}"
+      register: apply_psp
+      until: apply_psp.rc == 0
+      retries: 10
+      delay: 5
 
     - name: apply network policy manifests
       shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply -f /srv/kubernetes/manifests/network/{{ item }}.yaml"
       with_items: "{{ net_policy_manifests }}"
+      register: apply_netpol
+      until: apply_netpol.rc == 0
+      retries: 10
+      delay: 5
 
     - name: apply priority class manifests
       shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply -f /srv/kubernetes/manifests/priority-class/{{ item }}.yaml"
       with_items: "{{ priority_class_manifests }}"
+      register: apply_pc
+      until: apply_pc.rc == 0
+      retries: 10
+      delay: 5
 
     - name: apply resource quota manifests
       shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply -f /srv/kubernetes/manifests/resource-quota/{{ item }}.yaml"
       with_items: "{{ resource_quota_manifests }}"
+      register: apply_resource_quota
+      until: apply_resource_quota.rc == 0
+      retries: 10
+      delay: 5
 
     when: inventory_hostname == 'master000'
 

@@ -26,7 +26,7 @@ spec:
     - kube-controller-manager
 {% endif %}
     - --bind-address={{ kube_api_secure_bind_address }}
-{% if cloud_provider_enabled and cloud_provider == "aws" %}
+{% if cloud_provider_enabled and cloud_provider == "ec2" %}
     - --cloud-provider=aws
     - --cloud-config=/etc/aws/aws.conf
 {% elif cloud_provider_enabled and cloud_provider == "vsphere" %}
@@ -68,7 +68,7 @@ spec:
     - mountPath: {{ kube_folder }}
       name: etc-kubernetes
       readOnly: true
-{% if cloud_provider_enabled and cloud_provider == "aws" %}
+{% if cloud_provider_enabled and cloud_provider == "ec2" %}
     - mountPath: /etc/aws/aws.conf
       name: cloud-provider-conf
       readOnly: true
@@ -102,7 +102,7 @@ spec:
       path: {{ kube_folder }}
       type: Directory
     name: etc-kubernetes
-{% if cloud_provider_enabled and cloud_provider == "aws" %}
+{% if cloud_provider_enabled and cloud_provider == "ec2" %}
   - hostPath:
       path: /etc/aws/aws.conf
       type: File

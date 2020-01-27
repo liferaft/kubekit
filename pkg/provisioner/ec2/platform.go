@@ -1,4 +1,4 @@
-package aws
+package ec2
 
 // Name returns the platform name
 func (p *Platform) Name() string {

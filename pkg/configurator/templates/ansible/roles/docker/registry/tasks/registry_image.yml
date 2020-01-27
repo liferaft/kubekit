@@ -1,39 +1,23 @@
-  # the override is meant to override all prebake-paths in the MANIFEST
-  # the file should only contain a list of prebake paths, 1 path per line, that can be natively loaded by docker
-  - name: read MANIFEST image prebake-path override
-    shell: "[ -f /root/manifest.src ] && cat /root/manifest.src || echo ''"
-    register: manifest_src
+- name: check if registry is loaded
+  shell: "docker images -q {{ registry_image }}"
+  register: is_registry_loaded
 
-  - set_fact:
-      manifest_paths_override: "{{ manifest_src.stdout_lines | map('trim') | reject('equalto', '') | list }}"
+- name: check if registry archive exists, if not download to the expected prebake path
+  shell: >
+    {% set repo = ([ registry_image.split(':')[0], '@', registry_manifest['checksum_type'], ':', registry_manifest['checksum'] ] | join('')) %}
+    docker pull {{ repo }} && docker tag {{ repo }} {{ registry_image }} &&
+    mkdir -p {{ registry_archive_path | dirname }} &&
+    docker save {{ registry_image }} |
+    xz -z > {{ registry_archive_path }}
+  when: download_images_if_missing
+  args:
+    creates: "{{ registry_manifest['prebake-path'] }}"
 
-  - name: docker pull registry image if enabled
-    shell: "docker pull {{ current_manifest['dependencies']['core']['registry']['src'] }}"
-    register: docker_pull
-    when: download_images_if_missing and not current_manifest['dependencies']['core']['registry']['prebake-path']
-
-  - set_fact:
-      registry_image_downloaded: "{{ download_images_if_missing and not current_manifest['dependencies']['core']['registry']['prebake-path'] }}"
-
-  - name: docker load registry image file
-    shell: "docker load -i {{ item }}"
-    register: docker_load
-    failed_when: docker_load.rc != 0
-    with_items: "{% if not manifest_paths_override %}{{ [ current_manifest['dependencies']['core']['registry']['prebake-path'] ] }}{% else %}{{ manifest_paths_override }}{% endif %}"
-    when: not download_images_if_missing
-
-  - set_fact:
-      loaded_images: "{{ loaded_images | default([]) + item.stdout_lines | flatten | list }}"
-    with_items: "{{ docker_load.results }}"
-
-  - set_fact:
-      registry_image_candidates: "{{ loaded_images | sort | unique | select('match', '^Loaded image: (lrk/|lrk/docker.io/|docker.io/)?registry:.*$') | map('replace', 'Loaded image: ', '') | list }}"
-
-  - set_fact:
-      images_already_loaded: "{{ manifest_paths_override and not download_images_if_missing }}"
-      loaded_image_results: "{{ docker_load | default([], true) }}"
-      registry_image: "{% if registry_image_downloaded %}{{ current_manifest['dependencies']['core']['registry']['src'] }}{% else %}{{ registry_image_candidates | first }}{% endif %}"
-
-  # if repo is tagged with lrk, we assume that we dont have to add docker.io to it
-  - name: retag docker images
-    shell: "{% set repo = registry_image.split('/')[0].split(':')[0] %}docker tag {{ registry_image }} {% if repo != 'lrk' %}lrk/{% if '.' not in repo %}docker.io/{% endif %}{% endif %}{{ registry_image }}"
+- name: load registry image
+  shell: >
+    docker_load=$(docker load -i {{ registry_archive_path }})
+    && (loaded=$(echo "$docker_load" | awk '{print $NF}')
+    && [[ "$loaded" != "tdc/"* ]]
+    && ([ $(echo "$loaded" | awk -F':' '{print $1}' | awk -F'/' '{print $1}' | grep '\.') ] && docker tag "$loaded" "tdc/$loaded" || docker tag "$loaded" "tdc/docker.io/$loaded")
+    || echo "{{ registry_archive_path }} already loaded")
+  when: is_registry_loaded.stdout == ""

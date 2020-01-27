@@ -9,8 +9,8 @@ import (
 	"github.com/liferaft/kubekit/pkg/provisioner/utils"
 )
 
-// KubekitOS is the latest or stable KubekitOS template name
-const KubekitOS = "c0b5a78d-6b21-4f44-a839-1a16c9f5e525"
+// KubeOS is the latest or stable KubeOS template name
+const KubeOS = "24fd4594-8602-4d31-b3ed-623d3bc2fba4"
 
 // DefaultConfig is the default configuration for a openstack platform
 var defaultConfig = Config{
@@ -33,7 +33,7 @@ var defaultConfig = Config{
 
 var defaultNodePool = NodePool{
 	Count:             1,
-	OpenstackImageID:  KubekitOS,
+	OpenstackImageID:  KubeOS,
 	OpenstackFlavorID: "29",
 	SecurityGroups:    []string{"default"},
 	KubeletNodeLabels: []string{

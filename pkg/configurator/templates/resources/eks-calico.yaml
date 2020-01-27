@@ -1,6 +1,6 @@
 ---
 kind: DaemonSet
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 metadata:
   name: calico-node
   namespace: kube-system
@@ -25,8 +25,9 @@ spec:
         # if it ever gets evicted.
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
+      priorityClassName: system-node-critical
       nodeSelector:
-        kubernetes.io/os: linux
+        beta.kubernetes.io/os: linux
       hostNetwork: true
       serviceAccountName: calico-node
       # Minimize downtime during a rolling upgrade or deletion; tell Kubernetes to do a "force
@@ -37,7 +38,7 @@ spec:
         # container programs network policy and routes on each
         # host.
         - name: calico-node
-          image: quay.io/calico/node:v3.3.6
+          image: quay.io/calico/node:v3.8.1
           env:
             # Use Kubernetes API as the backing datastore.
             - name: DATASTORE_TYPE
@@ -62,6 +63,10 @@ spec:
             # Set Felix endpoint to host default action to ACCEPT.
             - name: FELIX_DEFAULTENDPOINTTOHOSTACTION
               value: "ACCEPT"
+            # This will make Felix honor AWS VPC CNI's mangle table
+            # rules.
+            - name: FELIX_IPTABLESMANGLEALLOWACTION
+              value: Return
             # Disable IPV6 on Kubernetes.
             - name: FELIX_IPV6SUPPORT
               value: "false"
@@ -153,7 +158,10 @@ metadata:
 spec:
   scope: Cluster
   group: crd.projectcalico.org
-  version: v1
+  versions:
+    - name: v1
+      served: true
+      storage: true
   names:
     kind: FelixConfiguration
     plural: felixconfigurations
@@ -164,16 +172,71 @@ spec:
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
+  name: ipamblocks.crd.projectcalico.org
+spec:
+  scope: Cluster
+  group: crd.projectcalico.org
+  versions:
+    - name: v1
+      served: true
+      storage: true
+  names:
+    kind: IPAMBlock
+    plural: ipamblocks
+    singular: ipamblock
+
+---
+
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: blockaffinities.crd.projectcalico.org
+spec:
+  scope: Cluster
+  group: crd.projectcalico.org
+  versions:
+    - name: v1
+      served: true
+      storage: true
+  names:
+    kind: BlockAffinity
+    plural: blockaffinities
+    singular: blockaffinity
+
+---
+
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
   name: bgpconfigurations.crd.projectcalico.org
 spec:
   scope: Cluster
   group: crd.projectcalico.org
-  version: v1
+  versions:
+    - name: v1
+      served: true
+      storage: true
   names:
     kind: BGPConfiguration
     plural: bgpconfigurations
     singular: bgpconfiguration
 
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: bgppeers.crd.projectcalico.org
+spec:
+  scope: Cluster
+  group: crd.projectcalico.org
+  versions:
+    - name: v1
+      served: true
+      storage: true
+  names:
+    kind: BGPPeer
+    plural: bgppeers
+    singular: bgppeer
 ---
 
 apiVersion: apiextensions.k8s.io/v1beta1
@@ -183,7 +246,10 @@ metadata:
 spec:
   scope: Cluster
   group: crd.projectcalico.org
-  version: v1
+  versions:
+    - name: v1
+      served: true
+      storage: true
   names:
     kind: IPPool
     plural: ippools
@@ -281,6 +347,24 @@ spec:
 
 ---
 
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: networksets.crd.projectcalico.org
+spec:
+  scope: Namespaced
+  group: crd.projectcalico.org
+  versions:
+    - name: v1
+      served: true
+      storage: true
+  names:
+    kind: NetworkSet
+    plural: networksets
+    singular: networkset
+
+---
+
 # Create the ServiceAccount and roles necessary for Calico.
 
 apiVersion: v1
@@ -292,7 +376,7 @@ metadata:
 ---
 
 kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: calico-node
 rules:
@@ -309,6 +393,12 @@ rules:
       - pods/status
     verbs:
       - patch
+  - apiGroups: [""]
+    resources:
+      - nodes/status
+    verbs:
+      - patch
+      - update
   - apiGroups: [""]
     resources:
       - pods
@@ -355,9 +445,11 @@ rules:
       - globalbgpconfigs
       - bgpconfigurations
       - ippools
+      - ipamblocks
       - globalnetworkpolicies
       - globalnetworksets
       - networkpolicies
+      - networksets
       - clusterinformations
       - hostendpoints
     verbs:
@@ -366,10 +458,26 @@ rules:
       - list
       - update
       - watch
+  - apiGroups: ["crd.projectcalico.org"]
+    resources:
+      - blockaffinities
+      - ipamblocks
+      - ipamhandles
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - delete
+  - apiGroups: ["crd.projectcalico.org"]
+    resources:
+      - blockaffinities
+    verbs:
+      - watch
 
 ---
 
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: calico-node
@@ -384,7 +492,7 @@ subjects:
 
 ---
 
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: calico-typha
@@ -401,6 +509,7 @@ spec:
         scheduler.alpha.kubernetes.io/critical-pod: ''
         cluster-autoscaler.kuberentes.io/safe-to-evict: 'true'
     spec:
+      priorityClassName: system-cluster-critical
       nodeSelector:
         kubernetes.io/os: linux
       tolerations:
@@ -410,7 +519,7 @@ spec:
       hostNetwork: true
       serviceAccountName: calico-node
       containers:
-        - image: quay.io/calico/typha:v3.3.6
+        - image: quay.io/calico/typha:v3.8.1
           name: calico-typha
           ports:
             - containerPort: 5473
@@ -438,20 +547,22 @@ spec:
               value: "1"
             - name: TYPHA_HEALTHENABLED
               value: "true"
+            # This will make Felix honor AWS VPC CNI's mangle table
+            # rules.
+            - name: FELIX_IPTABLESMANGLEALLOWACTION
+              value: Return
           livenessProbe:
-            exec:
-              command:
-                - calico-typha
-                - check
-                - liveness
+            httpGet:
+              path: /liveness
+              port: 9098
+              host: localhost
             periodSeconds: 30
             initialDelaySeconds: 30
           readinessProbe:
-            exec:
-              command:
-                - calico-typha
-                - check
-                - readiness
+            httpGet:
+              path: /readiness
+              port: 9098
+              host: localhost
             periodSeconds: 10
 
 ---
@@ -471,7 +582,7 @@ spec:
       k8s-app: calico-typha
 
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: typha-cpha
@@ -486,7 +597,7 @@ subjects:
 
 ---
 
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: typha-cpha
@@ -521,7 +632,7 @@ data:
 
 ---
 
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: calico-typha-horizontal-autoscaler
@@ -537,6 +648,9 @@ spec:
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
+      priorityClassName: system-cluster-critical
+      nodeSelector:
+        beta.kubernetes.io/os: linux
       containers:
         - image: k8s.gcr.io/cluster-proportional-autoscaler-amd64:1.1.2
           name: autoscaler
@@ -556,7 +670,7 @@ spec:
 
 ---
 
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: typha-cpha
@@ -579,7 +693,7 @@ metadata:
 
 ---
 
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: typha-cpha
@@ -610,17 +724,3 @@ spec:
       name: calico-typha
   selector:
     k8s-app: calico-typha
-
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: bgppeers.crd.projectcalico.org
-spec:
-  scope: Cluster
-  group: crd.projectcalico.org
-  version: v1
-  names:
-    kind: BGPPeer
-    plural: bgppeers
-    singular: bgppeer

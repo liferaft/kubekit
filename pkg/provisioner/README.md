@@ -1,7 +1,6 @@
 # KubeKit Provisioner Go Package
 
-This is a [KubeKit](https://kubekit.dev)
-Go package to create a Kubernetes-ready infrastructure on different platforms or clouds. It is used by the KubeKit CLI and the KubeKit Provisioner Microservice.
+This is a [KubeKit](https://kubekit.dev) Go package to create a Kubernetes-ready infrastructure on different platforms or clouds. It is used by the KubeKit CLI and the KubeKit Provisioner Microservice.
 
 The Go package encapsulate Terraform code which is executed on the user computer, however, **Terraform is not required**.
 
@@ -80,7 +79,7 @@ The provisioner has the `Apply()` function to create or destroy a cluster of nod
 
     import (
       "fmt"
-      "github.com/kubekit/provisioner"
+      "github.com/liferaft/provisioner"
     )
 
     func Create() error {

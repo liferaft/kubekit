@@ -1,0 +1,9 @@
+---
+
+- name: checking if cloud conf file exists on aws
+  stat:
+    path: "/etc/aws/aws.conf"
+  register: cloudconf
+  failed_when: not cloudconf.stat.exists
+  any_errors_fatal: true
+  when: cloud_provider == "aws"

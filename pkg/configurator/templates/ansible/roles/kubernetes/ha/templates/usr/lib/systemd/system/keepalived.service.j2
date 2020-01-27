@@ -18,7 +18,7 @@ ExecStart=/usr/bin/docker run --rm --network=host --privileged \
     -v /etc/sysconfig/keepalived:/etc/sysconfig/keepalived:ro \
     -v /etc/systemd/system/bynet.service.d:/etc/systemd/system/bynet.service.d:ro \
     --name keepalived \
-    lrk/{{ current_manifest['dependencies']['control-plane']['keepalived']['src'] }} \
+    tdc/{{ current_manifest['dependencies']['control-plane']['keepalived']['src'] }} \
         /usr/sbin/keepalived --dont-fork --dump-conf --log-console --log-detail --log-facility 7 --vrrp -f /etc/keepalived/keepalived.conf
 
 ExecStop=/usr/bin/docker stop -t 2 keepalived

@@ -123,6 +123,11 @@ items:
           containers:
             - image: {{ core_repo_root }}{{ current_manifest['dependencies']['core']['heapster']['src'] }}
               name: heapster
+              env:
+              - name: GOMAXPROCS
+                valueFrom:
+                  resourceFieldRef:
+                    resource: limits.cpu
               resources:
                 # keep request = limit to keep this container in guaranteed class
                 # heapster limits provided by: https://github.com/kubernetes/kubernetes/issues/10256
@@ -151,6 +156,19 @@ items:
             # heapster only supports one source at a time, so we need to create another container
             - image: {{ core_repo_root }}{{ current_manifest['dependencies']['core']['heapster']['src'] }}
               name: heapster-legacy
+{% if heapster_legacy_limits_cpu %}
+{% set cpu_limit_str = (heapster_legacy_limits_cpu|string) %}
+{% if cpu_limit_str[-1] == 'm' %}
+{% set cpu_limit_int = (cpu_limit_str[:-1]|int) %}
+{% else %}
+{% set cpu_limit_int = (cpu_limit_str|int) %}
+{% endif %}
+              env:
+              # needs to be set to 1 if cpu less than 1
+              - name: GOMAXPROCS
+                value: "{% if cpu_limit_str[-1] == 'm' %}{{ [ 1, (cpu_limit_int / 1000) ] | max }}{% elif '.' in cpu_limit_str %}{{ [ 1, cpu_limit_int ] | max }}{% else %}{{ cpu_limit_int }}{% endif %}"
+{% endif %}
+
               resources:
                 # keep request = limit to keep this container in guaranteed class
                 # heapster limits provided by: https://github.com/kubernetes/kubernetes/issues/10256
@@ -177,6 +195,19 @@ items:
                 name: legacy
             - image: {{ core_repo_root }}{{ current_manifest['dependencies']['core']['addon-resizer']['src'] }}
               name: heapster-nanny
+{% if nanny_limits_cpu %}
+{% set cpu_limit_str = (nanny_limits_cpu|string) %}
+{% if cpu_limit_str[-1] == 'm' %}
+{% set cpu_limit_int = (cpu_limit_str[:-1]|int) %}
+{% else %}
+{% set cpu_limit_int = (cpu_limit_str|int) %}
+{% endif %}
+              env:
+              # needs to be set to 1 if cpu less than 1
+              - name: GOMAXPROCS
+                value: "{% if cpu_limit_str[-1] == 'm' %}{{ [ 1, (cpu_limit_int / 1000) ] | max }}{% elif '.' in cpu_limit_str %}{{ [ 1, cpu_limit_int ] | max }}{% else %}{{ cpu_limit_int }}{% endif %}"
+{% endif %}
+
               resources:
                 requests:
                   cpu: {{ nanny_requests_cpu }}
@@ -214,6 +245,19 @@ items:
             # for legacy source
             - image: {{ core_repo_root }}{{ current_manifest['dependencies']['core']['addon-resizer']['src'] }}
               name: heapster-nanny-legacy
+{% if nanny_legacy_limits_cpu %}
+{% set cpu_limit_str = (nanny_legacy_limits_cpu|string) %}
+{% if cpu_limit_str[-1] == 'm' %}
+{% set cpu_limit_int = (cpu_limit_str[:-1]|int) %}
+{% else %}
+{% set cpu_limit_int = (cpu_limit_str|int) %}
+{% endif %}
+              env:
+              # needs to be set to 1 if cpu less than 1
+              - name: GOMAXPROCS
+                value: "{% if cpu_limit_str[-1] == 'm' %}{{ [ 1, (cpu_limit_int / 1000) ] | max }}{% elif '.' in cpu_limit_str %}{{ [ 1, cpu_limit_int ] | max }}{% else %}{{ cpu_limit_int }}{% endif %}"
+{% endif %}
+
               resources:
                 requests:
                   cpu: {{ nanny_legacy_requests_cpu }}

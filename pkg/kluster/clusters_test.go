@@ -84,12 +84,12 @@ func TestCreateCluster(t *testing.T) {
 		wantCluster kluster
 		wantErr     bool
 	}{
-		{"default cluster on aws", args{"kkdemo01", "aws", map[string]string{}}, kluster{name: "kkdemo01",
+		{"default cluster on aws", args{"kkdemo01", "ec2", map[string]string{}}, kluster{name: "kkdemo01",
 			awsVpcID:           requiredValueTxt + "vpc-8d56b9e9",
 			awsSecurityGroupID: requiredValueTxt + "sg-502d9a37",
 			awsSubnetID:        requiredValueTxt + "subnet-5bddc82c",
 		}, false},
-		{"simple cluster on aws", args{"kkdemo02", "aws", map[string]string{
+		{"simple cluster on aws", args{"kkdemo02", "ec2", map[string]string{
 			"aws_subnet_id": "vpc-8d56b9e9",
 			"default_node_pool__aws_security_group_id": "sg-502d9a37",
 			"default_node_pool__aws_subnet_id":         "subnet-5bddc82c",

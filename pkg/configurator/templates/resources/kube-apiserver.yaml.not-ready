@@ -41,7 +41,7 @@ spec:
     - --secure-port={{ kube_api_ssl_port }}
     - --etcd-servers=$(ETCD_SERVERS)
     - --service-cluster-ip-range={{ kube_services_cidr }}
-{% if cloud_provider_enabled and cloud_provider == "aws" %}
+{% if cloud_provider_enabled and cloud_provider == "ec2" %}
     - --cloud-provider=aws
     - --cloud-config=/etc/aws/aws.conf
 {% elif cloud_provider_enabled and cloud_provider == "vsphere" %}
@@ -88,7 +88,7 @@ spec:
     - mountPath: {{ kube_folder }}
       name: etc-kubernetes
       readOnly: true
-{% if cloud_provider_enabled and cloud_provider == "aws" %}
+{% if cloud_provider_enabled and cloud_provider == "ec2" %}
     - mountPath: /etc/aws/aws.conf
       name: cloud-provider-conf
       readOnly: true
@@ -129,7 +129,7 @@ spec:
       path: {{ kube_folder }}
       type: Directory
     name: etc-kubernetes
-{% if cloud_provider_enabled and cloud_provider == "aws" %}
+{% if cloud_provider_enabled and cloud_provider == "ec2" %}
   - hostPath:
       path: /etc/aws/aws.conf
       type: File

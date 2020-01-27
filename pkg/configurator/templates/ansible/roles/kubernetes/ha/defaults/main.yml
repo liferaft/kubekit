@@ -1,6 +1,6 @@
 ---
 # allows forcing the usage of IPs instead of DNS entries if needed
-address_inventory_field: "{% if cloud_provider == 'aws' %}private_ip{% else %}private_dns{% endif %}"
+address_inventory_field: "{% if cloud_provider == 'ec2' %}private_ip{% else %}private_dns{% endif %}"
 
 # Default virtual ip is the IP of the first (and only) master.
 kube_virtual_ip_api: "{{ hostvars[groups['master'][0]]['private_ip'] }}"

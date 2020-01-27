@@ -71,7 +71,7 @@
       group: kube
       mode: 0640
 
-  when: cloud_provider_enabled and cloud_provider == 'aws'
+  when: cloud_provider_enabled and cloud_provider == 'ec2'
 
 - block:
   # This was supposed to not be necessary as per this K8 PR
@@ -329,16 +329,30 @@
     retries: 30  # usually need to wait about 3 minutes
     delay: 10
 
+  - name: wait for local kube apiserver to be available
+    shell: |
+      curl -s https://localhost:{{ kube_api_ssl_port }} \
+        --cacert {{ cert_dir }}/{{ root_ca_crt_filename }} \
+        --cert {{ cert_dir }}/{{ certs.admin.crt }} \
+        --key {{ cert_dir }}/{{ certs.admin.key }}
+    retries: 60  # kubelet will take some time to load the static pod manifests
+    delay: 10
+    register: local_apiserver_availability
+    until: "'ok' in local_apiserver_availability.stdout"
+    # action has no previous state to compare. should be pass fail.
+    changed_when: no
+
+  # NOTE: the uri module doesn't let us pass the CA certificate without jumping through more hoops
   - name: wait until kube apiserver is available
-    uri:
-      url: "{{ kube_api_server_local }}/healthz"
-      status_code: 200
-      client_cert: "{{ cert_dir }}/{{ certs.admin.crt }}"
-      client_key: "{{ cert_dir }}/{{ certs.admin.key }}"
+    shell: |
+      curl -s {% if groups['master']|length == 1 and 'master' in group_names %}https://localhost:{{ kube_api_ssl_port }}{% elif (is_ha_cluster | bool) %}{{ kube_vip_api_server }}{% elif cloud_provider != 'aws' %}https://{{ hostvars['master000'][address_inventory_field] }}:{{ kube_api_ssl_port }}{% else %}https://{{ hostvars['master000']['private_ip'] }}:{{ kube_api_ssl_port }}{% endif %}/healthz \
+        --cacert {{ cert_dir }}/{{ root_ca_crt_filename }} \
+        --cert {{ cert_dir }}/{{ certs.admin.crt }} \
+        --key {{ cert_dir }}/{{ certs.admin.key }}
     retries: 60  # kubelet will take some time to load the static pod manifests
     delay: 10
     register: apiserver_availability
-    until: ('status' in apiserver_availability) and (apiserver_availability.status == 200)
+    until: "'ok' in apiserver_availability.stdout"
     # action has no previous state to compare. should be pass fail.
     changed_when: no
 
@@ -356,15 +370,20 @@
 
   - name: apply non-static control plane manifest
     shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig apply -f /srv/kubernetes/manifests/control-plane/"
+    register: apply_non_static_control_plane_manifest
+    until: apply_non_static_control_plane_manifest.rc == 0
+    retries: 10
+    delay: 5
     when: inventory_hostname == 'master000'
 
-  when: "'master' in group_names"
+  - name: test validity of kubeconfig
+    shell: "docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig get nodes"
+    register: kubeconfig_validity
+    until: kubeconfig_validity.rc == 0
+    retries: 10
+    delay: 5
 
-- name: test validity of kubeconfig
-  shell: docker exec kubelet kubectl --kubeconfig=/var/lib/kubelet/kubeconfig get nodes
-  when: inventory_hostname == 'master000'
-  retries: 6
-  delay: 10
+  when: "'master' in group_names"
 
 - name: "copy kubectl script to /usr/local/bin"
   copy:
@@ -400,7 +419,7 @@
 - block:
 
   - set_fact:
-      etcd_endpoints: "{% for host in groups['master'] -%}https://{% if is_ha_cluster and enable_etcd_local_proxy %}127.0.0.1:{{ etcd_starting_proxy_advertise_port|int + loop.index0 }}{% elif cloud_provider == 'aws' %}{{ hostvars[host]['private_ip'] }}:2379{% else %}{{ hostvars[host][address_inventory_field] }}:2379{% endif %}{% if not loop.last %},{% endif %}{%- endfor %}"
+      etcd_endpoints: "{% for host in groups['master'] -%}https://{% if is_ha_cluster and enable_etcd_local_proxy %}127.0.0.1:{{ etcd_starting_proxy_advertise_port|int + loop.index0 }}{% elif cloud_provider == 'ec2' %}{{ hostvars[host]['private_ip'] }}:2379{% else %}{{ hostvars[host][address_inventory_field] }}:2379{% endif %}{% if not loop.last %},{% endif %}{%- endfor %}"
 
   - name: 'set alias etcdctl-endpoints for root'
     lineinfile:

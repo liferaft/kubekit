@@ -17,32 +17,53 @@ metadata:
 spec:
   cephVersion:
     # The container image used to launch the Ceph daemon pods (mon, mgr, osd, mds, rgw).
-    # v12 is luminous, v13 is mimic, and v14 is nautilus.
+    # v13 is mimic, v14 is nautilus, and v15 is octopus.
     # RECOMMENDATION: In production, use a specific version tag instead of the general v14 flag, which pulls the latest release and could result in different
     # versions running within the cluster. See tags available at https://hub.docker.com/r/ceph/ceph/tags/.
+    # If you want to be more precise, you can always use a timestamp tag such ceph/ceph:v14.2.5-20190917
+    # This tag might not contain a new Ceph version, just security fixes from the underlying operating system, which will reduce vulnerabilities
     image: {{ core_repo_root }}{{ current_manifest['dependencies']['core']['ceph']['src'] }}
-    # Whether to allow unsupported versions of Ceph. Currently luminous, mimic and nautilus are supported, with the recommendation to upgrade to nautilus.
+    # Whether to allow unsupported versions of Ceph. Currently mimic and nautilus are supported, with the recommendation to upgrade to nautilus.
+    # Octopus is the version allowed when this is set to true.
     # Do not set to true in production.
     allowUnsupported: false
   # The path on the host where configuration files will be persisted. Must be specified.
   # Important: if you reinstall the cluster, make sure you delete this directory from each host or else the mons will fail to start on the new cluster.
   # In Minikube, the '/data' directory is configured to persist across reboots. Use "/data/rook" in Minikube environment.
   dataDirHostPath: {{ rook_config_data_dir }}
+  # Whether or not upgrade should continue even if a check fails
+  # This means Ceph's status could be degraded and we don't recommend upgrading but you might decide otherwise
+  # Use at your OWN risk
+  # To understand Rook's upgrade process of Ceph, read https://rook.io/docs/rook/master/ceph-upgrade.html#ceph-version-upgrades
+  skipUpgradeChecks: false
   # set the amount of mons to be started
   mon:
     count: {{ rook_ceph_monitor_count }}
     allowMultiplePerNode: {{ rook_ceph_monitor_allow_multiple_per_node | bool }}
+  mgr:
+    modules:
+    # Several modules should not need to be included in this list. The "dashboard" and "monitoring" modules
+    # are already enabled by other settings in the cluster CR and the "rook" module is always enabled.
+    - name: pg_autoscaler
+      enabled: true
   # enable the ceph dashboard for viewing cluster status
   dashboard:
     enabled: {{ rook_dashboard_enabled | bool }}
     # serve the dashboard under a subpath (useful when you are accessing the dashboard via a reverse proxy)
     # urlPrefix: /ceph-dashboard
     # serve the dashboard at the given port.
-    port: {{ rook_dashboard_port }}
+    port: {{ rook_dashboard_port | default(7665) }}
     # serve the dashboard using SSL
     # ssl: true
+  # enable prometheus alerting for cluster
   monitoring:
+    # requires Prometheus to be pre-installed
     enabled: {{ rook_monitoring_enabled | bool }}
+    # namespace to deploy prometheusRule in. If empty, namespace of the cluster will be used.
+    # Recommended:
+    # If you have a single rook-ceph cluster, set the rulesNamespace to the same namespace as the cluster or keep it empty.
+    # If you have multiple rook-ceph clusters in the same k8s cluster, choose the same namespace (ideally, namespace with prometheus
+    # deployed) to set rulesNamespace for all the clusters. Otherwise, you will get duplicate alerts with multiple alert definitions.
     rulesNamespace: rook-ceph
   network:
     # toggle to use hostNetwork
@@ -55,16 +76,27 @@ spec:
   # The example under 'all' would have all services scheduled on kubernetes nodes labeled with 'role=storage-node' and
   # tolerate taints with a key of 'storage-node'.
   placement:
+{# there is a bug in rook if all is empty/undefined but another field is non-empty, it panics with nil pointer exception #}
+{% if rook_ceph_placement_options_all or rook_ceph_placement_options_mon or rook_ceph_placement_options_osd or rook_ceph_placement_options_mgr %}
     all: {{ rook_ceph_placement_options_all }}
     mon: {{ rook_ceph_placement_options_mon }}
     osd: {{ rook_ceph_placement_options_osd }}
     mgr: {{ rook_ceph_placement_options_mgr }}
+{% endif %}
   annotations:
+{# there is a bug in rook if all is empty/undefined but another field is non-empty, it panics with nil pointer exception #}
+{% if rook_ceph_annotation_options_all or rook_ceph_annotation_options_mon or rook_ceph_annotation_options_osd or rook_ceph_annotation_options_mgr %}
     all: {{ rook_ceph_annotation_options_all }}
     mon: {{ rook_ceph_annotation_options_mon }}
     osd: {{ rook_ceph_annotation_options_osd }}
     # If no mgr annotations are set, prometheus scrape annotations will be set by default.
     mgr: {{ rook_ceph_annotation_options_mgr }}
+{% endif %}
+  priorityClassNames:
+    all: ceph-system-critical
+    mon: ceph-system-critical
+    osd: ceph-storage-critical
+    mgr: ceph-system-critical
   resources:
     # The requests and limits set here, allow the mgr pod to use half of one CPU core and 1 gigabyte of memory
     mgr:
@@ -88,6 +120,8 @@ spec:
       requests:
         cpu: "{{ rook_ceph_osd_resource_requests_cpu }}"
         memory: "{{ rook_ceph_osd_resource_requests_mem }}"
+  # The option to automatically remove OSDs that are out and are safe to destroy.
+  removeOSDsIfOutAndSafeToRemove: false
   storage: # cluster level storage configuration and selection
     useAllNodes: {{ rook_ceph_storage_use_all_nodes | bool }}
     useAllDevices: {{ rook_ceph_storage_use_all_devices | bool }}
@@ -132,3 +166,18 @@ spec:
 #        storeType: filestore
 #    - name: "172.17.4.301"
 #      deviceFilter: "^sd."
+#      deviceFilter: "^sd."
+  # The section for configuring management of daemon disruptions during upgrade or fencing.
+  disruptionManagement:
+    # If true, the operator will create and manage PodDisruptionBudgets for OSD, Mon, RGW, and MDS daemons. OSD PDBs are managed dynamically
+    # via the strategy outlined in the [design](https://github.com/rook/rook/blob/master/design/ceph-managed-disruptionbudgets.md). The operator will
+    # block eviction of OSDs by default and unblock them safely when drains are detected.
+    managePodBudgets: false
+    # A duration in minutes that determines how long an entire failureDomain like "region/zone/host" will be held in "noout" (in addition to the
+    # default DOWN/OUT interval) when it is draining. This is only relevant when  "managePodBudgets" is "true". The default value is "30" minutes.
+    osdMaintenanceTimeout: 30
+    # If true, the operator will create and manage MachineDisruptionBudgets to ensure OSDs are only fenced when the cluster is healthy.
+    # Only available on OpenShift.
+    #manageMachineDisruptionBudgets: false
+    # Namespace in which to watch for the MachineDisruptionBudgets.
+    #machineDisruptionBudgetNamespace: openshift-machine-api

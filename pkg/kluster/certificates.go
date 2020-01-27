@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,6 +15,10 @@ import (
 
 	"github.com/kraken/ui"
 	"github.com/liferaft/kubekit/pkg/crypto/tls"
+	"github.com/liferaft/kubekit/pkg/provisioner/raw"
+	"github.com/liferaft/kubekit/pkg/provisioner/stacki"
+	"github.com/liferaft/kubekit/pkg/provisioner/vra"
+	"github.com/liferaft/kubekit/pkg/provisioner/vsphere"
 )
 
 // CACert encapsulate the CN and CLI description for a CA cert
@@ -237,7 +242,7 @@ var CertNames = map[string]Cert{
 
 // GenerateCerts generates all the certificates self-signed if the CA Key and
 // Cert are not provided.
-func (k *Kluster) GenerateCerts(userCACertsFiles tls.KeyPairs, overwrite bool) error {
+func (k *Kluster) GenerateCerts(userCACertsFiles tls.KeyPairs, forceGenerateCA bool) error {
 	platformName := k.Platform()
 	logPrefix := fmt.Sprintf("Certificates [ %s@%s ]", k.Name, platformName)
 	k.ui.SetLogPrefix(logPrefix)
@@ -258,7 +263,7 @@ func (k *Kluster) GenerateCerts(userCACertsFiles tls.KeyPairs, overwrite bool) e
 	k.certificates = make(tls.KeyPairs, len(CACertNames)+len(CertNames))
 
 	// Let's create the CA certificates ...
-	if _, err := k.genCACertificates(baseCertsDir, userCACertsFiles, platformName); err != nil {
+	if _, err := k.genCACertificates(baseCertsDir, userCACertsFiles, platformName, forceGenerateCA); err != nil {
 		return err
 	}
 	// ... the Certificates
@@ -268,7 +273,7 @@ func (k *Kluster) GenerateCerts(userCACertsFiles tls.KeyPairs, overwrite bool) e
 	// return k.certificates.Save(overwrite)
 }
 
-func (k *Kluster) genCACertificates(baseCertsDir string, userCACertsFiles tls.KeyPairs, platform string) (tls.KeyPairs, error) {
+func (k *Kluster) genCACertificates(baseCertsDir string, userCACertsFiles tls.KeyPairs, platform string, forceGenerate bool) (tls.KeyPairs, error) {
 	// TODO: If files are empty (not given by user in flags) check if the files
 	// are in the cluster certificates directory
 
@@ -352,9 +357,20 @@ func (k *Kluster) genCACertificates(baseCertsDir string, userCACertsFiles tls.Ke
 			return fmt.Errorf("CA certificate information not found for %s", name)
 		}
 
-		fromCAKeyPair, err := getCACertSourceFiles(certFile)
-		if err != nil {
-			return err
+		var fromCAKeyPair *tls.KeyPair
+		var err error
+		if forceGenerate {
+			// TODO: rename CAs that are to be replaced as *_ca.crt.old then form cert chain by concat in ansible
+
+			fromCAKeyPair = &tls.KeyPair{
+				CertFile: "",
+				KeyFile:  "",
+			}
+		} else {
+			fromCAKeyPair, err = getCACertSourceFiles(certFile)
+			if err != nil {
+				return err
+			}
 		}
 
 		if fromCAKeyPair.CertFile == "" {
@@ -463,11 +479,74 @@ func (k *Kluster) genCertificates(baseCertsDir string, platform string) (tls.Key
 	}
 
 	address := k.State[platform].Address
+	var publicVIPAddress string
+	// TEMP HACK UNTIL REWRITE OF ADDRESS SYSTEM
+	// DUE TO QUALITY TIMELINE . . .
+	switch platform {
+
+	case "stacki":
+		cfg, ok := k.Platforms["stacki"].(*stacki.Config)
+		if !ok {
+			cfg = stacki.NewConfigFrom(k.Platforms["stacki"].(map[interface{}]interface{}))
+		}
+
+		if cfg.DisableMasterHA {
+			break
+		}
+		if cfg.KubeVirtualIPApi != "" {
+			address = cfg.KubeVirtualIPApi
+		}
+		if cfg.PublicVirtualIP != "" {
+			publicVIPAddress = cfg.PublicVirtualIP
+		}
+	case "vra":
+		cfg, ok := k.Platforms["vra"].(*vra.Config)
+		if !ok {
+			cfg = vra.NewConfigFrom(k.Platforms["vra"].(map[interface{}]interface{}))
+		}
+
+		if !cfg.DisableMasterHA && cfg.KubeVirtualIPApi != "" {
+			address = cfg.KubeVirtualIPApi
+		}
+	case "vsphere":
+		cfg, ok := k.Platforms["vsphere"].(*vsphere.Config)
+		if !ok {
+			cfg = vsphere.NewConfigFrom(k.Platforms["vsphere"].(map[interface{}]interface{}))
+		}
+
+		if !cfg.DisableMasterHA && cfg.PublicVirtualIP != "" {
+			publicVIPAddress = cfg.PublicVirtualIP
+		}
+	case "raw":
+		cfg, ok := k.Platforms["raw"].(*raw.Config)
+		if !ok {
+			cfg = raw.NewConfigFrom(k.Platforms["raw"].(map[interface{}]interface{}))
+		}
+
+		if cfg.DisableMasterHA {
+			break
+		}
+		if cfg.KubeVirtualIPApi != "" {
+			address = cfg.KubeVirtualIPApi
+		}
+		if cfg.PublicVirtualIP != "" {
+			publicVIPAddress = cfg.PublicVirtualIP
+		}
+	}
+
 	if len(address) > 0 {
-		if isIP, _ := regexp.MatchString(`^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$`, address); isIP {
+		if net.ParseIP(address).To4() != nil {
 			clusterIPS["VIP"] = []string{address}
 		} else {
 			clusterDNSs["ALB"] = []string{address}
+		}
+	}
+
+	if len(publicVIPAddress) > 0 && net.ParseIP(publicVIPAddress).To4() != nil {
+		if _, ok := clusterIPS["VIP"]; ok {
+			clusterIPS["VIP"] = append(clusterIPS["VIP"], publicVIPAddress)
+		} else {
+			clusterIPS["VIP"] = []string{publicVIPAddress}
 		}
 	}
 
@@ -547,24 +626,25 @@ func (k *Kluster) genCertificates(baseCertsDir string, platform string) (tls.Key
 
 		certName := name
 		cn := certInfo.CN
-		loadedMsg := fmt.Sprintf("loaded certificate for %s", name)
+		//loadedMsg := fmt.Sprintf("loaded certificate for %s", name)
 		genMsg := fmt.Sprintf("generating the certificate for %s%s", name, fromCACertText)
 
 		if len(hostname) != 0 {
 			certName = name + "@" + hostname
 			cn = strings.Replace(certInfo.CN, "{{ hostname }}", hostname, 1)
-			loadedMsg = fmt.Sprintf("loaded the node %s certificate for %s", hostname, name)
+			//loadedMsg = fmt.Sprintf("loaded the node %s certificate for %s", hostname, name)
 			genMsg = fmt.Sprintf("generating the node %s certificate for %s%s", hostname, name, fromCACertText)
 		}
 
-		if kp, err := tls.Load(baseCertsDir, name, cn); err == nil {
-			k.ui.Log.Infof(loadedMsg)
-			// if !equal(kp, certInfo) {
-			// 	k.ui.Log.Warnf("loaded certificate for %s, does not contain the exact default configuration", name)
-			// }
-
-			return saveKeyPair(certName, kp)
-		}
+		// JUST GENERATE NEW
+		//if kp, err := tls.Load(baseCertsDir, name, cn); err == nil {
+		//	k.ui.Log.Infof(loadedMsg)
+		//	// if !equal(kp, certInfo) {
+		//	// 	k.ui.Log.Warnf("loaded certificate for %s, does not contain the exact default configuration", name)
+		//	// }
+		//
+		//	return saveKeyPair(certName, kp)
+		//}
 
 		k.ui.Log.Infof(genMsg)
 		// k.ui.Log.Debugf("using the IPs %s and DNSs %s", ips, dns)

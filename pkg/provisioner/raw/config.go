@@ -8,18 +8,19 @@ import (
 
 // DefaultConfig is the default configuration for a raw platform
 var defaultConfig = Config{
-	Username:          "root",
-	Password:          "$up3r5ecret",
-	PrivateKeyFile:    requiredValue + "/home/username/.ssh/id_rsa",
-	PublicKeyFile:     requiredValue + "/home/username/.ssh/id_rsa.pub",
-	APIAddress:        requiredValue + "39.80.0.50",
-	KubeAPISSLPort:    6443,
-	KubeVIPAPISSLPort: 8443,
-	KubeVirtualIPApi:  "",
-	DisableMasterHA:   false,
-	DNSServers:        []string{"153.64.180.100", "153.64.251.200"},
-	TimeServers:       []string{"0.us.pool.ntp.org", "1.us.pool.ntp.org", "2.us.pool.ntp.org"},
-	DefaultNodePool:   defaultNodePool,
+	Username:               "root",
+	Password:               "$up3r5ecret",
+	PrivateKeyFile:         requiredValue + "/home/username/.ssh/id_rsa",
+	PublicKeyFile:          requiredValue + "/home/username/.ssh/id_rsa.pub",
+	APIAddress:             requiredValue + "39.80.0.50",
+	KubeAPISSLPort:         6443,
+	KubeVIPAPISSLPort:      8443,
+	PublicVirtualIPSSLPort: 9377,
+	KubeVirtualIPApi:       "",
+	DisableMasterHA:        false,
+	DNSServers:             []string{"153.64.180.100", "153.64.251.200"},
+	TimeServers:            []string{"0.us.pool.ntp.org", "1.us.pool.ntp.org", "2.us.pool.ntp.org"},
+	DefaultNodePool:        defaultNodePool,
 	NodePools: map[string]NodePool{
 		"master": defaultMasterNodePool,
 		"worker": defaultWorkerNodePool,
@@ -96,6 +97,8 @@ type Config struct {
 	KubeVirtualIPShortname string              `json:"kube_virtual_ip_shortname" yaml:"kube_virtual_ip_shortname" mapstructure:"kube_virtual_ip_shortname"`
 	KubeVirtualIPApi       string              `json:"kube_virtual_ip_api" yaml:"kube_virtual_ip_api" mapstructure:"kube_virtual_ip_api"`
 	KubeVIPAPISSLPort      int                 `json:"kube_vip_api_ssl_port" yaml:"kube_vip_api_ssl_port" mapstructure:"kube_vip_api_ssl_port"`
+	PublicVirtualIP        string              `json:"public_virtual_ip" yaml:"public_virtual_ip" mapstructure:"public_virtual_ip"`
+	PublicVirtualIPSSLPort int                 `json:"public_virtual_ip_ssl_port" yaml:"public_virtual_ip_ssl_port" mapstructure:"public_virtual_ip_ssl_port"`
 	Username               string              `json:"username" yaml:"username" mapstructure:"username"`
 	Password               string              `json:"password" yaml:"password" mapstructure:"password"`
 	PrivateKey             string              `json:"private_key,omitempty" yaml:"private_key,omitempty" mapstructure:"private_key"`

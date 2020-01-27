@@ -243,11 +243,11 @@
   --username username \
   --password password
 </code></pre>
-<p>The cluster requires a platform where it&#39;s going to exists (e.g. <code>aws</code> or <code>vsphere</code>), and it&#39;s specified with the flag <code>--platform</code> or <code>-p</code>.</p>
+<p>The cluster requires a platform where it&#39;s going to exists (e.g. <code>ec2</code> or <code>vsphere</code>), and it&#39;s specified with the flag <code>--platform</code> or <code>-p</code>.</p>
 <p>The init cluster command creates the cluster configuration file in the default location (<code>~/.kubekit.d</code>) or in the directory specified with <code>--path</code> flag.</p>
 <p>By default the cluster configuration file is a YAML file but could be JSON or TOML if the format is specified with the flag <code>--format</code> or <code>-f</code>.</p>
 <p>A cluster can be created from a template with the <code>--template</code> or <code>-t</code> flag. This flag specifies the template name or location.</p>
-<p>For <strong>AWS</strong> and <strong>EKS</strong> please see the <a href='#login'><code>login</code></a> command for the description of the Amazon options.</p>
+<p>For <strong>EC2</strong> and <strong>EKS</strong> please see the <a href='#login'><code>login</code></a> command for the description of the Amazon options.</p>
 <p>An existing configuration cluster file - by default - cannot be overwritten, once it&#39;s created it with <code>init</code> it cannot be re-created with <code>init</code>. To update the file you have to use the <code>edit</code> command to modify the parameters. However, if you use the <code>--update</code> flag KubeKit will overwrite the cluster configuration with the values set in the environment variables starting with <code>KUBEKIT_VAR_</code> plus the parameter name. This flag is useful when using KubeKit with a script to automate a process.</p>
 <p>This command also generates the credentials for the platform. This could be done with the flags or with environment variables. Read the <code>login</code> command for more information about these flags or environment variables for credentials.</p>
 <h4>Initialize a <code>template</code></h4>
@@ -301,7 +301,7 @@
 </code></pre>
 <p>KubeKit does three main things to have a Kubernetes cluster running: (1) provision, (2) generate certificates and (3) install and configure Kubernetes and related services.</p>
 <p>Some of these 3 actions may be optional in some scenarios for example if the cluster (group of nodes, VMs or instances) already exists the provisioning is not done, when the certificates where created previously by the user or KubeKit, it will not create them again, and for EKS or AKS clusters there is none of these 3 actions, just create/update the Kubernetes cluster.</p>
-<p>So, in some cases the user may want to execute each action separately. For that we have the flags <code>--provision</code>,  <code>--configure</code> and <code>--certificates</code>. The flag <code>--provision</code> or <code>-p</code> is going to provision (if possible for the cluster platform) the cluster, it will create or update the nodes, VMs or instances of the cluster. If in the cluster directory there is a file named <code>kubekit.rpm</code> or  <code>kubekit.deb</code> the package will be uploaded to every cluster node and installed before doing the configuration. This package file is useful for development or testing, to use a different software or Docker image to the one shipped with the KubekitOS image. Use the flag <code>--package-file</code> if the package file is not in the cluster directory.</p>
+<p>So, in some cases the user may want to execute each action separately. For that we have the flags <code>--provision</code>,  <code>--configure</code> and <code>--certificates</code>. The flag <code>--provision</code> or <code>-p</code> is going to provision (if possible for the cluster platform) the cluster, it will create or update the nodes, VMs or instances of the cluster. If in the cluster directory there is a file named <code>kubekit.rpm</code> or  <code>kubekit.deb</code> the package will be uploaded to every cluster node and installed before doing the configuration. This package file is useful for development or testing, to use a different software or Docker image to the one shipped with the KubeOS image. Use the flag <code>--package-file</code> if the package file is not in the cluster directory.</p>
 <p>With the flag <code>--configure</code> or <code>-c</code>, KubeKit will generate the certificates (if doesn&#39;t exists), install and configure Kubernetes on the provisioned or existing cluster.</p>
 <p>The flag <code>--certificates</code> will renew the cluster certificates with the existing certificates, unless <code>--generate-certificates</code> is used. If the certificates does not exists, they will be created. To apply certificates the Kubernetes cluster must exists. <em>It&#39;s under discussion to keep or remove this feature as it can be done with <code>kubectl</code></em></p>
 <p>The <code>--generate-certs</code> flag will force KubeKit to generate the certificates even if they already exists. And the <code>--*-ca-cert-file</code> flags will provide the path to the CA certificates the user wants to use to generate the public certificates. Just like in the command <code>init certificates</code>.</p>
@@ -322,7 +322,7 @@
   --all \
   --force
 </code></pre>
-<p>This command will destroy all the cluster nodes if the platform allows it. For example, this is possible on AWS and vSphere but not for bare-metal or vRA.</p>
+<p>This command will destroy all the cluster nodes if the platform allows it. For example, this is possible on EC2 and vSphere but not for bare-metal or vRA.</p>
 <p>If the flag <code>--all</code> is set, it will also delete the all cluster configuration files such as the config file, certificates and latest state.</p>
 <h4>Delete a <code>cluster configuration</code></h4>
 <pre><code class='language-shell' lang='shell'>kubekit delete cluster-config CLUSTER-NAME[,CLUSTER-NAME ...] \
@@ -554,7 +554,7 @@ export VSPHERE_PASSWORD=&#39;SuperSecure!Pa55w0rd&#39;
 <p>Use the flag <code>--list</code> to show the credentials. When it&#39;s sensitive information such as passwords or keys, KubeKit will show only stars <code>*</code> or stars and the last 4 characters.</p>
 <p>There is a 3rd way to provide the credentials which is through environment variables. Using the following environment variables, KubeKit will use them as credentials, and the <code>--list</code> flag will show them [partially or completely hide] if they are set.</p>
 <ul>
-<li><p>For <strong>AWS</strong> or <strong>EKS</strong>, There are 3 options for authentication. The order of precedence is: cli options, aws profile, env variables:</p>
+<li><p>For <strong>EC2</strong> or <strong>EKS</strong>, There are 3 options for authentication. The order of precedence is: cli options, aws profile, env variables:</p>
 <ol start='' >
 <li><code>--access_key</code>, <code>--secret_key</code>, <code>--region</code></li>
 <li><code>--profile</code></li>
@@ -568,9 +568,9 @@ export VSPHERE_PASSWORD=&#39;SuperSecure!Pa55w0rd&#39;
 </li>
 
 </ul>
-<p> Aws profile information can be found here: <a href='https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html' target='_blank' class='url'>https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html</a></p>
+<p> AWS profile information can be found here: <a href='https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html' target='_blank' class='url'>https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html</a></p>
 <p> Session token information can be found here: See (<a href='https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html' target='_blank' class='url'>https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html</a>) &quot;Using Temporary Security Credentials with the AWS CLI&quot; for more details.</p>
-<p>For <strong>AWS</strong> and <strong>EKS</strong> the variables are: <strong>AWS_ACCESS_KEY_ID</strong>, <strong>AWS_SECRET_ACCESS_KEY</strong>, <strong>AWS_DEFAULT_REGION</strong> OR <strong>AWS_PROFILE</strong></p>
+<p>For <strong>EC2</strong> and <strong>EKS</strong> the variables are: <strong>AWS_ACCESS_KEY_ID</strong>, <strong>AWS_SECRET_ACCESS_KEY</strong>, <strong>AWS_DEFAULT_REGION</strong> OR <strong>AWS_PROFILE</strong></p>
 <ul>
 <li>If you require session tokens the additional variable:  <strong>AWS_SESSION_TOKEN</strong> will be used as well.</li>
 

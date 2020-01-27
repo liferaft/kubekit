@@ -1,7 +1,7 @@
 package main
 
 var platforms = []string{
-	"aws",
+	"ec2",
 	"vsphere",
 }
 

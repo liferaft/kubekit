@@ -1,4 +1,4 @@
-module github.com/kubekit/azure
+module github.com/liferaft/azure
 
 require (
 	contrib.go.opencensus.io/exporter/ocagent v0.4.3 // indirect
@@ -11,3 +11,5 @@ require (
 	github.com/stretchr/testify v1.3.0 // indirect
 	go.opencensus.io v0.19.0 // indirect
 )
+
+go 1.13

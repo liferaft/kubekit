@@ -65,9 +65,9 @@ fs.inotify.max_user_instances=8192
 fs.inotify.max_user_watches=524288
 EOF
 systemctl restart systemd-sysctl.service
+sed -i  's/dateext.*/dateext dateformat -%Y-%m-%d-%s.log/' /etc/logrotate.conf
 set -o xtrace
 systemctl stop kubelet
-systemctl stop docker
   {{- if IsFastEphemeral $v }}
 yum install rsync -y
 pvcreate /dev/nvme[1-9]*n*
@@ -89,18 +89,13 @@ for directory in /var/lib/docker /var/lib/kubelet; do
   echo "$${directory} /data/$(basename $${directory}) bind bind 0 0"  >> /etc/fstab
 done
   {{- end }}
-DOCKER_DAEMON=$(jq 'del(."default-ulimits")' /etc/docker/daemon.json)
-echo "$DOCKER_DAEMON" > /etc/docker/daemon.json
-systemctl start docker
 /etc/eks/bootstrap.sh --kubelet-extra-args '--node-labels="
 {{- if ne ( len $v.KubeletNodeLabels ) 0 -}}{{- Join $v.KubeletNodeLabels "," -}}
 {{- else -}}{{- Join $.DefaultNodePool.KubeletNodeLabels "," -}}
 {{- end -}}" --register-with-taints="
 {{- if ne ( len $v.KubeletNodeTaints ) 0 -}}{{- Join $v.KubeletNodeTaints "," -}}
 {{- else -}}{{- Join $.DefaultNodePool.KubeletNodeTaints "," -}}
-{{- end -}}" --kube-reserved cpu=250m,memory=
-{{- if Contains $v.AwsInstanceType "large" -}}1{{- else -}}0.5{{- end -}}
-Gi,ephemeral-storage=1Gi --system-reserved cpu=250m,memory=0.2Gi,ephemeral-storage=1Gi --eviction-hard memory.available<0.5Gi,nodefs.available<10%' --apiserver-endpoint '${aws_eks_cluster.kubekit.endpoint}' --b64-cluster-ca '${aws_eks_cluster.kubekit.certificate_authority.0.data}' '{{ $.ClusterName }}'
+{{- end -}}"' --apiserver-endpoint '${aws_eks_cluster.kubekit.endpoint}' --b64-cluster-ca '${aws_eks_cluster.kubekit.certificate_authority.0.data}' '{{ $.ClusterName }}'
 USERDATA
 
 {{ end }}

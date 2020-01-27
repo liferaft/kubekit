@@ -4,6 +4,7 @@ Requires=docker.service
 
 [Service]
 EnvironmentFile=/etc/environment
+Environment=GOMAXPROCS={{ [((ansible_processor_count * 0.75)|int), 1] | max }}
 Environment=K8S_CLUSTER_IFACE={{ cluster_iface_name | replace("ansible_", "") }}
 ExecStartPre=/bin/mkdir -p \
     /var/log/containers \
@@ -11,7 +12,7 @@ ExecStartPre=/bin/mkdir -p \
     /var/lib/kubelet \
     /opt/cni \
     /etc/cni \
-    /var/lib/etcd \
+    {{ etcd_data_dir }} \
     /var/lib/calico
 ExecStartPre=/bin/sh -c '/usr/bin/systemctl set-environment K8S_CLUSTER_IFACE_IP=$(/sbin/ifconfig ${K8S_CLUSTER_IFACE} | /usr/bin/awk \'$1 == "inet" {print $2}\' | /usr/bin/cut -d: -f2)'
 ExecStartPre=-/usr/bin/docker kill kubelet
@@ -39,7 +40,7 @@ ExecStart=/usr/bin/docker run --rm --net=host --pid=host --privileged \
 {% for item in additional_rshared_mount_points %}
     -v {{ item }}:{{ item }}:rshared \
 {% endfor %}
-{% if cloud_provider_enabled and cloud_provider == 'aws' %}
+{% if cloud_provider_enabled and cloud_provider == 'ec2' %}
     -v /etc/aws/aws.conf:/etc/aws/aws.conf:ro \
 {% elif cloud_provider_enabled and cloud_provider == "vsphere" %}
     -v /etc/kubernetes/configs/vsphere.conf:/etc/kubernetes/configs/vsphere.conf:ro \
@@ -71,7 +72,7 @@ ExecStart=/usr/bin/docker run --rm --net=host --pid=host --privileged \
         --node-ip=${K8S_CLUSTER_IFACE_IP} \
         --register-with-taints={{ hostvars[inventory_hostname]['kubelet_taints'] | default([]) | valid_taints | join(',') }} \
         --node-labels={{ hostvars[inventory_hostname]['kubelet_labels'] | default([]) | valid_labels | join(',') }} \
-{% if cloud_provider_enabled and cloud_provider == 'aws' %}
+{% if cloud_provider_enabled and cloud_provider == 'ec2' %}
         --cloud-provider=aws \
         --cloud-config=/etc/aws/aws.conf \
 {% elif cloud_provider_enabled and cloud_provider == 'vsphere' %}

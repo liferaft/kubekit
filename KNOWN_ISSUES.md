@@ -6,7 +6,7 @@
 - Kubernetes requires 1 nameserver and 1 search entry to be available, otherwise there will be issues. See https://kubernetes.io/docs/tasks/administer-cluster/dns-debugging-resolution/#known-issues for more details.
 
 ## Platform Issues
-- ONLY VSphere works in automation via env variables.  AWS and OPENSTACK have issues.
+- ONLY VSphere works in automation via env variables.  EC2 and OPENSTACK have issues.
 - EKS pre-allocates a lot of IP addresses that may overwhelm your subnet CIDR.
 ```
 Today, the EKS CNI plugin creates a “warm pool” of IP addresses by pre-allocating IP addresses on EKS nodes to reduce scheduling latency. In other words: because the instance already has IP addresses allocated to it, Kubernetes doesn’t need to wait for an IP address to be assigned before it can schedule a pod. However, there are some tradeoffs in this approach: if your EKS nodes are larger instance types and can support larger numbers of IP addresses, you might find that your nodes are hogging more IP addresses than you want.

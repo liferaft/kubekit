@@ -135,8 +135,8 @@ func doProvisioning(cluster *kluster.Kluster, platform string) error {
 // installPackage copy the default package to every node then install the
 // package on every node. This is to be executed only after a successfull provisioning
 func installPackage(cluster *kluster.Kluster, clustersPath, platform string, forcePackage bool) error {
-	// AWS requires a forced install
-	if platform == "aws" {
+	// EC2 requires a forced install
+	if platform == "ec2" {
 		forcePackage = true
 	}
 	// package install is not for AKS or EKS, unless force is used

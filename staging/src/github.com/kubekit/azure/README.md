@@ -21,7 +21,7 @@ import (
 	"fmt"
 	
 	"github.com/davecgh/go-spew/spew"
-	"github.com/kubekit/azure"
+	"github.com/liferaft/azure"
 )
 
 

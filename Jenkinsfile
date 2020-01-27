@@ -11,7 +11,7 @@ pipeline {
 
   parameters {
     booleanParam(name: 'CRON_TRIGGER', defaultValue: false, description: 'Was this job kicked off via cron')
-    booleanParam(name: 'AWS_ENABLED', defaultValue: false, description: 'Are we going to run on AWS:')
+    booleanParam(name: 'EC2_ENABLED', defaultValue: false, description: 'Are we going to run on EC2:')
     booleanParam(name: 'EKS_ENABLED', defaultValue: false, description: 'Are we going to run on EKS:')
     booleanParam(name: 'OPENSTACK_ENABLED', defaultValue: false, description: 'Are we going to run on Openstack:')
     booleanParam(name: 'VSPHERE_ENABLED', defaultValue: true, description: 'Are we going to run on vSphere:')
@@ -20,6 +20,8 @@ pipeline {
     booleanParam(name: 'AKS_ENABLED', defaultValue: false, description: 'Are we going to run on AKS:')
     booleanParam(name: 'BLACKDUCK_ENABLED', defaultValue: false, description: 'Force Blackduck to run')
     booleanParam(name: 'ENABLE_DEBUG', defaultValue: false, description: 'Enable debug output in kubekit')
+    booleanParam(name: 'FORCE_RPM_BUILD', defaultValue: false, description: 'Are we going to force an PR rpm build')
+
     string(name: 'VENDOR_UPDATE', defaultValue: '', description: 'Which Project triggering the build')
     string(name: 'TAR_COMMENT', defaultValue: '', description: 'String to add to tar file name')
   }
@@ -128,11 +130,11 @@ pipeline {
           agent { node { label DEFAULT_BUILD_NODE as String } }
           steps {
             script {
-              if ( findPlatform( keywords: "(?i)(.*)release(.*)|(.*)manifest(.*)") ) {
+              if ( findPlatform( keywords: "(?i)(.*)pkg/manifest/release(.*)") || FORCE_RPM_BUILD ) {
                 if ( env.CHANGE_BRANCH ) { //This is a PR, build new RPM using this branch
-                  haveChangedManifest = sh(returnStdout:true, script:"git diff --name-only HEAD~1").trim().replaceAll("[\n\r]", "")
+                  haveChangedManifest = sh(returnStdout:true, script:"git diff --name-only HEAD~1").trim().replaceAll("[\n\r]", " ")
                   echo "haveChangedManifest: ${haveChangedManifest}"
-                  if (haveChangedManifest.matches( "pkg/manifest/release(.*).go")) {
+                  if ( (haveChangedManifest.matches( "pkg/manifest/release(.*).go")) || FORCE_RPM_BUILD )  {
                     echo "Found an update to the manifest. Rebuilding the rpm"
                     build job: "../kubekit-rpm-builder/master",
                     parameters: [[$class: 'StringParameterValue', name: 'CLONE_BRANCH', value: "${env.CHANGE_BRANCH}"],], wait: true
@@ -144,10 +146,10 @@ pipeline {
               } // Do we need to build a new rpm
               KK_VER = sh(returnStdout: true, script: "awk '\$1 == \"const\" && \$2 == \"Version\" {print \$NF}' ./pkg/manifest/version.go | tr -d '\"'|tr -d '\\n'")
               def (MAJOR, MINOR, PATCH) = KK_VER.split(/\./)
-              if ( env.CHANGE_BRANCH && findPlatform( keywords: "(?i)(.*)release(.*)|(.*)manifest(.*)") ) {
+              if ( env.CHANGE_BRANCH && findPlatform( keywords: "(?i)(.*)pkg/manifest/release(.*)") ) {
                 kkrpm = findLatestKubekitRpm(ver: env.VERSION, parent: env.GIT_BRANCH )
-              } else {	
-                kkrpm = findLatestKubekitRpm(ver: env.VERSION, parent: "master" )	
+              } else {
+                kkrpm = findLatestKubekitRpm(ver: env.VERSION, parent: "master" )
               }
               KK_RPM_VER = org.apache.commons.lang3.StringUtils.remove(kkrpm,'"')
               KK_RPM_NAME = org.apache.commons.io.FilenameUtils.getName(KK_RPM_VER)
@@ -155,7 +157,7 @@ pipeline {
               getKubekitRpm( OUTPUT_DIR:"./", kubekitRPM: "${KK_RPM_VER}")
               generateChangeLog()
               BuildGoInDockerImage( makeopts: "-j4 build-all" )
-              sh(script: 'GOLANG_VER="${GOLANG}" make release-package PKG_BASE=github.com/kubekit')
+              sh(script: 'GOLANG_VER="${GOLANG}" make release-package PKG_BASE=github.com/liferaft')
 
               def releaseType = "d2d"
               // List all files we want to eventually release to customers here
@@ -275,8 +277,8 @@ pipeline {
           agent { node { label DEFAULT_BUILD_NODE as String } }
           when { expression {
               params.OPENSTACK_HARDENED_ENABLED == true ||
-              findPlatform( keywords: "(?i)(.*)hard(.*)" ) ||
-              env.BRANCH_NAME.matches("release(.*)")
+              findPlatform( keywords: "(?i)(.*)hard(.*)" )
+           // || env.BRANCH_NAME.matches("release(.*)")
             }
           }
           environment {
@@ -296,8 +298,8 @@ pipeline {
           agent { node { label DEFAULT_PIPELINE_NODE as String } }
           when { expression {
               params.OPENSTACK_SLES15_ENABLED  == true ||
-              findPlatform( keywords: "(?i)(.*)sles15(.*)" ) ||
-              env.BRANCH_NAME.matches("release(.*)")
+              findPlatform( keywords: "(?i)(.*)sles15(.*)" ) 
+           // || env.BRANCH_NAME.matches("release(.*)")
             }
           }
           environment {
@@ -313,16 +315,16 @@ pipeline {
           } //post
         } //stage
 
-        stage ('AWS'){
+        stage ('EC2'){
           agent { node { label DEFAULT_PIPELINE_NODE as String } }
           when { expression {
-              params.AWS_ENABLED  == true ||
-              findPlatform( keywords: "(?i)(.*)aws(.*)" ) ||
+              params.EC2_ENABLED  == true ||
+              findPlatform( keywords: "(?i)(.*)ec2(.*)" ) ||
               env.BRANCH_NAME.matches( "release(.*)" )
             }
           }
           environment {
-            PLAT = "aws"
+            PLAT = "ec2"
             MACHINE_NAME = "a-${env.BASE_MACHINE_NAME}"
           }
           steps {
@@ -390,11 +392,9 @@ pipeline {
       options { skipDefaultCheckout() }
       steps {
         build job: "../kubekit-release-test/master",
-        parameters: [[$class: 'StringParameterValue', name: 'KK_BINARY', value: "${env.KK_PATH}/kubekit_*linux_amd64.tgz"],
-                  [$class: 'StringParameterValue', name: 'AWS_IMAGE', value: "${AWS_IMAGE}"],
-                  [$class: 'StringParameterValue', name: 'VSPHERE_IMAGE', value: "${VSPHERE_IMAGE}"],
-                  [$class: 'StringParameterValue', name: 'OPENSTACK_IMAGE', value: "${OPENSTACK_IMAGE}"],
-          ], wait: false
+        parameters: [
+          [$class: 'StringParameterValue', name: 'KK_BINARY', value: "${env.KK_PATH}/kubekit_*linux_amd64.tgz"],
+        ], wait: false
       } //steps
       post {
         always { postAction(cleanws: true) }
@@ -513,7 +513,7 @@ pipeline {
               git config --global user.email kubekit.jenkins@github.com
               gitRepo=$(git config --get remote.origin.url | sed 's#https://##g')
               # tag git commit
-              git tag -a v${VERSION} -m "Tag ${BRANCH_NAME} with : v${VERSION}"
+              git tag -f -a v${VERSION} -m "Tag ${BRANCH_NAME} with : v${VERSION}"
               git push https://${GIT_USERNAME}:${GIT_PASSWORD}@${gitRepo} --tags
             '''
           } //withCreds

@@ -64,7 +64,7 @@ type Configurator struct {
 	clusterName    string
 	address        string
 	port           int
-	hosts          Hosts
+	Hosts          Hosts
 	stateData      map[string]interface{}
 	platformConfig map[string]interface{}
 	platform       string
@@ -143,7 +143,7 @@ func New(clusterName, platform, address string, port int, hosts Hosts, stateData
 		clusterName:    clusterName,
 		address:        address,
 		port:           port,
-		hosts:          hosts,
+		Hosts:          hosts,
 		stateData:      stateData,
 		config:         config,
 		platformConfig: pConfig,
@@ -188,7 +188,7 @@ func New(clusterName, platform, address string, port int, hosts Hosts, stateData
 	// DEBUG:
 	// parentLogger.Debugf("Password: %q\tKey: %q", password, privKey)
 
-	if err := conf.hosts.Config(username.(string), privKey, password, true); err != nil {
+	if err := conf.Hosts.Config(username.(string), privKey, password, true); err != nil {
 		return nil, err
 	}
 
@@ -266,10 +266,10 @@ func (c *Configurator) Configure() error {
 
 func (c *Configurator) addDataToResources() {
 	switch c.platform {
-	// case "aws":
-	// 	if v, ok := c.stateData["elastic-fileshares"]; ok {
-	// 		c.resources.AddData("elasticFileshares", v.(string))
-	// 	}
+	case "ec2":
+		if v, ok := c.stateData["elastic-fileshares"]; ok {
+			c.resources.AddData("elasticFileshares", v.(string))
+		}
 	case "eks":
 		if v, ok := c.stateData["role-arn"]; ok {
 			c.resources.AddData("roleARN", v.(string))
@@ -279,16 +279,17 @@ func (c *Configurator) addDataToResources() {
 		if v, ok := c.stateData["elastic-fileshares"]; ok {
 			c.resources.AddData("elasticFileshares", v.(string))
 		}
-		if len(c.hosts) > 0 {
-			c.resources.AddData("heapsterNannyMemory", strconv.Itoa((len(c.hosts)*200)+(90*1024))+"Ki")
-		} else {
-			c.resources.AddData("heapsterNannyMemory", strconv.Itoa(200+(90*1024))+"Ki")
-
-		}
-		c.resources.AddData("heapsterImageSrc", manifest.KubeManifest.Releases[manifest.Version].Dependencies.Core["heapster"].Src)
-		c.resources.AddData("addonResizerImageSrc", manifest.KubeManifest.Releases[manifest.Version].Dependencies.Core["addon-resizer"].Src)
-		c.resources.AddData("heapsterVersion", manifest.KubeManifest.Releases[manifest.Version].Dependencies.Core["heapster"].Version)
+		//if len(c.Hosts) > 0 {
+		//	c.resources.AddData("heapsterNannyMemory", strconv.Itoa((len(c.Hosts)*200)+(90*1024))+"Ki")
+		//} else {
+		//	c.resources.AddData("heapsterNannyMemory", strconv.Itoa(200+(90*1024))+"Ki")
+		//
+		//}
+		//c.resources.AddData("heapsterImageSrc", manifest.KubeManifest.Releases[manifest.Version].Dependencies.Core["heapster"].Src)
+		//c.resources.AddData("addonResizerImageSrc", manifest.KubeManifest.Releases[manifest.Version].Dependencies.Core["addon-resizer"].Src)
+		//c.resources.AddData("heapsterVersion", manifest.KubeManifest.Releases[manifest.Version].Dependencies.Core["heapster"].Version)
 	case "aks":
+		c.resources.AddData("EnableKubernetesDashboard", strconv.FormatBool(c.platformConfig["enable_kubernetes_dashboard"].(bool)))
 		c.resources.AddData("AzureSubscriptionID", c.platformConfig["subscription_id"].(string))
 
 		registry := c.platformConfig["container_registry"].(map[string]interface{})
@@ -346,10 +347,10 @@ func (c *Configurator) waitClusterReady() error {
 	ticker := time.NewTicker(tick)
 	defer ticker.Stop()
 
-	if len(c.hosts) > 10 && len(c.hosts) <= 20 {
-		timer = time.Duration(len(c.hosts)) * time.Minute
+	if len(c.Hosts) > 10 && len(c.Hosts) <= 20 {
+		timer = time.Duration(len(c.Hosts)) * time.Minute
 		logmsg = fmt.Sprintf("Wait time set to %s based on number of nodes. Use `wait_for_ready: #` in the cluster config to manually set the wait time", timer.String())
-	} else if len(c.hosts) > 20 {
+	} else if len(c.Hosts) > 20 {
 		timer = time.Duration(20) * time.Minute
 		logmsg = fmt.Sprintf("Wait time set to %s based on number of nodes. Use `wait_for_ready: #` in the cluster config to manually set the wait time", timer.String())
 	}
@@ -614,7 +615,7 @@ func (c *Configurator) executeInHosts(hosts Hosts, wg *sync.WaitGroup, f func(ho
 }
 
 func (c *Configurator) executeInAllHosts(wg *sync.WaitGroup, f func(host Host, logger *log.Logger)) {
-	c.executeInHosts(c.hosts, wg, f)
+	c.executeInHosts(c.Hosts, wg, f)
 }
 
 // Setup installs and configures Ansible and upload the Ansible roles and inventory
@@ -642,7 +643,7 @@ func (c *Configurator) Setup() error {
 
 		checkTime(host, logger)
 
-		// This call should be deprecated once the KubekitOS is packaged with Ansible
+		// This call should be deprecated once the KubeOS is packaged with Ansible
 		configureAnsible(host, logger, username)
 
 		uploadRoles(host, logger)
@@ -696,7 +697,7 @@ func checkTime(host Host, logger *log.Logger) {
 }
 
 // setupAnsible will install Ansible remotely into all the host.
-// This function may be deprecated when the KubekitOS image is packaged with Ansible
+// This function may be deprecated when the KubeOS image is packaged with Ansible
 func configureAnsible(host Host, logger *log.Logger, name string) {
 	handleErr := func(err error, cmd, hostname string) {
 		if err != nil {
@@ -793,6 +794,7 @@ func uploadRoles(host Host, logger *log.Logger) {
 		logger.Errorf("[%s] failed to remove the roles: %s", host.RoleName, err)
 		return
 	}
+
 	rmOutput := strings.TrimRight(cmdRmRoles.Stdout.String(), "\n")
 	if rmOutput != "not found" {
 		logger.Warnf("[%s] previous roles removed", host.RoleName)
@@ -940,7 +942,7 @@ func (c *Configurator) UploadCerts() {
 			logger.Debugf("[%s] uploaded certificate file %s", host.RoleName, fileName)
 		}
 
-		// If there is a directory in the certs dir with the hostname, updload all the per host certs
+		// If there is a directory in the certs dir with the hostname, upload all the per host certs
 		pubHostname := strings.Split(host.PublicDNS, ".")[0]
 		certsDirPerHost := filepath.Join(certsDir, pubHostname)
 		if _, err := os.Stat(certsDirPerHost); err == nil {
@@ -992,7 +994,7 @@ func (c *Configurator) UploadCerts() {
 		}
 	})
 
-	masters := c.hosts.FilterByRole("master")
+	masters := c.Hosts.FilterByRole("master")
 
 	c.executeInHosts(masters, &wg, func(host Host, logger *log.Logger) {
 		defer wg.Done()
@@ -1036,7 +1038,7 @@ func (c *Configurator) UploadCerts() {
 // Kubernetes up and running.
 func (c *Configurator) RunPlaybook() error {
 	var wg sync.WaitGroup
-	globalStats := NewAnsibleStatsMap(len(c.hosts))
+	globalStats := NewAnsibleStatsMap(len(c.Hosts))
 
 	name := c.platformConfig["username"].(string)
 

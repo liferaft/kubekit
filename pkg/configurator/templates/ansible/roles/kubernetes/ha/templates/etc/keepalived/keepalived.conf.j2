@@ -16,7 +16,7 @@ global_defs {
 }
 
 vrrp_script hchk_haproxy {
-    script "timeout 2 killall -0 haproxy"
+    script "/usr/bin/timeout 2 /usr/bin/killall -0 haproxy"
     interval 2
     weight 2
     fall 3
@@ -57,3 +57,37 @@ vrrp_instance VI_1 {
         hchk_haproxy
     }
 }
+
+{% if public_virtual_ip and public_vip_iface and hostvars['master000']['public_ip'] %}
+vrrp_instance VI_2 {
+    state {% if inventory_hostname == 'master000' %} MASTER {% else %} BACKUP {% endif %}
+    nopreempt
+
+    interface {{ public_vip_iface.device }}
+    unicast_src_ip {{ public_vip_iface.ipv4.address }}
+    unicast_peer {
+    {% for host in groups['master'] -%}
+      {% if hostvars[host]['private_ip'] != kube_advertise_address %}
+        {{ hostvars[host]['public_ip'] }}
+      {% endif %}
+    {% endfor %}
+    }
+
+    virtual_router_id 52
+    priority {% if inventory_hostname == 'master000' %} 101 {% else %} 100 {% endif %}
+
+    advert_int 2
+    authentication {
+        auth_type PASS
+        auth_pass 1221
+    }
+
+    virtual_ipaddress {
+        {{ public_virtual_ip }}
+    }
+
+    track_script {
+        hchk_haproxy
+    }
+}
+{% endif %}

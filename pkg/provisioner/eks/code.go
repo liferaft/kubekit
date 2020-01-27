@@ -31,16 +31,20 @@ data-sources : {{ end }}
 data-sources : {{ with .Route53Name }}
 data-sources : {{ range . }}
 data-sources : {{ Dash ( Lower . ) }}
-data-sources : {{ Dash ( Lower . ) }}
+data-sources : {{ Lower . }}
 data-sources : {{ $.AwsVpcID }}
 data-sources : {{ end }}
 data-sources : {{ end }}
 data-sources : {{ with .S3Buckets }}
 data-sources : {{ range . }}
-data-sources : {{ . }}
+data-sources : {{ Dash ( Lower . ) }}
 data-sources : {{ . }}
 data-sources : {{ end }}
 data-sources : {{ end }}
+output : {{ range $k, $v := $.NodePools }}
+output : {{ $v.Name }}
+output : {{ Dash ( Lower $v.Name ) }}
+output : {{ end }}
 output : {{- range $k, $v := $.NodePools -}}
 output : {{- range $i := Count $v.Count  }}
 output : {{- Dash $v.Name }}
@@ -76,16 +80,19 @@ resources : {{ QuoteList .IngressSubnets }}
 resources : {{ .EndpointPublicAccess }}
 resources : {{ .EndpointPrivateAccess }}
 resources : {{ Dash ( Lower .ClusterName ) }}
+resources : {{ Dash ( Lower .ClusterName ) }}
 resources : {{ with .S3Buckets }}
 resources : {{ range . }}
-resources : {{ . }}
-resources : {{ . }}
-resources : {{ . }}
-resources : {{ . }}
+resources : {{ Dash ( Lower . ) }}
+resources : {{ Dash ( Lower $.ClusterName ) }}
+resources : {{ Dash ( Lower . ) }}
+resources : {{ Dash ( Lower . ) }}
+resources : {{ Dash ( Lower . ) }}
 resources : {{ end }}
 resources : {{ end }}
 resources : {{ with .Route53Name }}
 resources : {{ range . }}
+resources : {{ Dash ( Lower . ) }}
 resources : {{ Dash ( Lower $.ClusterName ) }}
 resources : {{ Dash ( Lower . ) }}
 resources : {{ Dash ( Lower . ) }}
@@ -171,9 +178,6 @@ variables : {{- Join $v.KubeletNodeTaints "," -}}
 variables : {{- else -}}
 variables : {{- Join $.DefaultNodePool.KubeletNodeTaints "," -}}
 variables : {{- end -}}
-variables : {{- if Contains $v.AwsInstanceType "large" -}}
-variables : {{- else -}}
-variables : {{- end -}}
 variables : {{ $.ClusterName }}
 variables : {{ end }}
 **/
@@ -210,7 +214,7 @@ data "aws_ami" "eks-node" {
 data "aws_instance" "{{ Dash ( Lower $v.Name ) }}" {
   count = "{{ $v.Count }}"
   depends_on = ["data.aws_instances.{{ Dash ( Lower $v.Name ) }}"]
-  instance_id = "${data.aws_instances.{{ Dash ( Lower $v.Name ) }}.ids[count.index]}"
+  instance_id = data.aws_instances.{{ Dash ( Lower $v.Name ) }}.ids[count.index]
 }
   
 
@@ -227,7 +231,7 @@ data "aws_instances" "{{ Dash ( Lower $v.Name ) }}" {
 {{ with .Route53Name }}
 	{{ range . }}
 data "aws_route53_zone" "zone-{{ Dash ( Lower . ) }}" {
-  name         = "{{ Dash ( Lower . ) }}"
+  name         = "{{ Lower . }}"
   vpc_id = "{{ $.AwsVpcID }}"
 }
 	{{ end }} 
@@ -235,7 +239,7 @@ data "aws_route53_zone" "zone-{{ Dash ( Lower . ) }}" {
 
 {{ with .S3Buckets }}
 	{{ range . }}
-data "aws_s3_bucket" "{{ . }}" {
+data "aws_s3_bucket" "{{ Dash ( Lower . ) }}" {
   bucket = "{{ . }}"
 }
 	{{ end }} 
@@ -245,16 +249,26 @@ data "aws_s3_bucket" "{{ . }}" {
 const outputTpl = `# Outputs
 # ==============================================================================
 output "endpoint" {
-  value = "${aws_eks_cluster.kubekit.endpoint}"
+  value = aws_eks_cluster.kubekit.endpoint
 }
 
 output "certificate-authority" {
-  value = "${aws_eks_cluster.kubekit.certificate_authority.0.data}"
+  value = aws_eks_cluster.kubekit.certificate_authority.0.data
 }
 
 output "role-arn" {
-  value = "${aws_iam_role.cluster-node.arn}"
+  value = aws_iam_role.cluster-node.arn
 }
+
+output "kubernetes_version" {
+  value = aws_eks_cluster.kubekit.version
+}
+
+{{ range $k, $v := $.NodePools }}
+output "{{ $v.Name }}-ami" {
+  value = aws_launch_configuration.node-{{ Dash ( Lower $v.Name ) }}.image_id
+}
+{{ end }}
 
 output "nodes" {
   value = [ {{- range $k, $v := $.NodePools -}} {{- range $i := Count $v.Count  }}
@@ -278,10 +292,10 @@ output "elastic-fileshares" {
 const providerTpl = `# Provider 
 # ==============================================================================
 provider "aws" {
-  access_key = "${ var.access_key }"
-  secret_key = "${ var.secret_key }"
-  region     = "${ var.region }"
-  token      = "${ var.token }"
+  access_key = var.access_key
+  secret_key = var.secret_key
+  region     = var.region
+  token      = var.token
 }
 `
 
@@ -323,9 +337,25 @@ resource "aws_iam_role_policy_attachment" "cluster-AmazonEKSServicePolicy" {
   role       = "{{ Dash ( Lower .ClusterName ) }}-iam-role"
 }
 
+resource "null_resource" "eks_wait_for_iam_user_propagation" {
+  depends_on = [
+    "aws_iam_role.cluster",
+    "aws_iam_role_policy_attachment.cluster-AmazonEKSClusterPolicy",
+    "aws_iam_role_policy_attachment.cluster-AmazonEKSServicePolicy",
+  ]
+
+  provisioner "local-exec" {
+    command = "sleep 45"
+  }
+}
+
 resource "aws_eks_cluster" "kubekit" {
+  depends_on = [
+    "null_resource.eks_wait_for_iam_user_propagation",
+  ]
+
   name     = "{{ Dash ( Lower .ClusterName ) }}"
-  role_arn = "${aws_iam_role.cluster.arn}"
+  role_arn = aws_iam_role.cluster.arn
   version = "{{ .KubernetesVersion }}"
   enabled_cluster_log_types = [ {{ QuoteList .ClusterLogsTypes }} ]
 
@@ -335,11 +365,6 @@ resource "aws_eks_cluster" "kubekit" {
     endpoint_public_access = "{{ .EndpointPublicAccess }}"
     endpoint_private_access = "{{ .EndpointPrivateAccess }}"
   }
-
-  depends_on = [
-    "aws_iam_role_policy_attachment.cluster-AmazonEKSClusterPolicy",
-    "aws_iam_role_policy_attachment.cluster-AmazonEKSServicePolicy",
-  ]
 }
 
 # EKS Nodes
@@ -363,12 +388,42 @@ resource "aws_iam_role" "cluster-node" {
 POLICY
 }
 
+resource "aws_iam_role_policy" "fsx-policy" {
+  depends_on = ["aws_iam_role.cluster-node"]
+  name  = "{{ Dash ( Lower .ClusterName ) }}-fsx-policy"
+  role  = aws_iam_role.cluster-node.id
+
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "iam:CreateServiceLinkedRole",
+          "iam:AttachRolePolicy",
+          "iam:PutRolePolicy"
+          ],
+         "Resource": "arn:aws:iam::*:role/aws-service-role/fsx.amazonaws.com/*"
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "fsx:*"
+        ],
+        "Resource": ["*"]
+      }
+    ]
+}
+EOF
+}
+
 {{ with .S3Buckets }}
 	{{ range . }}
-resource "aws_iam_role_policy" "{{ . }}-policy" {
+resource "aws_iam_role_policy" "s3-{{ Dash ( Lower . ) }}-policy" {
   depends_on = ["aws_iam_role.cluster-node"]
-  name  = "{{ . }}-policy"
-  role  = "${aws_iam_role.cluster-node.id}"
+  name  = "{{ Dash ( Lower $.ClusterName ) }}-s3-{{ Dash ( Lower . ) }}-policy"
+  role  = aws_iam_role.cluster-node.id
 
   policy = <<EOF
 {
@@ -382,7 +437,7 @@ resource "aws_iam_role_policy" "{{ . }}-policy" {
               "s3:DeleteObject",
               "s3:ListBucket"
             ],
-            "Resource": "${data.aws_s3_bucket.{{ . }}.arn}/*"
+            "Resource": "${data.aws_s3_bucket.{{ Dash ( Lower . ) }}.arn}/*"
         },
         {
             "Effect": "Allow",
@@ -390,7 +445,7 @@ resource "aws_iam_role_policy" "{{ . }}-policy" {
               "s3:ListBucket",
               "s3:GetBucketLocation"
             ],
-            "Resource": "${data.aws_s3_bucket.{{ . }}.arn}"
+            "Resource": "${data.aws_s3_bucket.{{ Dash ( Lower . ) }}.arn}"
         },
         {
             "Effect": "Allow",
@@ -408,10 +463,10 @@ EOF
 
 {{ with .Route53Name }}
 	{{ range . }}
-resource "aws_iam_role_policy" "route53-policy" {
+resource "aws_iam_role_policy" "route53-policy-zone-{{ Dash ( Lower . ) }}" {
   depends_on = ["aws_iam_role.cluster-node"]
   name       = "{{ Dash ( Lower $.ClusterName ) }}-zone-{{ Dash ( Lower . ) }}-route53-policy"
-  role       = "${aws_iam_role.cluster-node.id}"
+  role       = aws_iam_role.cluster-node.id
 
   policy = <<EOF
 {
@@ -456,6 +511,20 @@ resource "aws_iam_instance_profile" "node" {
   role = "{{ Dash ( Lower .ClusterName ) }}-node"
 }
 
+resource "null_resource" "node_wait_for_iam_user_propagation" {
+  depends_on = [
+    "aws_iam_role.cluster-node",
+    "aws_iam_role_policy_attachment.node-AmazonEC2ContainerRegistryReadOnly",
+    "aws_iam_role_policy_attachment.node-AmazonEKS-CNI-Policy",
+    "aws_iam_role_policy_attachment.node-AmazonEKSWorkerNodePolicy",
+    "aws_iam_instance_profile.node",
+  ]
+
+  provisioner "local-exec" {
+    command = "sleep 45"
+  }
+}
+
 resource "aws_key_pair" "keypair" {
   // TODO need to verify if key name change will cause destruction on existing 1.0 systems
   key_name   = "{{ Dash ( Lower .ClusterName ) }}-key"
@@ -473,19 +542,23 @@ resource "aws_placement_group" "node-pool-{{ Dash ( Lower $v.Name ) }}" {
   {{ end }}
 
 resource "aws_launch_configuration" "node-{{ Dash ( Lower $v.Name ) }}" {
+  depends_on = [
+    "null_resource.node_wait_for_iam_user_propagation",
+  ]
+
   associate_public_ip_address = true
   ebs_optimized               = true
   iam_instance_profile        = "{{ Dash ( Lower $.ClusterName ) }}-node-iam-profile"
-  image_id                    = "
+  image_id                    =
   {{- if $v.AwsAmi -}}
-    {{- $v.AwsAmi -}}
+    "{{- $v.AwsAmi -}}"
   {{- else -}}
-    ${data.aws_ami.eks-node.id}
-  {{- end }}"
+    data.aws_ami.eks-node.id
+  {{- end }}
   instance_type               = "{{ $v.AwsInstanceType }}"
   name_prefix                 = "{{ Dash ( Lower $.ClusterName ) }}-node-{{ Dash ( Lower $v.Name ) }}-"
   security_groups             = [{{ QuoteList $v.SecurityGroups }}]
-  user_data_base64            = "${base64encode(local.node-{{ Dash ( Lower $v.Name ) }}-userdata)}"
+  user_data_base64            = base64encode(local.node-{{ Dash ( Lower $v.Name ) }}-userdata)
   key_name                    = "{{ Dash ( Lower $.ClusterName ) }}-key"
 
   root_block_device {
@@ -506,7 +579,7 @@ resource "aws_autoscaling_group" "node-{{ Dash ( Lower $v.Name ) }}" {
   desired_capacity     = "{{ $v.Count }}"
   max_size             = "{{ $v.Count }}"
   min_size             = "{{ $v.Count }}"
-  launch_configuration = "${aws_launch_configuration.node-{{ Dash ( Lower $v.Name ) }}.name}"
+  launch_configuration = aws_launch_configuration.node-{{ Dash ( Lower $v.Name ) }}.name
   {{ if $v.PGStrategy }}
   placement_group      = "{{ Dash ( Lower $.ClusterName ) }}-node-{{ Dash ( Lower $v.Name ) }}"
   {{- end }}
@@ -564,7 +637,7 @@ resource "aws_efs_file_system" "efs-{{ Dash ( Lower $k  ) }}" {
   {{ range $s := AllSubNets }}
 resource "aws_efs_mount_target" "{{ Dash $.ClusterName }}-efs-{{ Dash ( Lower $k ) }}-{{ $s }}-mount" {
   depends_on = ["aws_efs_file_system.efs-{{ Dash ( Lower $k ) }}"]
-  file_system_id = "${aws_efs_file_system.efs-{{ Dash ( Lower $k ) }}.id}"
+  file_system_id = aws_efs_file_system.efs-{{ Dash ( Lower $k ) }}.id
   subnet_id      = "{{ $s }}"
   security_groups = [ {{ QuoteList AllSecGroups }} ]
 }
@@ -638,9 +711,9 @@ fs.inotify.max_user_instances=8192
 fs.inotify.max_user_watches=524288
 EOF
 systemctl restart systemd-sysctl.service
+sed -i  's/dateext.*/dateext dateformat -%Y-%m-%d-%s.log/' /etc/logrotate.conf
 set -o xtrace
 systemctl stop kubelet
-systemctl stop docker
   {{- if IsFastEphemeral $v }}
 yum install rsync -y
 pvcreate /dev/nvme[1-9]*n*
@@ -662,18 +735,13 @@ for directory in /var/lib/docker /var/lib/kubelet; do
   echo "$${directory} /data/$(basename $${directory}) bind bind 0 0"  >> /etc/fstab
 done
   {{- end }}
-DOCKER_DAEMON=$(jq 'del(."default-ulimits")' /etc/docker/daemon.json)
-echo "$DOCKER_DAEMON" > /etc/docker/daemon.json
-systemctl start docker
 /etc/eks/bootstrap.sh --kubelet-extra-args '--node-labels="
 {{- if ne ( len $v.KubeletNodeLabels ) 0 -}}{{- Join $v.KubeletNodeLabels "," -}}
 {{- else -}}{{- Join $.DefaultNodePool.KubeletNodeLabels "," -}}
 {{- end -}}" --register-with-taints="
 {{- if ne ( len $v.KubeletNodeTaints ) 0 -}}{{- Join $v.KubeletNodeTaints "," -}}
 {{- else -}}{{- Join $.DefaultNodePool.KubeletNodeTaints "," -}}
-{{- end -}}" --kube-reserved cpu=250m,memory=
-{{- if Contains $v.AwsInstanceType "large" -}}1{{- else -}}0.5{{- end -}}
-Gi,ephemeral-storage=1Gi --system-reserved cpu=250m,memory=0.2Gi,ephemeral-storage=1Gi --eviction-hard memory.available<0.5Gi,nodefs.available<10%' --apiserver-endpoint '${aws_eks_cluster.kubekit.endpoint}' --b64-cluster-ca '${aws_eks_cluster.kubekit.certificate_authority.0.data}' '{{ $.ClusterName }}'
+{{- end -}}"' --apiserver-endpoint '${aws_eks_cluster.kubekit.endpoint}' --b64-cluster-ca '${aws_eks_cluster.kubekit.certificate_authority.0.data}' '{{ $.ClusterName }}'
 USERDATA
 
 {{ end }}

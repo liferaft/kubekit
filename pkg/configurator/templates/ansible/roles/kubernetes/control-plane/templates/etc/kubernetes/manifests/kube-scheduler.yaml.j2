@@ -18,6 +18,11 @@ spec:
   - name: kube-scheduler
     image: {{ core_repo_root }}{{ current_manifest['dependencies']['control-plane']['kube-scheduler']['src'] }}
     imagePullPolicy: IfNotPresent
+    env:
+    - name: GOMAXPROCS
+      valueFrom:
+        resourceFieldRef:
+          resource: limits.cpu
     command:
 {% if current_manifest['dependencies']['control-plane']['kube-scheduler']['src'].split('/')[-1].startswith('hyperkube') %}
     - /hyperkube
@@ -41,7 +46,17 @@ spec:
       timeoutSeconds: 15
     resources:
       requests:
-        cpu: 100m
+        cpu: {{ kube_scheduler_requests_cpu }}
+        memory: {{ kube_scheduler_requests_memory }}
+{% if kube_scheduler_limits_cpu or kube_scheduler_limits_memory %}
+      limits:
+{% if kube_scheduler_limits_cpu %}
+        cpu: {{ kube_scheduler_limits_cpu }}
+{% endif %}
+{% if kube_scheduler_limits_memory %}
+        memory: {{ kube_scheduler_limits_memory }}
+{% endif %}
+{% endif %}
     volumeMounts:
 {% if controlplane_timezone != "" %}
     - name: tz-config

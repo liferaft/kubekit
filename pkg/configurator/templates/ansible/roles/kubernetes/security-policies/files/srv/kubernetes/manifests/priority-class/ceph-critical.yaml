@@ -1,4 +1,4 @@
-apiVersion: scheduling.k8s.io/v1beta1
+apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
   name: ceph-critical
@@ -6,4 +6,24 @@ value: 900000000
 globalDefault: false
 description: |
   Critical pods that are not considered system level and reside in the rook-ceph-system namespace.
+  This will still get trumped by the system level critical classes.
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: ceph-system-critical
+value: 900000000
+globalDefault: false
+description: |
+  Critical pods that are not considered system level and reside in the rook-ceph-system and rook-ceph namespace.
+  This will still get trumped by the system level critical classes.
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: ceph-storage-critical
+value: 950000000
+globalDefault: false
+description: |
+  Critical storage pods that are not considered system level and reside in the rook-ceph namespace.
   This will still get trumped by the system level critical classes.

@@ -30,7 +30,7 @@ data "aws_ami" "eks-node" {
 data "aws_instance" "{{ Dash ( Lower $v.Name ) }}" {
   count = "{{ $v.Count }}"
   depends_on = ["data.aws_instances.{{ Dash ( Lower $v.Name ) }}"]
-  instance_id = "${data.aws_instances.{{ Dash ( Lower $v.Name ) }}.ids[count.index]}"
+  instance_id = data.aws_instances.{{ Dash ( Lower $v.Name ) }}.ids[count.index]
 }
   
 
@@ -47,7 +47,7 @@ data "aws_instances" "{{ Dash ( Lower $v.Name ) }}" {
 {{ with .Route53Name }}
 	{{ range . }}
 data "aws_route53_zone" "zone-{{ Dash ( Lower . ) }}" {
-  name         = "{{ Dash ( Lower . ) }}"
+  name         = "{{ Lower . }}"
   vpc_id = "{{ $.AwsVpcID }}"
 }
 	{{ end }} 
@@ -55,7 +55,7 @@ data "aws_route53_zone" "zone-{{ Dash ( Lower . ) }}" {
 
 {{ with .S3Buckets }}
 	{{ range . }}
-data "aws_s3_bucket" "{{ . }}" {
+data "aws_s3_bucket" "{{ Dash ( Lower . ) }}" {
   bucket = "{{ . }}"
 }
 	{{ end }} 

@@ -21,9 +21,9 @@
       name: etcd
       state: present
 
-  - name: create '/var/lib/etcd'
+  - name: create {{ etcd_data_directory }}
     file:
-      path: /var/lib/etcd
+      path: "{{ etcd_data_directory }}"
       state: directory
       mode: 700
       owner: root
@@ -43,7 +43,7 @@
       minute: "{{ (60 / groups['master'] | length | int * groups.master.index(inventory_hostname)) | round | int if groups['master'] | length | int > 2 else etcd_logs_crontab_minute }}"
       # Default is "*", i.e. every hour
       hour: "{{ etcd_logs_crontab_hour }}"
-      job: 'ETCDCTL_API=3 /etc/kubernetes/bin/etcdctl --endpoints=https://127.0.0.1:2379 --cert="{{ cert_dir }}/{{ certs.etcd.crt }}" --key="{{ cert_dir }}/{{ certs.etcd.key }}" snapshot save /var/opt/kubekit/etcd-snapshots/snapshot-$(/usr/bin/date -u +"\%Y-\%m-\%dT\%H-\%M-\%SZ").db > /dev/null 2>&1 && find /var/opt/kubekit/etcd-snapshots -mtime {{ etcd_logs_days_to_keep }} -delete'
+      job: 'ETCDCTL_API=3 /etc/kubernetes/bin/etcdctl --endpoints=https://127.0.0.1:2379 --cert="{{ cert_dir }}/{{ certs.etcd.crt }}" --key="{{ cert_dir }}/{{ certs.etcd.key }}" snapshot save {{ etcd_snapshots_directory }}/snapshot-$(/usr/bin/date -u +"\%Y-\%m-\%dT\%H-\%M-\%SZ").db > /dev/null 2>&1 && find {{ etcd_snapshots_directory }} -mtime {{ etcd_logs_days_to_keep }} -delete'
 
   - name: Add crontab for etcd defrags
     cron:
@@ -54,6 +54,54 @@
       # Default is "1", i.e. 1 AM every day
       hour: "{{ etcd_defrag_crontab_hour }}"
       job: 'ETCDCTL_API=3 /etc/kubernetes/bin/etcdctl --endpoints=https://127.0.0.1:2379 --cert="{{ cert_dir }}/{{ certs.etcd.crt }}" --key="{{ cert_dir }}/{{ certs.etcd.key }}" defrag'
+
+  - name: get timeout command path
+    shell: "which timeout"
+    register: timeout_path
+
+  - name: copy etcd .pid file to {{ etcd_data_directory }}
+    copy:
+      src: var/lib/etcd/.pid
+      dest: "{{ etcd_data_directory }}/.pid"
+      mode: 0644
+
+  - name: copy etcd update_ionice.sh file to {{ etcd_data_directory }} and make executable
+    template:
+      src: var/lib/etcd/update_ionice.sh
+      dest: "{{ etcd_data_directory }}/update_ionice.sh"
+      mode: 0744
+
+  # kill cron job if it takes longer than 5 seconds
+  - name: Add crontab to set etcd disk priority
+    cron:
+      name: "Etcd disk prioritization"
+      minute: "*/12"  # run every 5 minutes
+      job: '{{ timeout_path.stdout|trim }} -s 9 5 {{ etcd_data_directory }}/update_ionice.sh'
+
+  - set_fact:
+      etcd_interface: "{{ cluster_iface_name|replace('ansible_','') }}"
+
+  - name: prioritize etcd peer traffic over client traffic
+    shell: |
+      tc qdisc add dev {{ etcd_interface }} root handle 1: prio bands 3 && \
+      tc filter add dev {{ etcd_interface }} parent 1: protocol ip prio 1 u32 match ip sport 2380 0xffff flowid 1:1 && \
+      tc filter add dev {{ etcd_interface }} parent 1: protocol ip prio 1 u32 match ip dport 2380 0xffff flowid 1:1 && \
+      tc filter add dev {{ etcd_interface }} parent 1: protocol ip prio 2 u32 match ip sport 2379 0xffff flowid 1:1 && \
+      tc filter add dev {{ etcd_interface }} parent 1: protocol ip prio 2 u32 match ip dport 2379 0xffff flowid 1:1
+    ignore_errors: yes
+
+  - block:
+
+    - name: prioritize etcd peer traffic over client traffic if using local proxy
+      shell: |
+        tc filter add dev {{ etcd_interface }} parent 1: protocol ip prio 1 u32 match ip sport {{ etcd_starting_proxy_initial_advertise_port|int + loop.index0 }} 0xffff flowid 1:1 && \
+        tc filter add dev {{ etcd_interface }} parent 1: protocol ip prio 1 u32 match ip dport {{ etcd_starting_proxy_initial_advertise_port|int + loop.index0 }} 0xffff flowid 1:1 && \
+        tc filter add dev {{ etcd_interface }} parent 1: protocol ip prio 2 u32 match ip sport {{ etcd_starting_proxy_advertise_port|int + loop.index0 }} 0xffff flowid 1:1 && \
+        tc filter add dev {{ etcd_interface }} parent 1: protocol ip prio 2 u32 match ip dport {{ etcd_starting_proxy_advertise_port|int + loop.index0 }} 0xffff flowid 1:1
+      loop: "{{ range(groups['master']|length) | list }}"
+      ignore_errors: yes
+
+    when: enable_etcd_local_proxy
 
   # end block
   when: "'master' in group_names"

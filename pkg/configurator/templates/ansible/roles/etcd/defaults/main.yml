@@ -3,3 +3,10 @@ etcd_logs_days_to_keep: 30
 etcd_logs_crontab_minute: "0,30"
 etcd_logs_crontab_hour: "*"
 etcd_snapshots_directory: "/data/etcd-snapshots"
+etcd_data_directory: "/var/lib/etcd"
+
+cluster_iface_name: "ansible_eth0"
+
+enable_etcd_local_proxy: no
+etcd_starting_proxy_advertise_port: 8888
+etcd_starting_proxy_initial_advertise_port: 9888

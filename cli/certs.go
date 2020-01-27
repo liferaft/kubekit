@@ -96,6 +96,10 @@ func GetCredentials(platform string, cmd *cobra.Command) map[string]string {
 	case "vra", "raw", "stacki":
 		// These platforms do not request for credentials
 		return creds
+
+	case "aws":
+		// This platform is abstract, platform should be eks or ec2
+		return creds
 	}
 
 	getCredentialNamed := func(name string) {
@@ -125,7 +129,7 @@ func GetCredentials(platform string, cmd *cobra.Command) map[string]string {
 
 		// For EKS and AKS the platform is AWS and AZURE respectivelly
 		switch platform {
-		case "aws", "eks":
+		case "ec2", "eks":
 			platform = "aws"
 		case "azure", "aks":
 			platform = "azure"
@@ -141,7 +145,7 @@ func GetCredentials(platform string, cmd *cobra.Command) map[string]string {
 	// the name of the flag. Most of the time is the same, except for the generic/server credentials
 	var varNames []string
 	switch platform {
-	case "aws", "eks":
+	case "aws": //"ec2", "eks":
 		varNames = []string{
 			"access_key",
 			"secret_key",

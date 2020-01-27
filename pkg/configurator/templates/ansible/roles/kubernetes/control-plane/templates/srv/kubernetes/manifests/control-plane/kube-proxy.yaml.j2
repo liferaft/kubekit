@@ -6,7 +6,7 @@ metadata:
 
 ---
 kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: system:kube-proxy
   labels:
@@ -34,6 +34,10 @@ spec:
     matchLabels:
       component: kube-proxy
       tier: control-plane
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 10%
   template:
     metadata:
       annotations:
@@ -43,6 +47,7 @@ spec:
       labels:
         component: kube-proxy
         tier: control-plane
+        addonmanager.kubernetes.io/mode: Reconcile
     spec:
       hostNetwork: true
       priorityClassName: system-node-critical
@@ -59,6 +64,10 @@ spec:
         image: {{ core_repo_root }}{{ current_manifest['dependencies']['control-plane']['kube-proxy']['src'] }}
         imagePullPolicy: IfNotPresent
         env:
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
         - name: MY_HOST_IP
           valueFrom:
             fieldRef:

@@ -6,7 +6,7 @@ import (
 
 	"github.com/johandry/log"
 	"github.com/kraken/ui"
-	"github.com/liferaft/kubekit/pkg/provisioner/aws"
+	"github.com/liferaft/kubekit/pkg/provisioner/ec2"
 	"github.com/stretchr/testify/assert"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -46,9 +46,9 @@ func TestNewPlatform(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "AWS platform with no config",
+			name: "EC2 platform with no config",
 			args: args{
-				name:   "aws",
+				name:   "ec2",
 				config: nil,
 			},
 			creds:   []string{"my_access_key", "my_secret_key", "my_session_token", "aws_region"},
@@ -56,10 +56,10 @@ func TestNewPlatform(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "AWS platform with config",
+			name: "EC2 platform with config",
 			args: args{
-				name:   "aws",
-				config: c["aws"],
+				name:   "ec2",
+				config: c["ec2"],
 			},
 			creds:   []string{"my_access_key", "my_secret_key", "my_session_token", "us-west-2"},
 			want:    string(mustLoad(t, defaultAWSConfigPath)),
@@ -102,8 +102,8 @@ func TestSupportedPlatforms(t *testing.T) {
 				envConfig: nil,
 			},
 			want: map[string]interface{}{
-				"aws": func() *aws.Config {
-					cfg := aws.Config{}
+				"ec2": func() *ec2.Config {
+					cfg := ec2.Config{}
 					mustParseYaml(t, mustLoad(t, defaultAWSConfigPath), &cfg)
 					return &cfg
 				}(),
@@ -140,7 +140,7 @@ func TestSupportedPlatformsName(t *testing.T) {
 			name: "all platform",
 			want: []string{
 				"aks",
-				"aws",
+				"ec2",
 				"eks",
 				"vsphere",
 				"openstack",
@@ -174,7 +174,7 @@ func mustParseYaml(tb testing.TB, raw []byte, dst interface{}) {
 	}
 }
 
-var tc2YamlPlatformConfig = string(`aws:
+var tc2YamlPlatformConfig = string(`ec2:
   aws_env: aws-k8s
   kube_api_ssl_port: 8081
   disable_master_ha: true
@@ -203,8 +203,8 @@ var tc2YamlPlatformConfig = string(`aws:
     connection_timeout: 5m
     aws_ami: ami-0b8485a3553c5d032
     aws_instance_type: m4.2xlarge
-    root_vol_size: 200
-    root_vol_type: gp2
+    root_volume_size: 200
+    root_volume_type: gp2
     security_groups:
     - sg-502d9a37
     subnets:
@@ -228,7 +228,7 @@ var tc2YamlPlatformConfig = string(`aws:
       - node.kubernetes.io/worker=""
 `)
 
-var tc2YamlPlatform = string(`aws:
+var tc2YamlPlatform = string(`ec2:
   aws_env: aws-k8s
   username: ec2-user
   aws_vpc_id: vpc-8d56b9e9
@@ -239,8 +239,8 @@ var tc2YamlPlatform = string(`aws:
     connection_timeout: 5m
     aws_ami: ami-0b8485a3553c5d032
     aws_instance_type: m4.2xlarge
-    root_vol_size: 200
-    root_vol_type: gp2
+    root_volume_size: 200
+    root_volume_type: gp2
     security_groups:
     - sg-502d9a37
     subnets:

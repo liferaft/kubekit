@@ -23,8 +23,8 @@ default_node_pool:
   aws_ami: ami-0b8485a3553c5d032
   aws_instance_type: m4.2xlarge
   aws_subnet_id: '# Required value. Example: subnet-5bddc82c'
-  root_vol_size: 200
-  root_vol_type: gp2
+  root_volume_size: 200
+  root_volume_type: gp2
 node_pools:
   master:
     count: 1

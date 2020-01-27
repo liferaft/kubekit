@@ -1,4 +1,4 @@
-package aws
+package ec2
 
 // func TestConfig_MergeWithEnvConfig(t *testing.T) {
 // 	type fields struct {

@@ -1,0 +1,13 @@
+# the preload file is meant to docker load all the defined prebake-paths in the MANIFEST
+- name: read MANIFEST image prebake-path preload file
+  shell: "[ -f /root/manifest.src ] && cat /root/manifest.src || echo ''"
+  register: manifest_src
+
+- set_fact:
+    manifest_paths_preload: "{{ manifest_src.stdout_lines | map('trim') | reject('equalto', '') | list | unique }}"
+
+- name: docker load the MANIFEST preload prebaked paths
+  shell: "docker load -i {{ item }}"
+  register: docker_load
+  failed_when: docker_load.rc != 0
+  with_items: "{{ manifest_paths_preload }}"

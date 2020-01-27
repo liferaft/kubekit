@@ -15,7 +15,7 @@ resource "openstack_compute_instance_v2" "{{ Dash ( Lower $v.Name ) }}" {
   name            = "{{ Dash ( Lower $.ClusterName ) }}-{{ Dash ( Lower $k ) }}-${format("%02d", count.index+1)}"
   image_id        = "{{ $v.OpenstackImageID }}"
   flavor_id       = "{{ $v.OpenstackFlavorID }}"
-  key_pair        = "${openstack_compute_keypair_v2.keypair.id}"
+  key_pair        = openstack_compute_keypair_v2.keypair.id
   security_groups = [{{ QuoteList $v.SecurityGroups }}]
 
   // TODO: with templating, this can be extended create multiple networks and interfaces
@@ -37,8 +37,8 @@ resource "openstack_compute_floatingip_associate_v2" "float_assoc-{{ Dash ( Lowe
   ]
 
   count       = "{{ $v.Count }}"
-  floating_ip = "${element(openstack_networking_floatingip_v2.float-{{ Dash ( Lower $k ) }}.*.address, count.index)}"
-  instance_id = "${element(openstack_compute_instance_v2.{{ Dash ( Lower $v.Name ) }}.*.id, count.index)}"
+  floating_ip = element(openstack_networking_floatingip_v2.float-{{ Dash ( Lower $k ) }}.*.address, count.index)
+  instance_id = element(openstack_compute_instance_v2.{{ Dash ( Lower $v.Name ) }}.*.id, count.index)
 }
 
 resource "null_resource" "wait-{{ Dash ( Lower $k ) }}" {
@@ -51,8 +51,8 @@ resource "null_resource" "wait-{{ Dash ( Lower $k ) }}" {
 
   connection {
     user        = "{{ $.Username }}"
-    host        = "${element(openstack_networking_floatingip_v2.float-{{ Dash ( Lower $k ) }}.*.address, count.index)}"
-    private_key = "${var.private_key}"
+    host        = element(openstack_networking_floatingip_v2.float-{{ Dash ( Lower $k ) }}.*.address, count.index)
+    private_key = var.private_key
     timeout     = "5m"
   }
 

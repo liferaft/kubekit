@@ -165,7 +165,7 @@ items:
       scope: Namespaced
       version: v1alpha2
 
-  - apiVersion: rbac.authorization.k8s.io/v1beta1
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       name: rook-ceph-cluster-mgmt
@@ -203,7 +203,7 @@ items:
       - update
       - delete
 
-  - apiVersion: rbac.authorization.k8s.io/v1beta1
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
       name: rook-ceph-system
@@ -237,7 +237,7 @@ items:
       - update
       - delete
 
-  - apiVersion: rbac.authorization.k8s.io/v1beta1
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       name: rook-ceph-global
@@ -306,7 +306,7 @@ items:
     
     # Aspects of ceph-mgr that require cluster-wide access
   - kind: ClusterRole
-    apiVersion: rbac.authorization.k8s.io/v1beta1
+    apiVersion: rbac.authorization.k8s.io/v1
     metadata:
       name: rook-ceph-mgr-cluster
       labels:
@@ -334,7 +334,7 @@ items:
         storage-backend: ceph
 
   - kind: RoleBinding
-    apiVersion: rbac.authorization.k8s.io/v1beta1
+    apiVersion: rbac.authorization.k8s.io/v1
     metadata:
       name: rook-ceph-system
       namespace: rook-ceph-system
@@ -351,7 +351,7 @@ items:
       namespace: rook-ceph-system
 
   - kind: ClusterRoleBinding
-    apiVersion: rbac.authorization.k8s.io/v1beta1
+    apiVersion: rbac.authorization.k8s.io/v1
     metadata:
       name: rook-ceph-global
       namespace: rook-ceph-system

@@ -1,6 +1,6 @@
 # KubeKit Manifest
 
-This Go package is to manage the KubeKit Manifest and Version. It's used by the KubeKit and KubekitOS teams to define the dependencies (software, packages or applications) that should exists in the KubekitOS image or VM.
+This Go package is to manage the KubeKit Manifest and Version. It's used by the KubeKit and KubeOS teams to define the dependencies (software, packages or applications) that should exists in the KubeOS image or VM.
 
 ## Requirements
 

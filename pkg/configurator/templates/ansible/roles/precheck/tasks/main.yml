@@ -11,6 +11,7 @@
   - include_tasks: format_check.yml
   - include_tasks: ha_host_check.yml
   - include_tasks: ip_precheck.yml
+  - include_tasks: sc_cloudconf_check.yml
   - include_tasks: ip_validate.yml
   - include_tasks: sysctl.yml
   - include_tasks: openssl_check.yml
@@ -19,7 +20,7 @@
   when: prechecks_enabled
 
 - include_tasks: cloud-init.yml
-  when: cloud_provider == "aws"
+  when: cloud_provider == "ec2"
 
 - name: </precheck>
   debug:
