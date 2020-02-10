@@ -82,7 +82,7 @@ func editClusters(editor string, readOnly bool, clustersName ...string) error {
 		return err
 	}
 	if len(klusterList) == 0 || klusterList == nil {
-		return fmt.Errorf("cluster configuration file for %v were not found", clustersName)
+		return fmt.Errorf("cluster configuration file for %v was not found", clustersName)
 	}
 
 	type editError struct {
