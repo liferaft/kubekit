@@ -1,11 +1,11 @@
 package kubekitctl
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/johandry/log"
+	"github.com/liferaft/kubekit/cli"
 	clientv1 "github.com/liferaft/kubekit/pkg/client/v1"
 	homedir "github.com/mitchellh/go-homedir"
 )
@@ -46,7 +46,7 @@ var config *Config
 
 func (c *Config) init() error {
 	if c.NoGRPC && c.NoHTTP {
-		return fmt.Errorf("no-http and no-grpc cannot be used at same time")
+		return cli.UserErrorf("no-http and no-grpc cannot be used at same time")
 	}
 
 	if c.PortGRPC == "" {
