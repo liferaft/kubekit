@@ -11,6 +11,7 @@ import (
 
 	"github.com/johandry/log"
 	"github.com/kraken/ui"
+	"github.com/liferaft/kubekit/cli"
 	homedir "github.com/mitchellh/go-homedir"
 	toml "github.com/pelletier/go-toml"
 	"github.com/spf13/cobra"
@@ -203,7 +204,7 @@ func (c *Config) Stringf(format string, pp bool) (string, error) {
 	case "text", "txt":
 		return c.Text(pp)
 	default:
-		return "", fmt.Errorf("unknown format %s", format)
+		return "", cli.UserErrorf("unknown format %s", format)
 	}
 }
 

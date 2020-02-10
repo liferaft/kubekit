@@ -179,7 +179,7 @@ func initClusterRun(cmd *cobra.Command, args []string) error {
 		opts.Path = config.ClustersDir()
 	} else {
 		if _, err := os.Stat(opts.Path); os.IsNotExist(err) {
-			return fmt.Errorf("path %q does not exists", opts.Path)
+			return cli.UserErrorf("path %q does not exists", opts.Path)
 		}
 	}
 
@@ -202,7 +202,7 @@ func initClusterRun(cmd *cobra.Command, args []string) error {
 	case "aws":
 		// Special case, "aws" is no longer a concrete platform, instead use ec2
 		// Alternate option would be to accept aws but silently remap it to ec2
-		return fmt.Errorf("'aws' is no longer a supported platform name, use 'ec2' instead")
+		return cli.UserErrorf("'aws' is no longer a supported platform name, use 'ec2' instead")
 	}
 
 	config.UI.Log.Debugf("initializing cluster %q credentials", opts.ClusterName)
@@ -243,16 +243,16 @@ func initClusterRun(cmd *cobra.Command, args []string) error {
 
 func initTemplateRun(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("requires a template name")
+		return cli.UserErrorf("requires a template name")
 	}
 	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 template name, received %d. %v", len(args), args)
+		return cli.UserErrorf("accepts 1 template name, received %d. %v", len(args), args)
 	}
 	templateName := args[0]
 	platformStr := cmd.Flags().Lookup("platform").Value.String()
 	platforms, err := cli.StringToArray(platformStr)
 	if err != nil {
-		return fmt.Errorf("failed to parse the list of platform")
+		return cli.UserErrorf("failed to parse the list of platform")
 	}
 	path := cmd.Flags().Lookup("path").Value.String()
 	format := cmd.Flags().Lookup("format").Value.String()
@@ -277,14 +277,14 @@ func initTemplateRun(cmd *cobra.Command, args []string) error {
 
 func initCertificatesRun(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("requires a cluster name")
+		return cli.UserErrorf("requires a cluster name")
 	}
 	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 cluster name, received %d. %v", len(args), args)
+		return cli.UserErrorf("accepts 1 cluster name, received %d. %v", len(args), args)
 	}
 	clusterName := args[0]
 	if len(clusterName) == 0 {
-		return fmt.Errorf("cluster name cannot be empty")
+		return cli.UserErrorf("cluster name cannot be empty")
 	}
 
 	// DEBUG:
@@ -305,14 +305,14 @@ func initPackageRun(cmd *cobra.Command, args []string) error {
 
 	// cluster name is optional if target flag is used (either cluster name or target flag is required)
 	if len(args) == 0 && len(targetFilename) == 0 {
-		return fmt.Errorf("requires a cluster name or target path to store the package")
+		return cli.UserErrorf("requires a cluster name or target path to store the package")
 	}
 	if len(args) > 1 {
-		return fmt.Errorf("accepts 1 cluster name, received %d. %v", len(args), args)
+		return cli.UserErrorf("accepts 1 cluster name, received %d. %v", len(args), args)
 	}
 	clusterName := args[0]
 	if len(clusterName) == 0 && len(targetFilename) == 0 {
-		return fmt.Errorf("cluster name cannot be empty or use the targe flag to indicate packge location")
+		return cli.UserErrorf("cluster name cannot be empty or use the targe flag to indicate packge location")
 	}
 
 	format := cmd.Flags().Lookup("format").Value.String()
@@ -322,7 +322,7 @@ func initPackageRun(cmd *cobra.Command, args []string) error {
 	if len(targetFilename) != 0 {
 		formatFile := filepath.Ext(targetFilename)
 		if len(formatFile) != 0 && len(format) != 0 && formatFile != format {
-			return fmt.Errorf("target file format (%s) and requested package format (%s) are different", formatFile, format)
+			return cli.UserErrorf("target file format (%s) and requested package format (%s) are different", formatFile, format)
 		}
 		if len(formatFile) != 0 && len(format) == 0 {
 			format = formatFile
@@ -335,7 +335,7 @@ func initPackageRun(cmd *cobra.Command, args []string) error {
 	case "":
 		format = defPackageFormat
 	default:
-		return fmt.Errorf("unkwnow package format %q, use 'rpm' or 'deb'", format)
+		return cli.UserErrorf("unkwnow package format %q, use 'rpm' or 'deb'", format)
 	}
 
 	// if target and cluster name are in use, use target
@@ -344,7 +344,7 @@ func initPackageRun(cmd *cobra.Command, args []string) error {
 	if len(targetFilename) == 0 {
 		clusterDir := kluster.Path(clusterName, config.ClustersDir())
 		if len(clusterDir) == 0 {
-			return fmt.Errorf("cluster name %q not found on your system", clusterName)
+			return cli.UserErrorf("cluster name %q not found on your system", clusterName)
 		}
 		targetFilename = filepath.Join(clusterDir, "kubekit."+format)
 	} else {
@@ -353,7 +353,7 @@ func initPackageRun(cmd *cobra.Command, args []string) error {
 		// if err != nil, file does not exists which is ok, but if it's a directory then error
 		// if no extension, then should be a directory, so error if doesn't exists
 		if os.IsNotExist(err) && filepath.Ext(targetFilename) == "" {
-			return fmt.Errorf("looks like target %q is a directory that doesn't exists", targetFilename)
+			return cli.UserErrorf("looks like target %q is a directory that doesn't exists", targetFilename)
 		}
 		if err == nil && targetStat.IsDir() {
 			targetFilename = filepath.Join(targetFilename, "kubekit."+format)
@@ -369,14 +369,14 @@ func initPackageRun(cmd *cobra.Command, args []string) error {
 
 func initTemplate(templateName string, platforms []string, path, format string, variables map[string]string) (*kluster.Kluster, error) {
 	if len(templateName) == 0 {
-		return nil, fmt.Errorf("template name cannot be empty")
+		return nil, cli.UserErrorf("template name cannot be empty")
 	}
 	if len(path) == 0 {
 		tplDir := filepath.Join(config.ClustersDir(), "..", "templates")
 		path = filepath.Clean(tplDir)
 	} else {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			return nil, fmt.Errorf("path %q does not exists", path)
+			return nil, cli.UserErrorf("path %q does not exists", path)
 		}
 	}
 	if strings.Contains(templateName, "_") {

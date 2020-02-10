@@ -72,35 +72,35 @@ func addExecCmd() {
 
 func execClusterRun(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("requires a cluster name")
+		return cli.UserErrorf("requires a cluster name")
 	}
 	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 cluster name, received %d. %v", len(args), args)
+		return cli.UserErrorf("accepts 1 cluster name, received %d. %v", len(args), args)
 	}
 	clusterName := args[0]
 	if len(clusterName) == 0 {
-		return fmt.Errorf("cluster name cannot be empty")
+		return cli.UserErrorf("cluster name cannot be empty")
 	}
 
 	command := cmd.Flags().Lookup("cmd").Value.String()
 	script := cmd.Flags().Lookup("file").Value.String()
 
 	if len(command) != 0 && len(script) != 0 {
-		return fmt.Errorf("'cmd' and 'file' flags are mutually exclusive, use --cmd or --file but not both in the same command")
+		return cli.UserErrorf("'cmd' and 'file' flags are mutually exclusive, use --cmd or --file but not both in the same command")
 	}
 
 	nodesStr := cmd.Flags().Lookup("nodes").Value.String()
 	nodes, err := cli.StringToArray(nodesStr)
 	if err != nil {
-		return fmt.Errorf("failed to parse the list of nodes")
+		return cli.UserErrorf("failed to parse the list of nodes")
 	}
 	poolsStr := cmd.Flags().Lookup("pools").Value.String()
 	pools, err := cli.StringToArray(poolsStr)
 	if err != nil {
-		return fmt.Errorf("failed to parse the list of pools")
+		return cli.UserErrorf("failed to parse the list of pools")
 	}
 	if len(nodes) != 0 && len(pools) != 0 {
-		return fmt.Errorf("'nodes' and 'pools' flags are mutually exclusive, use --nodes or --pools but not both in the same command")
+		return cli.UserErrorf("'nodes' and 'pools' flags are mutually exclusive, use --nodes or --pools but not both in the same command")
 	}
 
 	output := cmd.Flags().Lookup("output").Value.String()
@@ -142,14 +142,14 @@ func execClusterRun(cmd *cobra.Command, args []string) error {
 
 func execPackageRun(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("requires a cluster name")
+		return cli.UserErrorf("requires a cluster name")
 	}
 	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 cluster name, received %d. %v", len(args), args)
+		return cli.UserErrorf("accepts 1 cluster name, received %d. %v", len(args), args)
 	}
 	clusterName := args[0]
 	if len(clusterName) == 0 {
-		return fmt.Errorf("cluster name cannot be empty")
+		return cli.UserErrorf("cluster name cannot be empty")
 	}
 
 	cluster, err := loadCluster(clusterName)

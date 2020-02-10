@@ -3,6 +3,7 @@ package kubekit
 import (
 	"fmt"
 
+	"github.com/liferaft/kubekit/cli"
 	"github.com/liferaft/kubekit/pkg/aws_iam_authenticator/token"
 	"github.com/spf13/cobra"
 )
@@ -35,7 +36,7 @@ func tokenRun(cmd *cobra.Command, args []string) error {
 	// fmt.Printf("token -i %s -r %s\n", clusterID, roleARN)
 
 	if len(clusterID) == 0 {
-		return fmt.Errorf("requires a cluster name")
+		return cli.UserErrorf("requires a cluster name")
 	}
 
 	cluster, err := loadCluster(clusterID)

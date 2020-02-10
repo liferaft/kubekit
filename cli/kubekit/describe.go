@@ -3,6 +3,7 @@ package kubekit
 import (
 	"fmt"
 
+	"github.com/liferaft/kubekit/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -67,7 +68,7 @@ func addDescribeCmd() {
 
 func describeClusterRun(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("requires a cluster name")
+		return cli.UserErrorf("requires a cluster name")
 	}
 	clustersName := args
 	output := cmd.Flags().Lookup("output").Value.String()
@@ -77,11 +78,11 @@ func describeClusterRun(cmd *cobra.Command, args []string) error {
 	switch output {
 	case "json", "yaml", "toml":
 	default:
-		return fmt.Errorf("unknown or unsupported format %q", output)
+		return cli.UserErrorf("unknown or unsupported format %q", output)
 	}
 
 	if len(output) != 0 && len(format) != 0 {
-		return fmt.Errorf("format template output (--format) cannot be used with any form of output (--output | -o %s), use only one", output)
+		return cli.UserErrorf("format template output (--format) cannot be used with any form of output (--output | -o %s), use only one", output)
 	}
 
 	// DEBUG:
@@ -96,20 +97,20 @@ func describeClusterRun(cmd *cobra.Command, args []string) error {
 
 func describeNodesRun(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("requires a node hostname or IP address")
+		return cli.UserErrorf("requires a node hostname or IP address")
 	}
 	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 node, received %d. %v", len(args), args)
+		return cli.UserErrorf("accepts 1 node, received %d. %v", len(args), args)
 	}
 	nodeName := args[0]
 	if len(nodeName) == 0 {
-		return fmt.Errorf("node hostname or IP cannot be empty")
+		return cli.UserErrorf("node hostname or IP cannot be empty")
 	}
 
 	// TODO: Should we remove this and search the node in every cluster?
 	clusterName := cmd.Flags().Lookup("cluster").Value.String()
 	if len(clusterName) == 0 {
-		return fmt.Errorf("cluster name is required")
+		return cli.UserErrorf("cluster name is required")
 	}
 
 	output := cmd.Flags().Lookup("output").Value.String()
