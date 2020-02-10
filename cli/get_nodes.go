@@ -47,18 +47,18 @@ func GetNodesGetOpts(cmd *cobra.Command, args []string) (opts *GetNodesOpts, war
 	nodesStr := cmd.Flags().Lookup("nodes").Value.String()
 	nodes, err := StringToArray(nodesStr)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse the list of nodes")
+		return nil, nil, UserErrorf("failed to parse the list of nodes")
 	}
 
 	// Pools:
 	poolsStr := cmd.Flags().Lookup("pools").Value.String()
 	pools, err := StringToArray(poolsStr)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse the list of pools")
+		return nil, nil, UserErrorf("failed to parse the list of pools")
 	}
 
 	if len(nodes) != 0 && len(pools) != 0 {
-		return nil, nil, fmt.Errorf("'nodes' and 'pools' flags are mutually exclusive, use --nodes or --pools but not both in the same command")
+		return nil, nil, UserErrorf("'nodes' and 'pools' flags are mutually exclusive, use --nodes or --pools but not both in the same command")
 	}
 
 	return &GetNodesOpts{
@@ -88,7 +88,7 @@ func (cni ClusterNodeInfo) Sprintf(format string, pp bool) (string, error) {
 	case "quiet":
 		return cni.IPs(), nil
 	default:
-		return "", fmt.Errorf("unknown format %q", format)
+		return "", UserErrorf("unknown format %q", format)
 	}
 }
 

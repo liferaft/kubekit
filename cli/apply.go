@@ -63,12 +63,12 @@ func ApplyGetOpts(cmd *cobra.Command, args []string) (opts *ApplyOpts, warns []s
 	}
 	if pkgURLFlag := cmd.Flags().Lookup("package-file-url"); pkgURLFlag != nil {
 		if pkgURL != "" {
-			return nil, warns, fmt.Errorf("flags 'package-file' and 'package-file-url' cannot be set at same time. If the file is local and working directly with KubeKit, use 'package-file'. If the file is remote use 'package-file-url'. Use 'package-file-url' if working with KubeKit as a client")
+			return nil, warns, UserErrorf("flags 'package-file' and 'package-file-url' cannot be set at same time. If the file is local and working directly with KubeKit, use 'package-file'. If the file is remote use 'package-file-url'. Use 'package-file-url' if working with KubeKit as a client")
 		}
 		pkgURL := pkgURLFlag.Value.String()
 		if pkgURL != "" {
 			if _, err = url.Parse(pkgURL); err != nil {
-				return nil, warns, fmt.Errorf("the value of 'package-file-url' (%q) is not a valid URL. %s", pkgURL, err)
+				return nil, warns, UserErrorf("the value of 'package-file-url' (%q) is not a valid URL. %s", pkgURL, err)
 			}
 		}
 	}
