@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/johandry/log"
+	"github.com/liferaft/kubekit/cli"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -31,8 +32,11 @@ func Execute() {
 
 	addCommands()
 
-	if err := RootCmd.Execute(); err != nil {
+	if c, err := RootCmd.ExecuteC(); err != nil {
 		fmt.Fprintf(os.Stderr, "\n\x1B[91;1m[ERROR]\x1B[0m %s\n", err)
+		if _, ok := err.(cli.UserError); ok {
+			c.Printf("\n%s\n", c.UsageString())
+		}
 		os.Exit(1)
 	}
 }

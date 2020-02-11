@@ -114,14 +114,14 @@ func addApplyCmd() {
 
 func applyCertificatesRun(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("requires a cluster name")
+		return cli.UserErrorf("requires a cluster name")
 	}
 	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 cluster name, received %d. %v", len(args), args)
+		return cli.UserErrorf("accepts 1 cluster name, received %d. %v", len(args), args)
 	}
 	clusterName := args[0]
 	if len(clusterName) == 0 {
-		return fmt.Errorf("cluster name cannot be empty")
+		return cli.UserErrorf("cluster name cannot be empty")
 	}
 
 	cluster, err := loadCluster(clusterName)
@@ -136,14 +136,14 @@ func applyCertificatesRun(cmd *cobra.Command, args []string) error {
 
 func applyClusterRun(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("requires a cluster name")
+		return cli.UserErrorf("requires a cluster name")
 	}
 	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 cluster name, received %d. %v", len(args), args)
+		return cli.UserErrorf("accepts 1 cluster name, received %d. %v", len(args), args)
 	}
 	clusterName := args[0]
 	if len(clusterName) == 0 {
-		return fmt.Errorf("cluster name cannot be empty")
+		return cli.UserErrorf("cluster name cannot be empty")
 	}
 
 	// the cluster config file must exists. This command should be executed after 'init' or will fail
@@ -338,14 +338,14 @@ func configure(cluster *kluster.Kluster) error {
 
 func actionPackageRun(cmd *cobra.Command, args []string, doExec bool) error {
 	if len(args) == 0 {
-		return fmt.Errorf("requires a cluster name")
+		return cli.UserErrorf("requires a cluster name")
 	}
 	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 cluster name, received %d. %v", len(args), args)
+		return cli.UserErrorf("accepts 1 cluster name, received %d. %v", len(args), args)
 	}
 	clusterName := args[0]
 	if len(clusterName) == 0 {
-		return fmt.Errorf("cluster name cannot be empty")
+		return cli.UserErrorf("cluster name cannot be empty")
 	}
 
 	pkgFilename := cmd.Flags().Lookup("package-file").Value.String()

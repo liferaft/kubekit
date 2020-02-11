@@ -23,7 +23,7 @@ type InitOpts struct {
 // GetMultipleClustersName retrive from the CLI (cobra) arguments one or more clusters name
 func GetMultipleClustersName(cmd *cobra.Command, args []string) ([]string, error) {
 	if len(args) == 0 {
-		return nil, fmt.Errorf("requires a cluster name")
+		return nil, UserErrorf("requires a cluster name")
 	}
 	return args, nil
 }
@@ -31,13 +31,13 @@ func GetMultipleClustersName(cmd *cobra.Command, args []string) ([]string, error
 // GetOneClusterName retrive from the CLI (cobra) arguments one cluster name which could be valid or not
 func GetOneClusterName(cmd *cobra.Command, args []string, validate bool) (clusterName string, err error) {
 	if len(args) == 0 {
-		return "", fmt.Errorf("requires a cluster name")
+		return "", UserErrorf("requires a cluster name")
 	}
 	if len(args) != 1 {
-		return "", fmt.Errorf("accepts 1 cluster name, received %d. %v", len(args), args)
+		return "", UserErrorf("accepts 1 cluster name, received %d. %v", len(args), args)
 	}
 	if len(args[0]) == 0 {
-		return "", fmt.Errorf("cluster name cannot be empty")
+		return "", UserErrorf("cluster name cannot be empty")
 	}
 	if validate {
 		return kluster.ValidClusterName(args[0])
@@ -68,7 +68,7 @@ func InitGetOpts(cmd *cobra.Command, args []string) (opts *InitOpts, warns []str
 	// Validate platform (required unless it's an update)
 	platform := cmd.Flags().Lookup("platform").Value.String()
 	if len(platform) == 0 && !update {
-		return nil, warns, fmt.Errorf("platform is required")
+		return nil, warns, UserErrorf("platform is required")
 	}
 	platform = strings.ToLower(platform)
 

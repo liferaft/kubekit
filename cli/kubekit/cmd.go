@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/liferaft/kubekit/cli"
 	"github.com/liferaft/kubekit/pkg/kluster"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +28,9 @@ func Execute() {
 			config.UI.Log.Error(err.Error())
 		}
 		fmt.Fprintf(os.Stderr, "\n\x1B[91;1m[ERROR]\x1B[0m %s\n", err)
-		c.Printf("\n%s\n", c.UsageString())
+		if _, ok := err.(cli.UserError); ok {
+			c.Printf("\n%s\n", c.UsageString())
+		}
 		os.Exit(-1)
 	}
 }

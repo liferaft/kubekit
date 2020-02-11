@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/liferaft/kubekit/cli"
 	"github.com/liferaft/kubekit/pkg/kluster"
 	"github.com/spf13/cobra"
 )
@@ -47,7 +48,7 @@ func addEditCmd() {
 
 func editClustersConfigRun(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("requires a cluster name")
+		return cli.UserErrorf("requires a cluster name")
 	}
 	clustersName := args
 
@@ -73,7 +74,7 @@ func editClustersConfigRun(cmd *cobra.Command, args []string) error {
 
 func editClusters(editor string, readOnly bool, clustersName ...string) error {
 	if _, err := os.Stat(editor); os.IsNotExist(err) {
-		return fmt.Errorf("not found editor %q", editor)
+		return cli.UserErrorf("not found editor %q", editor)
 	}
 
 	klusterList, err := kluster.List(config.ClustersDir(), clustersName...)
@@ -81,7 +82,7 @@ func editClusters(editor string, readOnly bool, clustersName ...string) error {
 		return err
 	}
 	if len(klusterList) == 0 || klusterList == nil {
-		return fmt.Errorf("cluster configuration file for %v were not found", clustersName)
+		return fmt.Errorf("cluster configuration file for %v was not found", clustersName)
 	}
 
 	type editError struct {

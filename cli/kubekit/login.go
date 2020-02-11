@@ -90,14 +90,14 @@ func addLoginCmd() {
 
 func loginClusterRun(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("requires a cluster name")
+		return cli.UserErrorf("requires a cluster name")
 	}
 	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 cluster name, received %d. %v", len(args), args)
+		return cli.UserErrorf("accepts 1 cluster name, received %d. %v", len(args), args)
 	}
 	clusterName := args[0]
 	if len(clusterName) == 0 {
-		return fmt.Errorf("cluster name cannot be empty")
+		return cli.UserErrorf("cluster name cannot be empty")
 	}
 
 	// DEBUG:
@@ -176,20 +176,20 @@ func loginClusterRun(cmd *cobra.Command, args []string) error {
 
 func loginNodeRun(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("requires a node hostname or IP address")
+		return cli.UserErrorf("requires a node hostname or IP address")
 	}
 	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 node, received %d. %v", len(args), args)
+		return cli.UserErrorf("accepts 1 node, received %d. %v", len(args), args)
 	}
 	nodeName := args[0]
 	if len(nodeName) == 0 {
-		return fmt.Errorf("node hostname or IP cannot be empty")
+		return cli.UserErrorf("node hostname or IP cannot be empty")
 	}
 
 	// TODO: Should we remove this and search the node in every cluster?
 	clusterName := cmd.Flags().Lookup("cluster").Value.String()
 	if len(clusterName) == 0 {
-		return fmt.Errorf("cluster name is required")
+		return cli.UserErrorf("cluster name is required")
 	}
 
 	// DEBUG:

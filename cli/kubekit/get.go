@@ -122,13 +122,13 @@ func getClustersRun(cmd *cobra.Command, args []string) error {
 
 	if config.Quiet {
 		if len(output) != 0 {
-			return fmt.Errorf("quiet mode cannot be used with any form of output, use only one")
+			return cli.UserErrorf("quiet mode cannot be used with any form of output, use only one")
 		}
 		output = "quiet"
 	}
 
 	if len(output) != 0 && len(format) != 0 {
-		return fmt.Errorf("format template output (--format) cannot be used with any form of output (--output | -o %s), use only one", output)
+		return cli.UserErrorf("format template output (--format) cannot be used with any form of output (--output | -o %s), use only one", output)
 	}
 
 	filter, warns, err := cli.GetFilters(cmd)
@@ -164,14 +164,14 @@ func getNodesRun(cmd *cobra.Command, args []string) error {
 
 	if config.Quiet {
 		if len(opts.Output) != 0 {
-			return fmt.Errorf("cannot use an output format %q and quiet mode at same time", opts.Output)
+			return cli.UserErrorf("cannot use an output format %q and quiet mode at same time", opts.Output)
 		}
 		opts.Output = "quiet"
 	}
 
 	// TODO: Should we implement this rule?
 	// if config.Quiet && len(opts.ClustersName) > 1 {
-	// 	return fmt.Errorf("cannot use quiet mode for multiple clusters, just one cluster is allowed")
+	// 	return cli.UserErrorf("cannot use quiet mode for multiple clusters, just one cluster is allowed")
 	// }
 
 	// DEBUG:
@@ -220,7 +220,7 @@ func getEnvRun(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		if len(klusterList) == 0 || klusterList[0] == nil {
-			return fmt.Errorf("cluster %q not found, to find the cluster name try: kubekit get clusters", opts.ClusterName)
+			return cli.UserErrorf("cluster %q not found, to find the cluster name try: kubekit get clusters", opts.ClusterName)
 		}
 		kubeconfigPath = filepath.Join(filepath.Dir(klusterList[0].Path()), "certificates", "kubeconfig")
 	}
@@ -238,16 +238,16 @@ func getEnvRun(cmd *cobra.Command, args []string) error {
 
 // func getFilesRun(cmd *cobra.Command, args []string) error {
 // 	if len(args) == 0 {
-// 		return fmt.Errorf("requires a cluster name")
+// 		return cli.UserErrorf("requires a cluster name")
 // 	}
 // 	clusterName := args[0]
 // 	if len(clusterName) == 0 {
-// 		return fmt.Errorf("cluster name cannot be empty")
+// 		return cli.UserErrorf("cluster name cannot be empty")
 // 	}
 
 // 	filenames := args[1:]
 // 	if len(filenames) == 0 {
-// 		return fmt.Errorf("requires at least a filename")
+// 		return cli.UserErrorf("requires at least a filename")
 // 	}
 
 // 	output := cmd.Flags().Lookup("output").Value.String()
@@ -256,7 +256,7 @@ func getEnvRun(cmd *cobra.Command, args []string) error {
 // 	pathStr := cmd.Flags().Lookup("path").Value.String()
 // 	paths, err := stringToArray(pathStr)
 // 	if err != nil {
-// 		return fmt.Errorf("failed to parse the list of paths")
+// 		return cli.UserErrorf("failed to parse the list of paths")
 // 	}
 // 	if len(paths) == 0 {
 // 		paths = []string{"/"}
@@ -264,15 +264,15 @@ func getEnvRun(cmd *cobra.Command, args []string) error {
 // 	nodesStr := cmd.Flags().Lookup("nodes").Value.String()
 // 	nodes, err := stringToArray(nodesStr)
 // 	if err != nil {
-// 		return fmt.Errorf("failed to parse the list of nodes")
+// 		return cli.UserErrorf("failed to parse the list of nodes")
 // 	}
 // 	poolsStr := cmd.Flags().Lookup("pools").Value.String()
 // 	pools, err := stringToArray(poolsStr)
 // 	if err != nil {
-// 		return fmt.Errorf("failed to parse the list of pools")
+// 		return cli.UserErrorf("failed to parse the list of pools")
 // 	}
 // 	if len(nodes) != 0 && len(pools) != 0 {
-// 		return fmt.Errorf("'nodes' and 'pools' flags are mutually exclusive, use --nodes or --pools but not both in the same command")
+// 		return cli.UserErrorf("'nodes' and 'pools' flags are mutually exclusive, use --nodes or --pools but not both in the same command")
 // 	}
 
 // 	// DEBUG:

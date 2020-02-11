@@ -188,33 +188,33 @@ func addCopyCmd() {
 
 func copyClusterConfigRun(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("requires a cluster name")
+		return cli.UserErrorf("requires a cluster name")
 	}
 	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 cluster name, received %d. %v", len(args), args)
+		return cli.UserErrorf("accepts 1 cluster name, received %d. %v", len(args), args)
 	}
 	clusterName := args[0]
 	if len(clusterName) == 0 {
-		return fmt.Errorf("cluster name cannot be empty")
+		return cli.UserErrorf("cluster name cannot be empty")
 	}
 
 	newClusterName := cmd.Flags().Lookup("to").Value.String()
 	if len(newClusterName) == 0 && !doExportCC {
-		return fmt.Errorf("new cluster name not found. Use the '--to' flag to set the new name")
+		return cli.UserErrorf("new cluster name not found. Use the '--to' flag to set the new name")
 	}
 	if len(newClusterName) != 0 && doExportCC {
-		return fmt.Errorf("cannot export the cluster config with a new name. Do not use '--to' with '--export'")
+		return cli.UserErrorf("cannot export the cluster config with a new name. Do not use '--to' with '--export'")
 	}
 
 	newPlatform := cmd.Flags().Lookup("platform").Value.String()
 	if len(newPlatform) != 0 && doExportCC {
-		return fmt.Errorf("cannot export the cluster to a new platform. Do not use the `--export` flag with `--platform` flag")
+		return cli.UserErrorf("cannot export the cluster to a new platform. Do not use the `--export` flag with `--platform` flag")
 	}
 	path := cmd.Flags().Lookup("path").Value.String()
 	format := cmd.Flags().Lookup("format").Value.String()
 	templateName := cmd.Flags().Lookup("template").Value.String()
 	if len(templateName) != 0 && doExportCC {
-		return fmt.Errorf("cannot export the cluster using a template. Do not use the `--export` flag with `--template` flag")
+		return cli.UserErrorf("cannot export the cluster using a template. Do not use the `--export` flag with `--template` flag")
 	}
 
 	if len(newClusterName) == 0 && doExportCC {
@@ -245,34 +245,34 @@ func copyClusterConfigRun(cmd *cobra.Command, args []string) error {
 
 func copyFilesRun(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("requires a cluster name")
+		return cli.UserErrorf("requires a cluster name")
 	}
 	if len(args) != 1 {
-		return fmt.Errorf("accepts 1 cluster name, received %d. %v", len(args), args)
+		return cli.UserErrorf("accepts 1 cluster name, received %d. %v", len(args), args)
 	}
 	clusterName := args[0]
 	if len(clusterName) == 0 {
-		return fmt.Errorf("cluster name cannot be empty")
+		return cli.UserErrorf("cluster name cannot be empty")
 	}
 
 	from := cmd.Flags().Lookup("from").Value.String()
 	to := cmd.Flags().Lookup("to").Value.String()
 	check := from[0:1] + to[0:1]
 	if check == "::" || !strings.Contains(check, ":") {
-		return fmt.Errorf("target and source location has to be local and the other remote. Remote locations begins with ':'")
+		return cli.UserErrorf("target and source location has to be local and the other remote. Remote locations begins with ':'")
 	}
 	nodesStr := cmd.Flags().Lookup("nodes").Value.String()
 	nodes, err := cli.StringToArray(nodesStr)
 	if err != nil {
-		return fmt.Errorf("failed to parse the list of nodes")
+		return cli.UserErrorf("failed to parse the list of nodes")
 	}
 	poolsStr := cmd.Flags().Lookup("pools").Value.String()
 	pools, err := cli.StringToArray(poolsStr)
 	if err != nil {
-		return fmt.Errorf("failed to parse the list of pools")
+		return cli.UserErrorf("failed to parse the list of pools")
 	}
 	if len(nodes) != 0 && len(pools) != 0 {
-		return fmt.Errorf("'nodes' and 'pools' flags are mutually exclusive, use --nodes or --pools but not both in the same command")
+		return cli.UserErrorf("'nodes' and 'pools' flags are mutually exclusive, use --nodes or --pools but not both in the same command")
 	}
 	owner := cmd.Flags().Lookup("owner").Value.String()
 	group := cmd.Flags().Lookup("group").Value.String()
@@ -313,19 +313,19 @@ func copyPackageRun(cmd *cobra.Command, args []string) error {
 
 func copyClusterConfig(sourceClusterName, newClusterName, platform, path, format string, variables map[string]string, templateName string, doExport, doZip bool) (*kluster.Kluster, error) {
 	if len(newClusterName) == 0 {
-		return nil, fmt.Errorf("the new cluster name cannot be empty")
+		return nil, cli.UserErrorf("the new cluster name cannot be empty")
 	}
 	if len(path) == 0 && !kluster.Unique(newClusterName, config.ClustersDir()) {
-		return nil, fmt.Errorf("cluster name %q already exists. List all the names with the 'get clusters' command and select a unique name", newClusterName)
+		return nil, cli.UserErrorf("cluster name %q already exists. List all the names with the 'get clusters' command and select a unique name", newClusterName)
 	}
 
 	klusterFile := kluster.Path(sourceClusterName, config.ClustersDir())
 	if len(klusterFile) == 0 {
-		return nil, fmt.Errorf("failed to find the source cluster named %q", sourceClusterName)
+		return nil, cli.UserErrorf("failed to find the source cluster named %q", sourceClusterName)
 	}
 	sourceCluster, err := kluster.LoadSummary(klusterFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load the kluster config file %s. %s", klusterFile, err)
+		return nil, cli.UserErrorf("failed to load the kluster config file %s. %s", klusterFile, err)
 	}
 
 	config.UI.Log.Debugf("copying cluster %q to %q", sourceClusterName, newClusterName)
@@ -335,7 +335,7 @@ func copyClusterConfig(sourceClusterName, newClusterName, platform, path, format
 		path = defaultClustersPath
 	} else {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			return nil, fmt.Errorf("path %q does not exists", path)
+			return nil, cli.UserErrorf("path %q does not exists", path)
 		}
 	}
 

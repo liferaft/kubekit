@@ -36,7 +36,7 @@ func GetEnvGetOpts(cmd *cobra.Command, args []string) (opts *GetEnvOpts, warns [
 	}
 
 	if len(clusterName) == 0 && !unset {
-		return nil, warns, fmt.Errorf("cluster name is required unless --unset or -u is used")
+		return nil, warns, UserErrorf("cluster name is required unless --unset or -u is used")
 	}
 
 	shell := DefaultShell
