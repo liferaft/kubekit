@@ -59,10 +59,14 @@ func addDescribeCmd() {
 	describeCmd.Flags().String("format", "", "pretty-print the cluster configuration using a Go template")
 
 	describeCmd.AddCommand(describeClusterCmd)
-	// describe templates NAME[,NAME ...] --output (json|yaml|toml) --pp
+	// describe templates NAME[,NAME ...] --output (json|yaml|toml) --pp --format ...
+	describeClusterCmd.Flags().String("format", "", "pretty-print the cluster configuration using a Go template")
+
 	describeCmd.AddCommand(describeTemplatesCmd)
 	// describe nodes CLUSTER-NAME --output (json|yaml|toml) --pp
+
 	describeCmd.AddCommand(describeNodesCmd)
+	// describe templates NAME[,NAME ...] --output (json|yaml|toml) --pp --cluster NAME
 	describeNodesCmd.Flags().StringP("cluster", "c", "", "cluster name where this node is located")
 }
 
