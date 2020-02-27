@@ -11,6 +11,7 @@ import (
 	"github.com/liferaft/kubekit/pkg/kluster"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // AddCertFlags adds the flags to the given command to receive certificate
@@ -84,68 +85,17 @@ func GetCertFlags(cmd *cobra.Command) (tls.KeyPairs, error) {
 	return userCACertsFiles, nil
 }
 
-// GetCredentials get the credentials from cobra CLI flags and insert them into
-// the list of variables. Returns, as a warning, the list of variables ignored
-// or replaced
-func GetCredentials(platform string, cmd *cobra.Command) map[string]string {
+func getVarNames(platform string) (string, []string) {
 	platform = strings.ToLower(platform)
 
-	creds := map[string]string{}
-
+	var varNames []string
 	switch platform {
 	case "vra", "raw", "stacki":
 		// These platforms do not request for credentials
-		return creds
-
-	case "aws":
-		// This platform is abstract, platform should be eks or ec2
-		return creds
-	}
-
-	getCredentialNamed := func(name string) {
-		// Get the value of the flag `name` (if exists) and append it to the list of credentials
-		if flag := cmd.Flags().Lookup(name); flag != nil {
-			// The flag may be defined (not nil) but not set by the user (value == "")
-			if value := flag.Value.String(); value != "" {
-				creds[name] = value
-				// The flags has priority over the environment variable, so return if found
-				return
-			}
-		}
-
-		// Unfortunatelly the flag and variable name of these credentials are not like the standard AWS environment variables
-		// TODO: Make these flags and variables name like the standard AWS variables
-		var envName string
-		switch name {
-		case "access_key":
-			envName = "access_key_id"
-		case "secret_key":
-			envName = "secret_access_key"
-		case "region":
-			envName = "default_region"
-		default:
-			envName = name
-		}
-
-		// For EKS and AKS the platform is AWS and AZURE respectivelly
-		switch platform {
-		case "ec2", "eks":
-			platform = "aws"
-		case "azure", "aks":
-			platform = "azure"
-		}
-
-		// Get the value of the environment variable `PLATFORM_NAME` (if exists) and append it to the list of variables
-		if envValue := os.Getenv(strings.ToUpper(platform + "_" + envName)); envValue != "" {
-			creds[name] = envValue
-		}
-	}
-
-	// In nameOfVarAndFlag the key is the name of the variable and the value is
-	// the name of the flag. Most of the time is the same, except for the generic/server credentials
-	var varNames []string
-	switch platform {
-	case "aws": //"ec2", "eks":
+		// do nothing and return an empty list of variables
+	case "aws", "ec2", "eks":
+		// For EC2 and EKS the platform name in environment variables is AWS
+		platform = "aws"
 		varNames = []string{
 			"access_key",
 			"secret_key",
@@ -154,6 +104,8 @@ func GetCredentials(platform string, cmd *cobra.Command) map[string]string {
 			"profile",
 		}
 	case "azure", "aks":
+		// For AKS the platform name in environment variables is AZURE
+		platform = "azure"
 		varNames = []string{
 			"subscription_id",
 			"tenant_id",
@@ -168,8 +120,45 @@ func GetCredentials(platform string, cmd *cobra.Command) map[string]string {
 		}
 	}
 
+	return platform, varNames
+}
+
+func getVarValue(name, envPrefix string, flag *pflag.Flag) string {
+	// Get the value of the flag `name` (if exists) and append it to the list of credentials
+	if flag != nil {
+		// The flag may be defined (not nil) but not set by the user (value == "")
+		if value := flag.Value.String(); value != "" {
+			// The flags has priority over the environment variable, so continue to the next parameter if found
+			return value
+		}
+	}
+
+	// Unfortunatelly the flag and variable name of these credentials are not like the standard AWS environment variables
+	// TODO: Make these flags and variables name like the standard AWS variables
+	switch name {
+	case "access_key":
+		name = "access_key_id"
+	case "secret_key":
+		name = "secret_access_key"
+	case "region":
+		name = "default_region"
+	}
+
+	return os.Getenv(strings.ToUpper(envPrefix + "_" + name))
+}
+
+// GetCredentials get the credentials from cobra CLI flags and insert them into
+// the list of variables. Returns, as a warning, the list of variables ignored
+// or replaced
+func GetCredentials(platform string, cmd *cobra.Command) map[string]string {
+	creds := map[string]string{}
+
+	envPrefix, varNames := getVarNames(platform)
 	for _, name := range varNames {
-		getCredentialNamed(name)
+		if value := getVarValue(name, envPrefix, cmd.Flags().Lookup(name)); value != "" {
+			// Get the value of the environment variable `PLATFORM_NAME` (if exists) and append it to the list of variables
+			creds[name] = value
+		}
 	}
 
 	return creds
